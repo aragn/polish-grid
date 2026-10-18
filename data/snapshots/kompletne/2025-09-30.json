@@ -1,0 +1,445 @@
+{
+"doc": "kompletne",
+"asof": "2025-09-30",
+"source": {
+"title": "Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc",
+"ext": "xlsx",
+"version": "1.10",
+"published": "Thu, 30 Oct 2025 08:50:42 GMT",
+"url": "https://www.pse.pl/documents/20182/51490/Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc.xlsx?version=1.10",
+"md5": "837bff9f03d681dc458bddb21f34cb6e"
+},
+"notes": [],
+"rows": [
+{
+"type": "FW",
+"station": "Nysa (planowana)",
+"kv": "220",
+"mw_in": 64.8,
+"mw_out": null,
+"change": false,
+"date": "2025-01-31",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE)",
+"station": "Rzeszów",
+"kv": "400",
+"mw_in": 250.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-18",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Połaniec",
+"kv": "220",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-18",
+"quarter": null
+},
+{
+"type": "ODB",
+"station": "Gdańsk Błonia",
+"kv": "400",
+"mw_in": 840.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-18",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Podborze (planowana)",
+"kv": "400",
+"mw_in": 399.432,
+"mw_out": null,
+"change": false,
+"date": "2025-02-19",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Nysa (planowana)",
+"kv": "110",
+"mw_in": 101.2,
+"mw_out": null,
+"change": false,
+"date": "2025-02-20",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Ełk Bis",
+"kv": "400",
+"mw_in": 1.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-21",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Rokitnica",
+"kv": "400",
+"mw_in": 1.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-21",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE)",
+"station": "Krosno Iskrzynia",
+"kv": "110",
+"mw_in": 188.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-24",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Ełk Bis",
+"kv": "400",
+"mw_in": 250.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-24",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE)",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "110",
+"mw_in": 46.4,
+"mw_out": null,
+"change": false,
+"date": "2025-02-24",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Plewiska",
+"kv": "220",
+"mw_in": 93.14,
+"mw_out": null,
+"change": false,
+"date": "2025-02-24",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Rzeszów",
+"kv": "110",
+"mw_in": 80.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-25",
+"quarter": null
+},
+{
+"type": "SD (PV + ODB)",
+"station": "Mory",
+"kv": "110",
+"mw_in": 7.5,
+"mw_out": null,
+"change": false,
+"date": "2025-02-25",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Narew",
+"kv": "400",
+"mw_in": 136.472,
+"mw_out": null,
+"change": false,
+"date": "2025-02-26",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Recław",
+"kv": "220",
+"mw_in": 235.58808,
+"mw_out": null,
+"change": false,
+"date": "2025-02-26",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Morzyczyn",
+"kv": "220",
+"mw_in": 224.97818,
+"mw_out": null,
+"change": false,
+"date": "2025-02-27",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Nysa (planowana)",
+"kv": "220;110",
+"mw_in": 189.999415,
+"mw_out": null,
+"change": false,
+"date": "2025-02-27",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Olsztyn Mątki\nPłock\nGrudziądz Węgrowo",
+"kv": "400 400 400",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-27",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Żarnowiec",
+"kv": "400",
+"mw_in": 1000.0,
+"mw_out": null,
+"change": false,
+"date": "2025-02-27",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Ostrów",
+"kv": "400",
+"mw_in": 201.6,
+"mw_out": null,
+"change": false,
+"date": "2025-03-04",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Chmielów",
+"kv": "110",
+"mw_in": 95.04,
+"mw_out": null,
+"change": false,
+"date": "2025-03-05",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Adamów",
+"kv": "110",
+"mw_in": 71.68866,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Żydowo Kierzkowo",
+"kv": "110",
+"mw_in": 144.9,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Leśniów",
+"kv": "220",
+"mw_in": 70.499,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Ząbkowice",
+"kv": "220",
+"mw_in": 240.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Żarnowiec",
+"kv": "400",
+"mw_in": 240.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Leśniów",
+"kv": "220",
+"mw_in": 258.4,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Leśniów",
+"kv": "220",
+"mw_in": 258.4,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Leśniów",
+"kv": "220",
+"mw_in": 95.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-07",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Stryków (planowana)\nJanów",
+"kv": "220 220",
+"mw_in": 199.7376,
+"mw_out": null,
+"change": false,
+"date": "2025-03-10",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + EJ + ODB)",
+"station": "WYP (planowana)",
+"kv": "220;110",
+"mw_in": 433.495,
+"mw_out": null,
+"change": false,
+"date": "2025-03-10",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + EJ + ODB)",
+"station": "CPK (planowana)",
+"kv": "400;110",
+"mw_in": 449.89,
+"mw_out": null,
+"change": false,
+"date": "2025-03-10",
+"quarter": null
+},
+{
+"type": "FW + PV",
+"station": "Pątnów",
+"kv": "220",
+"mw_in": 0.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-12",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "400",
+"mw_in": 502.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-12",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Olsztyn Mątki",
+"kv": "400",
+"mw_in": 110.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-12",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Ząbkowice",
+"kv": "220",
+"mw_in": 250.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-13",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Grudziądz Węgrowo",
+"kv": "400",
+"mw_in": 250.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-14",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Ełk Bis\nNOR (planowana)\nWIG (planowana)",
+"kv": "220 220 220",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-14",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Żagań (planowana)",
+"kv": "220;110",
+"mw_in": 150.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-14",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Wielopole",
+"kv": "400;220;110",
+"mw_in": 200.40384,
+"mw_out": null,
+"change": false,
+"date": "2025-03-14",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Pelplin",
+"kv": "110",
+"mw_in": 195.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-18",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Piła Krzewina",
+"kv": "400",
+"mw_in": 198.0,
+"mw_out": null,
+"change": false,
+"date": "2025-03-25",
+"quarter": null
+}
+]
+}

@@ -1,0 +1,385 @@
+{
+"doc": "kompletne",
+"asof": "2024-08-30",
+"source": {
+"title": "Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc",
+"ext": "pdf",
+"version": "1.5",
+"published": "Fri, 20 Sep 2024 18:30:05 GMT",
+"url": "https://www.pse.pl/documents/20182/51490/Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc.pdf?version=1.5",
+"md5": "40a9aeaec9ea74b69f89080e7a9e2014"
+},
+"notes": [],
+"rows": [
+{
+"type": "PV",
+"station": "Żarnowiec",
+"kv": "110",
+"mw_in": 171.6,
+"mw_out": null,
+"change": false,
+"date": "2024-01-17",
+"quarter": null
+},
+{
+"type": "FW",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "220",
+"mw_in": 93.15,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Trębaczew",
+"kv": "400",
+"mw_in": 299.985,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "400",
+"mw_in": 249.9998,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Klikowa",
+"kv": "220",
+"mw_in": null,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Kielce",
+"kv": "220",
+"mw_in": null,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Krosno Iskrzynia",
+"kv": "220",
+"mw_in": null,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Rożki",
+"kv": "220",
+"mw_in": null,
+"mw_out": null,
+"change": false,
+"date": "2024-01-19",
+"quarter": null
+},
+{
+"type": "SD (PV + ODB)",
+"station": "Cieplice",
+"kv": "220",
+"mw_in": 102.041,
+"mw_out": null,
+"change": false,
+"date": "2024-01-20",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Mikułowa",
+"kv": "110",
+"mw_in": 49.999935,
+"mw_out": null,
+"change": false,
+"date": "2024-01-22",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Plewiska",
+"kv": "400",
+"mw_in": 50.6,
+"mw_out": null,
+"change": false,
+"date": "2024-01-22",
+"quarter": null
+},
+{
+"type": "SD (PV + ODB)",
+"station": "Siedlce Ujrzanów",
+"kv": "400;110",
+"mw_in": 120.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-22",
+"quarter": null
+},
+{
+"type": "FW",
+"station": "Leszno Gronowo",
+"kv": "220",
+"mw_in": 79.2,
+"mw_out": null,
+"change": false,
+"date": "2024-01-23",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Narew",
+"kv": "110",
+"mw_in": 164.999,
+"mw_out": null,
+"change": false,
+"date": "2024-01-23",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Żagań (planowana)",
+"kv": "220;110",
+"mw_in": 207.7471,
+"mw_out": null,
+"change": false,
+"date": "2024-01-23",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Zielona góra (planowana)",
+"kv": "110",
+"mw_in": 69.9855,
+"mw_out": null,
+"change": false,
+"date": "2024-01-24",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Wyszków (planowana)",
+"kv": "400",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-25",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Bydgoszcz Zachód",
+"kv": "400",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-25",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Rzeszów",
+"kv": "400",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-25",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Narew",
+"kv": "400;110",
+"mw_in": 208.529,
+"mw_out": null,
+"change": false,
+"date": "2024-01-25",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Narew",
+"kv": "400;110",
+"mw_in": 109.25,
+"mw_out": null,
+"change": false,
+"date": "2024-01-25",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Toruń Elana",
+"kv": "220",
+"mw_in": 119.944,
+"mw_out": null,
+"change": false,
+"date": "2024-01-26",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Mościska\nOłtarzew",
+"kv": "110 110",
+"mw_in": 101.15,
+"mw_out": null,
+"change": false,
+"date": "2024-01-26",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Miłosna",
+"kv": "110",
+"mw_in": 100.878,
+"mw_out": null,
+"change": false,
+"date": "2024-01-26",
+"quarter": null
+},
+{
+"type": "SD (PV + MEE)",
+"station": "Rokitnica",
+"kv": "400",
+"mw_in": 228.69948,
+"mw_out": null,
+"change": false,
+"date": "2024-01-26",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Leśniów",
+"kv": "220",
+"mw_in": 186.1,
+"mw_out": null,
+"change": false,
+"date": "2024-01-26",
+"quarter": null
+},
+{
+"type": "SD (PV + MEE)",
+"station": "Pasikurowice",
+"kv": "400",
+"mw_in": 330.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-27",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE)",
+"station": "Siedlce Ujrzanów",
+"kv": "110",
+"mw_in": 500.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-29",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Recław",
+"kv": "220",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2024-01-30",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Mikułowa",
+"kv": "110",
+"mw_in": 49.939,
+"mw_out": null,
+"change": false,
+"date": "2024-01-30",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Jarosław (planowana)",
+"kv": "400",
+"mw_in": 203.5,
+"mw_out": null,
+"change": false,
+"date": "2024-01-30",
+"quarter": null
+},
+{
+"type": "SD (FW + ODB)",
+"station": "Żagań (planowana)",
+"kv": "220",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2024-02-02",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Jarosław (planowana)",
+"kv": "110",
+"mw_in": 40.8744,
+"mw_out": null,
+"change": false,
+"date": "2024-02-05",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Ząbkowice",
+"kv": "220",
+"mw_in": 119.9448,
+"mw_out": null,
+"change": false,
+"date": "2024-03-07",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Pasikurowice\nTrębaczew\nDobrzeń",
+"kv": "400 400 400",
+"mw_in": 181.9839,
+"mw_out": null,
+"change": false,
+"date": "2024-03-27",
+"quarter": null
+},
+{
+"type": "ESP",
+"station": "Ząbkowice",
+"kv": "400",
+"mw_in": 1152.0,
+"mw_out": null,
+"change": false,
+"date": "2024-04-26",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Toruń Elana",
+"kv": "220",
+"mw_in": 53.244,
+"mw_out": null,
+"change": false,
+"date": "2024-06-04",
+"quarter": null
+}
+]
+}

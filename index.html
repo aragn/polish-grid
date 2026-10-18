@@ -1,0 +1,1104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polish Grid · Connection queue</title>
+  <meta name="description" content="Projects in the queue to connect to PSE's transmission grid in Poland, month by month since 2020, from PSE's own lists.">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
+      --hover:#1a1f25; --accent:#5b9cff; --chip:#1c2127;
+      --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
+      --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
+      --map-land:#171b21; --map-border:#2c323a; --map-faded:#121519;
+      --line-400:#4a5260; --line-220:#323843; --station:#7d8691;
+      --t-solar:#c98500; --t-wind:#199e70; --t-offshore:#3987e5; --t-storage:#9085e9; --t-hybrid:#d55181;
+      --t-gas:#d95926; --t-other:#8c949e; --t-distribution:#008300; --t-demand:#e66767;
+      --p-1:#1c5cab; --p-2:#2a78d6; --p-3:#5598e7; --p-4:#86b6ef; --p-5:#b7d3f6; --p-exit:#5f656d;
+      --done:#5ecb8a; --current:#5b9cff; --exit:#e66767;
+      --shadow:rgba(0,0,0,.55);
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+        --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+        --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+        --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+        --map-land:#f0efea; --map-border:#d3d1c8; --map-faded:#f7f7f5;
+        --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
+        --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
+        --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
+        --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6;
+        --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+      --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+      --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+      --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+      --map-land:#f0efea; --map-border:#d3d1c8; --map-faded:#f7f7f5;
+      --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
+      --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
+      --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
+      --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6;
+      --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
+    }
+
+    * { box-sizing:border-box; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; }
+    a { color:var(--accent); }
+    button { font-family:inherit; }
+    .topbar { display:flex; align-items:center; gap:18px; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
+    .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+    .brand span { color:var(--muted); font-weight:500; }
+    .nav { display:flex; gap:4px; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; }
+    .nav a.active { color:var(--text); background:var(--hover); }
+    .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
+    .intro h1 { font-size:22px; margin:0 0 4px; font-weight:650; }
+    .intro p { margin:0; color:var(--muted); line-height:1.5; max-width:980px; }
+    .tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; margin:16px 0; }
+    .tile { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+    .tile .k { color:var(--muted); font-size:12px; }
+    .tile .v { font-size:22px; font-weight:650; margin-top:4px; }
+    .tile .s { color:var(--muted-2); font-size:12px; margin-top:2px; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-top:16px; }
+    .panel-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:14px 16px 10px; }
+    .panel-title { font-weight:650; font-size:15px; }
+    .panel-sub { color:var(--muted); font-size:12.5px; }
+    .note { color:var(--muted); font-size:12px; line-height:1.5; padding:0 16px 14px; }
+
+    .map-layout { display:grid; grid-template-columns:minmax(0, 1fr) 470px; gap:0; border-top:1px solid var(--border); }
+    .map-wrap { position:relative; min-height:640px; border-right:1px solid var(--border); }
+    #map { position:absolute; inset:0; }
+    .map-back { position:absolute; top:12px; left:12px; display:none; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; z-index:2; }
+    .map-hint { position:absolute; bottom:10px; left:12px; color:var(--muted-2); font-size:11.5px; pointer-events:none; }
+    .map-side { padding:14px 16px; display:flex; flex-direction:column; gap:14px; min-width:0; }
+    .box h3 { margin:0 0 8px; font-size:12.5px; font-weight:650; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .month { display:flex; align-items:center; gap:10px; }
+    .month input { flex:1; accent-color:var(--accent); }
+    .month b { font-variant-numeric:tabular-nums; min-width:74px; text-align:right; }
+    .play { width:30px; height:28px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; cursor:pointer; }
+    .count { margin-top:8px; color:var(--muted); font-size:12.5px; }
+    .count b { color:var(--text); }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+    .seg button { border:0; background:var(--panel-2); color:var(--muted); padding:4px 9px; font-size:12px; cursor:pointer; }
+    .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
+    .matrix-wrap { overflow-x:auto; }
+    table.matrix { border-collapse:separate; border-spacing:2px; width:100%; font-size:12px; }
+    .matrix th { font-weight:600; color:var(--muted); font-size:11px; padding:4px 3px; cursor:pointer; user-select:none; text-align:center; vertical-align:bottom; line-height:1.2; }
+    .matrix th:first-child { text-align:left; cursor:default; }
+    .matrix td { padding:5px 4px; border-radius:5px; cursor:pointer; user-select:none; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .matrix td.tech { text-align:left; color:var(--text); background:none; white-space:nowrap; }
+    .matrix td.cell { background:var(--panel-2); }
+    .matrix td.cell:hover, .matrix th:hover, .matrix td.tech:hover { background:var(--hover); }
+    .matrix .off, .matrix .off * { opacity:.32; }
+    .matrix i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:-1px; }
+    .matrix td.cell i { width:7px; height:7px; margin:0 5px 0 0; }
+    .matrix tr.total td { color:var(--muted); cursor:default; background:none; font-weight:600; }
+    .presets { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .presets button, .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    .presets button:hover, .btn:hover { background:var(--hover); }
+    .sizes { display:flex; align-items:flex-end; gap:16px; color:var(--muted); font-size:12px; flex-wrap:wrap; }
+    .sizes div { display:flex; align-items:center; gap:6px; }
+    .sizes i { display:inline-block; border-radius:50%; background:var(--muted-2); }
+    .layers { display:flex; gap:14px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); }
+    .layers label { display:flex; align-items:center; gap:6px; cursor:pointer; }
+    .key-line { display:inline-block; width:16px; height:0; border-top:2px solid; vertical-align:middle; }
+
+    .table-tools { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+    .input, .select { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:7px 10px; font-size:13px; font-family:inherit; }
+    .input { width:260px; }
+    .table-wrap { overflow-x:auto; border-top:1px solid var(--border); }
+    table.list { width:100%; border-collapse:collapse; font-size:13px; }
+    .list th { text-align:left; color:var(--muted); font-weight:600; font-size:12px; padding:10px 12px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--panel); position:sticky; top:0; }
+    .list td { padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .list tr { cursor:pointer; }
+    .list tbody tr:hover td { background:var(--hover); }
+    .list .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .list .date { font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .list .sub { color:var(--muted); font-size:12px; margin-top:2px; }
+    .list .name { font-weight:550; }
+    .chip { display:inline-flex; align-items:center; gap:6px; background:var(--chip); border-radius:999px; padding:2px 9px 2px 7px; font-size:12px; white-space:nowrap; }
+    .chip i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .phase { display:inline-block; font-size:12px; padding:2px 8px; border-radius:6px; border:1px solid var(--border); white-space:nowrap; }
+    .pager { display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--muted); font-size:12.5px; }
+    .pager .btn:disabled { opacity:.4; cursor:default; }
+
+    .timing { display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr); gap:0; border-top:1px solid var(--border); }
+    .timing > div { padding:12px 16px 16px; min-width:0; }
+    .timing > div + div { border-left:1px solid var(--border); }
+    .chart-title { font-weight:600; font-size:13.5px; }
+    .chart-sub { color:var(--muted); font-size:12px; margin:2px 0 8px; line-height:1.45; }
+    #history-chart { height:330px; }
+    table.durations { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .durations th { color:var(--muted); font-weight:600; font-size:11.5px; text-align:right; padding:6px 6px; border-bottom:1px solid var(--border); line-height:1.25; vertical-align:bottom; }
+    .durations th:first-child { text-align:left; }
+    .durations td { padding:6px 6px; border-bottom:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .durations td:first-child { text-align:left; }
+    .durations .bar { display:inline-block; height:6px; border-radius:0 3px 3px 0; background:var(--muted-2); margin-right:6px; vertical-align:middle; opacity:.7; }
+    .durations .n { color:var(--muted-2); font-size:11px; margin-left:3px; }
+
+    footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
+
+    dialog { border:1px solid var(--border); background:var(--bg); color:var(--text); border-radius:14px; padding:0; width:min(1240px, calc(100vw - 32px)); max-height:calc(100vh - 32px); box-shadow:0 20px 60px var(--shadow); }
+    dialog::backdrop { background:rgba(0,0,0,.55); }
+    .d-head { display:flex; align-items:flex-start; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:2; }
+    .d-head h2 { margin:0; font-size:18px; }
+    .d-head p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+    .d-close { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:8px; width:34px; height:34px; font-size:18px; cursor:pointer; }
+    .d-body { display:grid; grid-template-columns:minmax(0, 1fr) 360px; gap:16px; padding:16px 20px 20px; }
+    .d-tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; }
+    .d-tiles .tile .v { font-size:17px; }
+    .d-card { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-top:12px; }
+    .d-card h3 { margin:0 0 4px; font-size:14.5px; }
+    .d-card .chart-sub { margin-bottom:12px; }
+    .steps { display:flex; align-items:flex-start; padding:6px 0 2px; }
+    .step { flex:1; text-align:center; position:relative; min-width:0; }
+    .step:not(:last-child)::after { content:""; position:absolute; top:9px; left:calc(50% + 14px); right:calc(-50% + 14px); height:2px; background:var(--border); }
+    .step.done:not(:last-child)::after { background:var(--done); }
+    .step .dot { width:20px; height:20px; border-radius:50%; margin:0 auto; border:2px solid var(--border); background:var(--panel); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+    .step.done .dot { background:var(--done); border-color:var(--done); color:var(--panel); }
+    .step.current .dot { border-color:var(--current); box-shadow:0 0 0 4px color-mix(in srgb, var(--current) 30%, transparent); background:var(--current); }
+    .step.exit .dot { background:var(--exit); border-color:var(--exit); color:var(--panel); }
+    .step .lbl { font-size:12.5px; margin-top:8px; color:var(--muted); line-height:1.25; padding:0 4px; }
+    .step.done .lbl { color:var(--done); }
+    .step.current .lbl { color:var(--current); font-weight:600; }
+    .step.exit .lbl { color:var(--exit); font-weight:600; }
+    .step .when { font-size:12px; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .step .how { font-size:11px; color:var(--muted-2); margin-top:2px; }
+    #cod-chart { height:200px; }
+    .cod-big { text-align:center; padding:18px 0 10px; }
+    .cod-big .k { color:var(--muted); font-size:13px; }
+    .cod-big .v { font-size:24px; font-weight:650; margin-top:6px; }
+    table.changes { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .changes th { text-align:left; color:var(--muted); font-weight:600; padding:7px 8px; border-bottom:1px solid var(--border); }
+    .changes td { padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .changes .from { color:var(--muted); text-decoration:line-through; }
+    #mini-map { height:240px; border-radius:10px; overflow:hidden; background:var(--panel); border:1px solid var(--border); }
+    dl.facts { margin:12px 0 0; }
+    .facts dt { font-weight:650; font-size:13px; margin-top:12px; }
+    .facts dd { margin:2px 0 0; color:var(--muted); font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
+
+    @media (max-width: 1100px) {
+      .map-layout { grid-template-columns:1fr; }
+      .map-wrap { border-right:0; border-bottom:1px solid var(--border); min-height:520px; }
+      .timing { grid-template-columns:1fr; }
+      .timing > div + div { border-left:0; border-top:1px solid var(--border); }
+      .d-body { grid-template-columns:1fr; }
+      .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .d-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      main { padding:14px 16px 32px; }
+      .topbar { padding:10px 16px; gap:10px; }
+      .brand span { display:none; }
+      .map-wrap { min-height:420px; }
+      .input { width:100%; }
+      .table-tools { margin-left:0; width:100%; }
+      .steps { flex-direction:column; gap:12px; }
+      .step { display:grid; grid-template-columns:24px 1fr; text-align:left; gap:0 10px; }
+      .step .dot { margin:0; grid-row:span 3; }
+      .step .lbl { margin-top:0; }
+      .step:not(:last-child)::after { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
+    <nav class="nav"><a class="active" href="./">Connection queue (PSE)</a></nav>
+    <button class="theme" type="button" id="theme">Theme</button>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>Who wants to connect to Poland's transmission grid</h1>
+      <p id="intro-text">Every project that has asked PSE, the transmission system operator, to connect to its 220 and 400 kV grid, from PSE's monthly lists. Loading…</p>
+    </section>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="panel" id="map-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Projects at their connection stations</div>
+          <div class="panel-sub" id="map-sub"></div>
+        </div>
+      </div>
+      <div class="map-layout">
+        <div class="map-wrap">
+          <div id="map"></div>
+          <button class="map-back" type="button" id="map-back">← All of Poland</button>
+          <div class="map-hint" id="map-hint">Click a voivodeship to zoom in, a dot to open the project</div>
+        </div>
+        <aside class="map-side">
+          <div class="box">
+            <h3>Month</h3>
+            <div class="month"><button class="play" type="button" id="play" aria-label="Play the months">▶</button>
+              <input type="range" id="month" min="0" max="0" value="0" aria-label="Month of PSE's list"><b id="month-label"></b></div>
+            <div class="count" id="count"></div>
+          </div>
+          <div class="box">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <h3 style="margin:0">Technology and phase</h3>
+              <div class="seg" id="metric" style="margin-left:auto"><button type="button" data-metric="count" class="on">Projects</button><button type="button" data-metric="gw">GW</button></div>
+            </div>
+            <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+            <div class="presets" id="presets">
+              <button type="button" data-preset="active">Active queue</button>
+              <button type="button" data-preset="past">Past connection date</button>
+              <button type="button" data-preset="exited">Refused, withdrawn, dropped</button>
+              <button type="button" data-preset="all">Everything</button>
+            </div>
+            <div class="note" style="padding:8px 0 0">Click a technology, a phase or a cell to hide or show it; the table and the timing below follow.</div>
+          </div>
+          <div class="box">
+            <h3>Capacity</h3>
+            <div class="sizes" id="sizes"></div>
+          </div>
+          <div class="box">
+            <h3>Grid (OpenStreetMap)</h3>
+            <div class="layers">
+              <label><input type="checkbox" id="layer-lines" checked> <span class="key-line" style="border-color:var(--line-400)"></span> 400 kV <span class="key-line" style="border-color:var(--line-220)"></span> 220 kV lines</label>
+              <label><input type="checkbox" id="layer-stations" checked> Substations</label>
+            </div>
+          </div>
+        </aside>
+      </div>
+      <div class="note" id="map-note" style="padding-top:12px"></div>
+    </section>
+
+    <section class="panel" id="table-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="table-title">Projects</div>
+          <div class="panel-sub" id="table-sub"></div>
+        </div>
+        <div class="table-tools">
+          <select class="select" id="sort" aria-label="Sort">
+            <option value="mw">Largest first</option>
+            <option value="newest">Newest conditions first</option>
+            <option value="oldest">Oldest conditions first</option>
+            <option value="deadline">Connection date</option>
+            <option value="changed">Recently changed</option>
+            <option value="name">Name</option>
+          </select>
+          <input class="input" id="search" type="search" placeholder="Search name, company, station, voivodeship" aria-label="Search">
+          <button class="btn" type="button" id="csv">CSV</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="list" id="list"></table></div>
+      <div class="pager" id="pager"></div>
+    </section>
+
+    <section class="panel" id="timing-panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">The queue over time, and how long each step takes</div>
+          <div class="panel-sub">Both follow the technology and phase filters above</div>
+        </div>
+      </div>
+      <div class="timing">
+        <div>
+          <div class="chart-title">Capacity in each phase at every month end, GW</div>
+          <div class="chart-sub" id="history-sub"></div>
+          <div id="history-chart"></div>
+        </div>
+        <div>
+          <div class="chart-title">Months between milestones (median)</div>
+          <div class="chart-sub">From PSE's dates for each project. The last column is the whole path for projects already past their connection date. Small print: the number of projects behind each median.</div>
+          <table class="durations" id="durations"></table>
+          <div class="presets" style="margin-top:12px"><button type="button" id="show-past">Show the projects past their connection date</button></div>
+        </div>
+      </div>
+    </section>
+
+    <footer id="footer"></footer>
+  </main>
+
+  <dialog id="detail" aria-labelledby="d-title">
+    <div class="d-head">
+      <div><h2 id="d-title"></h2><p id="d-sub"></p></div>
+      <button class="d-close" type="button" id="d-close" aria-label="Close">×</button>
+    </div>
+    <div class="d-body">
+      <div>
+        <div class="d-tiles" id="d-tiles"></div>
+        <div class="d-card">
+          <h3>Status milestones</h3>
+          <div class="chart-sub" id="d-steps-sub"></div>
+          <div class="steps" id="d-steps"></div>
+        </div>
+        <div class="d-card">
+          <h3>Connection date</h3>
+          <div class="chart-sub">The connection date in the agreement (before July 2026: "termin przyłączenia"; since: "data rozpoczęcia dostarczania energii"), as each monthly list showed it.</div>
+          <div id="d-cod"></div>
+        </div>
+        <div class="d-card">
+          <h3 id="d-changes-title">Changes between monthly lists</h3>
+          <div class="chart-sub" id="d-changes-sub"></div>
+          <div id="d-changes"></div>
+        </div>
+      </div>
+      <aside>
+        <div id="mini-map"></div>
+        <dl class="facts" id="d-facts"></dl>
+      </aside>
+    </div>
+  </dialog>
+
+  <script>
+  "use strict";
+  /*
+   * Polish Grid: PSE's connection queue.  Data: data/queue.json (every
+   * project and its history, built by etl/build.py from PSE's monthly
+   * lists), data/history.json (the queue month by month), geo/ (borders,
+   * OSM lines).  Everything is read once; filters only redraw.
+   */
+  // Rows in an order whose adjacent colours pass the colour-vision checks in both themes; "other" is neutral grey.
+  const TECH = [
+    { key: "solar", label: "Solar PV", color: "--t-solar", members: ["solar"] },
+    { key: "wind", label: "Onshore wind", color: "--t-wind", members: ["wind"] },
+    { key: "gas", label: "Gas", color: "--t-gas", members: ["gas"] },
+    { key: "offshore", label: "Offshore wind", color: "--t-offshore", members: ["offshore"] },
+    { key: "hybrid", label: "Hybrid", title: "PV, wind and storage behind one connection", color: "--t-hybrid", members: ["hybrid"] },
+    { key: "distribution", label: "Distribution (DSO)", title: "A distribution grid asking for more capacity at a PSE station, for the plants and storage it connects", color: "--t-distribution", members: ["distribution"] },
+    { key: "storage", label: "Storage", color: "--t-storage", members: ["storage"] },
+    { key: "demand", label: "Demand", title: "Consumers: data centres, industry, electrolysers, railways", color: "--t-demand", members: ["demand"] },
+    { key: "other", label: "Coal, nuclear, other", title: "Coal, nuclear, biomass, hydro, pumped storage", color: "--t-other", members: ["coal", "nuclear", "other"] }
+  ];
+  const TECH_OF = Object.fromEntries(TECH.flatMap(row => row.members.map(member => [member, row])));
+  // Faint = early; full = agreement; a ring = past the connection date; grey = out of the queue.
+  const PHASES = [
+    { key: "application", short: "Applied", label: "Application", fade: 0.62, help: "Awaiting PSE's completeness check, or incomplete" },
+    { key: "study", short: "Under study", label: "Under study", fade: 0.45, help: "Complete; PSE's technical and economic analysis" },
+    { key: "conditions", short: "Conditions", label: "Conditions issued", fade: 0.22, help: "Connection conditions issued, no agreement yet" },
+    { key: "agreement", short: "Agreement", label: "Agreement signed", fade: 0, help: "Connection agreement in force, connection date ahead" },
+    { key: "operating", short: "Past date", label: "Past connection date", fade: 0, ring: true, help: "Agreement whose connection date has passed: most such plants are running, but PSE does not confirm it" },
+    { key: "refused", short: "Refused", label: "Refused", exit: true, help: "PSE refused conditions (no technical/economic conditions)" },
+    { key: "withdrawn", short: "Withdrawn", label: "Withdrawn or lapsed", exit: true, help: "Application withdrawn, conditions expired, agreement ended, or dropped from the list" }
+  ];
+  const PHASE = Object.fromEntries(PHASES.map(phase => [phase.key, phase]));
+  const STATUS_LABEL = {
+    verification: "Awaiting verification", incomplete: "Incomplete application", study: "Under study",
+    conditions: "Conditions issued", agreement: "Agreement in force", connected: "Connected",
+    refused: "Refused", withdrawn: "Application withdrawn", expired: "Conditions expired", terminated: "Agreement ended"
+  };
+  const TYPE_LABEL = {
+    PV: "solar PV", FW: "onshore wind", MFW: "offshore wind", MEE: "electricity storage", EJ: "nuclear", ESP: "pumped storage",
+    JBM: "biomass unit", JW: "coal unit", BG: "gas unit", BGP: "combined-cycle gas", SG: "gas engine", JS: "combustion unit",
+    EW: "hydro", OGW: "hydrogen fuel cells", ODB: "consumer", OSD: "distribution grid (direct)", OSDn: "distribution grid (indirect)",
+    SD: "distribution grid", MIX: "mixed installation", OZE: "renewable (unspecified)", KJW: "conventional unit (unspecified)", JG: "gas unit"
+  };
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const PAGE_SIZE = 25;
+
+  const state = {
+    month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
+    search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true
+  };
+  let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart;
+  const monthIndex = {};
+
+  /* ---------------- helpers ---------------- */
+
+  const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = text => String(text ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmtDate = iso => { if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${Number(d)} ${MONTHS[m - 1]} ${y}`; };
+  const fmtMonth = iso => { if (!iso) return "—"; const [y, m] = iso.split("-"); return `${MONTHS[m - 1]} ${y}`; };
+  const fmtMw = mw => mw == null ? "—" : `${mw >= 100 ? Math.round(mw).toLocaleString("en") : mw.toLocaleString("en", { maximumFractionDigits: 1 })} MW`;
+  const fmtGw = mw => `${(mw / 1000).toLocaleString("en", { maximumFractionDigits: mw >= 10000 ? 0 : 1 })} GW`;
+  const months = (from, to) => { const a = new Date(from), b = new Date(to); return (b - a) / (1000 * 3600 * 24 * 30.4375); };
+  const median = values => { if (!values.length) return null; const s = [...values].sort((a, b) => a - b); const h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
+
+  function mix(hex, toward, amount) {
+    const a = parseInt(hex.replace("#", ""), 16), b = parseInt(toward.replace("#", ""), 16);
+    return "#" + [16, 8, 0].map(shift => {
+      const x = a >> shift & 255, y = b >> shift & 255;
+      return Math.round(x + (y - x) * amount).toString(16).padStart(2, "0");
+    }).join("");
+  }
+  const techRow = project => TECH_OF[project.technology] || TECH_OF.other;
+  function dotColor(row, phaseKey) {
+    const phase = PHASE[phaseKey];
+    if (phase.exit) return cssVar("--p-exit");
+    return mix(cssVar(row.color), cssVar("--panel"), phase.fade);
+  }
+  const dotSize = mw => !mw ? 4 : Math.max(4, Math.min(30, 2.5 + 0.8 * Math.sqrt(mw)));
+  const TYPE_CODES = /MFW|FW|PV|MEE|EJ|ESP|JBM|JW|BGP|BG|SG|JS|JG|EW|OGW|ODB|OSDn|OSD|SD|MIX|OZE|KJW/g;
+  /* Unnamed projects (all of them before July 2026) are called by PSE's installation type: "Coal unit at Dobrzeń". */
+  function typeName(type) {
+    const codes = [...new Set((type || "").replace(/PV[GD]/g, "PV").match(TYPE_CODES) || [])];
+    if (!codes.length) return "Project";
+    const distribution = codes.find(code => code.startsWith("SD") || code.startsWith("OSD"));
+    const inner = codes.filter(code => !code.startsWith("SD") && !code.startsWith("OSD")).map(code => TYPE_LABEL[code] || code);
+    const text = distribution ? `distribution grid${inner.length ? ` (${inner.join(", ")})` : ""}` : inner.join(" + ");
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+  const projectTitle = p => p.name || `${typeName(p.type)} at ${p.stations[0] || p.station || "an unnamed station"}`;
+
+  /* The phase and MW of a project in a given month, or null if not in the queue then. */
+  function at(project, month) {
+    for (const [a, b, phase, mw] of project.runs) if (month >= a && month <= b) return { phase: PHASES[phase].key, mw };
+    if (project.left && monthIndex[project.left.asof] <= month) return { phase: project.phase, mw: project.mw, left: true };
+    return null;
+  }
+  const hiddenCell = (tech, phase) => state.hidden.has(tech) || state.hidden.has(phase) || state.hidden.has(`${tech}|${phase}`);
+  function matchesSearch(project) {
+    if (!state.search) return true;
+    const text = [project.name, project.applicant, project.station, project.stations.join(" "), project.region, project.type, project.pse_id, techRow(project).label].join(" ").toLowerCase();
+    return state.search.toLowerCase().split(/\s+/).every(word => text.includes(word));
+  }
+  /* Everything the filters let through this month: [{project, phase, mw}]. */
+  function shown() {
+    const out = [];
+    for (const project of queue.projects) {
+      const now = at(project, state.month);
+      if (!now) continue;
+      if (hiddenCell(techRow(project).key, now.phase)) continue;
+      if (state.region && project.region !== state.region) continue;
+      if (!matchesSearch(project)) continue;
+      out.push({ project, phase: now.phase, mw: now.mw, left: now.left });
+    }
+    return out;
+  }
+
+  /* ---------------- loading ---------------- */
+
+  async function load() {
+    const get = async path => { const response = await fetch(path, { cache: "no-cache" }); if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`); return response.json(); };
+    [queue, history, geo, gridLines] = await Promise.all([get("data/queue.json"), get("data/history.json"), get("geo/poland_voivodeships.json"), get("geo/grid_lines.json").catch(() => ({ lines: [] }))]);
+    queue.months.forEach((asof, index) => { monthIndex[asof] = index; });
+    state.month = queue.months.length - 1;
+    echarts.registerMap("poland", geo);
+    placeProjects();
+    setup();
+    renderAll(true);
+  }
+
+  /* Projects of one station share its point: lay them out on a small sunflower around it, biggest in the middle. */
+  function placeProjects() {
+    const byStation = {};
+    for (const project of queue.projects) {
+      if (project.lat == null) continue;
+      (byStation[project.stations[0]] ||= []).push(project);
+    }
+    for (const list of Object.values(byStation)) {
+      list.sort((a, b) => (b.mw || 0) - (a.mw || 0) || a.id - b.id);
+      list.forEach((project, k) => {
+        const radius = 0.016 * Math.sqrt(k), angle = k * 2.39996;
+        project.x = project.lon + radius * Math.cos(angle) / Math.cos(project.lat * Math.PI / 180);
+        project.y = project.lat + radius * Math.sin(angle);
+      });
+    }
+  }
+
+  /* ---------------- top ---------------- */
+
+  function renderIntro() {
+    const latest = queue.sources.filter(source => source.asof === queue.asof).pop();
+    const published = latest && latest.published ? new Date(latest.published).toISOString().slice(0, 10) : null;
+    document.getElementById("intro-text").innerHTML =
+      `Every project that has asked PSE, Poland's transmission system operator, to connect to its 110–400 kV grid at a PSE substation, ` +
+      `from PSE's lists under Art. 7(8l) of the Energy Law. Latest list: status <b>${fmtDate(queue.asof)}</b>` +
+      `${published ? ` (published ${fmtDate(published)})` : ""}; history: ${queue.months.length} monthly lists since ${fmtMonth(queue.months[0])}. ` +
+      `Data updated ${fmtDate(queue.updated)}.`;
+    const latestMonth = queue.months.length - 1;
+    const sum = keys => {
+      let count = 0, mw = 0;
+      for (const project of queue.projects) {
+        const now = at(project, latestMonth);
+        if (now && !now.left && keys.includes(now.phase)) { count += 1; mw += now.mw || 0; }
+      }
+      return { count, mw };
+    };
+    const tiles = [
+      ["In PSE's latest list", sum(["application", "study", "conditions", "agreement", "operating", "refused", "withdrawn"]), "projects"],
+      ["Under study", sum(["application", "study"]), "applications"],
+      ["Conditions issued", sum(["conditions"]), "no agreement yet"],
+      ["Agreement signed", sum(["agreement"]), "connection date ahead"],
+      ["Past connection date", sum(["operating"]), "agreement still open"]
+    ];
+    document.getElementById("tiles").innerHTML = tiles.map(([label, value, unit]) =>
+      `<div class="tile"><div class="k">${label}</div><div class="v">${fmtGw(value.mw)}</div><div class="s">${value.count.toLocaleString("en")} ${unit}</div></div>`).join("");
+  }
+
+  /* ---------------- map ---------------- */
+
+  function regionBounds(name) {
+    const feature = geo.features.find(entry => entry.properties.name === name);
+    let west = 180, east = -180, south = 90, north = -90;
+    const polygons = feature.geometry.type === "MultiPolygon" ? feature.geometry.coordinates : [feature.geometry.coordinates];
+    polygons.forEach(polygon => polygon[0].forEach(([lon, lat]) => {
+      west = Math.min(west, lon); east = Math.max(east, lon); south = Math.min(south, lat); north = Math.max(north, lat);
+    }));
+    const pad = Math.max(east - west, north - south) * 0.06;
+    return [[west - pad, north + pad], [east + pad, south - pad]];
+  }
+
+  function tooltipRow(color, label, value) {
+    return `<div style="display:flex;gap:8px;align-items:center;margin-top:3px"><span style="width:10px;height:0;border-top:2px solid ${color};display:inline-block"></span>` +
+      `<span style="color:${cssVar("--tooltip-muted")}">${esc(label)}</span><b style="margin-left:auto;padding-left:12px">${esc(value)}</b></div>`;
+  }
+
+  function drawMap(full) {
+    const items = shown();
+    const placed = items.filter(item => item.project.x != null).sort((a, b) => (b.mw || 0) - (a.mw || 0));
+    const data = placed.map(item => {
+      const row = techRow(item.project), phase = PHASE[item.phase];
+      return {
+        value: [item.project.x, item.project.y, item.mw], item,
+        symbolSize: dotSize(item.mw),
+        itemStyle: {
+          color: dotColor(row, item.phase), opacity: phase.exit ? 0.75 : 0.95,
+          borderColor: phase.ring ? cssVar("--text") : cssVar("--panel"), borderWidth: phase.ring ? 1.4 : 0.6
+        }
+      };
+    });
+    const stationCounts = {};
+    items.forEach(item => item.project.stations.forEach(name => { stationCounts[name] = (stationCounts[name] || 0) + 1; }));
+    const stationData = Object.entries(queue.stations).filter(([, station]) => station.lat != null)
+      .map(([name, station]) => ({ name, value: [station.lon, station.lat], station, count: stationCounts[name] || 0 }));
+    const lineSeries = [220, 400].map(kv => ({
+      type: "lines", coordinateSystem: "geo", polyline: true, silent: true, z: 1,
+      data: state.lines ? gridLines.lines.filter(line => line.kv === kv).map(line => ({ coords: line.c })) : [],
+      lineStyle: { color: cssVar(kv === 400 ? "--line-400" : "--line-220"), width: kv === 400 ? 1.1 : 0.8, opacity: 1 }
+    }));
+    const series = [
+      ...lineSeries,
+      {
+        id: "stations", type: "scatter", coordinateSystem: "geo", z: 2, symbol: "rect", symbolSize: 4,
+        data: state.stations ? stationData : [],
+        itemStyle: { color: cssVar("--station"), opacity: 0.8 },
+        emphasis: { scale: 2 }
+      },
+      {
+        id: "projects", type: "scatter", coordinateSystem: "geo", z: 3, data, progressive: 0,
+        emphasis: { scale: 1.5, itemStyle: { borderColor: cssVar("--text"), borderWidth: 1.5 } }
+      }
+    ];
+    if (!full) {
+      mapChart.setOption({ series }, { replaceMerge: ["series"] });
+    } else {
+      const region = state.region;
+      mapChart.setOption({
+        animation: false, backgroundColor: "transparent",
+        tooltip: {
+          trigger: "item", confine: true, backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), borderWidth: 1,
+          textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;",
+          formatter: params => {
+            if (params.seriesId === "stations") {
+              const station = params.data.station;
+              return `<b>${esc(params.data.name)}</b>${station.code ? ` <span style="color:${cssVar("--tooltip-muted")}">${esc(station.code)}</span>` : ""}` +
+                `<div style="color:${cssVar("--tooltip-muted")};margin-top:3px">${esc(station.kv ? station.kv + " kV" : "")}${station.planned ? " · planned (placed approximately)" : ""}</div>` +
+                `<div style="margin-top:3px">${params.data.count} project${params.data.count === 1 ? "" : "s"} shown</div>`;
+            }
+            const item = params.data && params.data.item;
+            if (!item) return "";
+            const p = item.project, row = techRow(p);
+            return `<div style="max-width:320px;white-space:normal"><div style="font-weight:650;margin-bottom:2px">${esc(projectTitle(p))}</div>` +
+              `<div style="color:${cssVar("--tooltip-muted")};margin-bottom:6px">${esc(p.applicant || "Applicant not published")}</div>` +
+              tooltipRow(cssVar(row.color), row.label, fmtMw(item.mw)) +
+              tooltipRow("transparent", PHASE[item.phase].label, item.left ? `left ${fmtMonth(p.left.asof)}` : STATUS_LABEL[p.status] || "") +
+              tooltipRow("transparent", "Station", p.stations.join(", ") || p.station) +
+              tooltipRow("transparent", "Conditions", fmtDate(p.conditions)) +
+              tooltipRow("transparent", "Connection date", fmtDate(p.deadline)) +
+              `<div style="margin-top:6px;color:${cssVar("--tooltip-muted")}">Click for milestones and history</div></div>`;
+          }
+        },
+        geo: {
+          map: "poland", roam: false, aspectScale: 0.64, layoutCenter: ["50%", "50%"], layoutSize: "96%",
+          ...(region ? { boundingCoords: regionBounds(region) } : {}),
+          itemStyle: { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.9 },
+          regions: region ? geo.features.filter(feature => feature.properties.name !== region)
+            .map(feature => ({ name: feature.properties.name, itemStyle: { areaColor: cssVar("--map-faded"), opacity: 0.6 } })) : [],
+          emphasis: { label: { show: false }, itemStyle: { areaColor: cssVar("--hover") } },
+          select: { disabled: true }, tooltip: { show: false }, label: { show: false }
+        },
+        series
+      }, true);
+    }
+    document.getElementById("map-back").style.display = state.region ? "" : "none";
+    document.getElementById("map-hint").textContent = state.region ? `${state.region} · click a dot to open the project` : "Click a voivodeship to zoom in, a dot to open the project";
+    return items;
+  }
+
+  function renderSide(items) {
+    const month = queue.months[state.month];
+    document.getElementById("month-label").textContent = fmtMonth(month);
+    const slider = document.getElementById("month");
+    slider.value = state.month;
+    document.getElementById("play").textContent = state.timer ? "❚❚" : "▶";
+    const placed = items.filter(item => item.project.x != null);
+    const mw = items.reduce((sum, item) => sum + (item.mw || 0), 0);
+    document.getElementById("count").innerHTML = `<b>${items.length.toLocaleString("en")}</b> projects · <b>${fmtGw(mw)}</b>` +
+      `${state.region ? ` in <b>${esc(state.region)}</b>` : ""}${state.search ? ` matching “${esc(state.search)}”` : ""}` +
+      `${items.length - placed.length ? ` · ${items.length - placed.length} without a placeable station` : ""}`;
+
+    // Counts for every cell, ignoring the cell toggles (so a hidden cell still says what it hides).
+    const cells = {};
+    for (const project of queue.projects) {
+      const now = at(project, state.month);
+      if (!now || (state.region && project.region !== state.region) || !matchesSearch(project)) continue;
+      const key = `${techRow(project).key}|${now.phase}`;
+      const cell = cells[key] ||= { count: 0, mw: 0 };
+      cell.count += 1; cell.mw += now.mw || 0;
+    }
+    const show = cell => !cell ? "" : state.metric === "count" ? cell.count.toLocaleString("en") : (cell.mw / 1000).toFixed(cell.mw >= 10000 ? 0 : 1);
+    const matrix = document.getElementById("matrix");
+    const totals = {};
+    let html = `<tr><th></th>${PHASES.map(phase => `<th data-key="${phase.key}" class="${state.hidden.has(phase.key) ? "off" : ""}" title="${esc(phase.help)}">${esc(phase.short)}</th>`).join("")}</tr>`;
+    for (const row of TECH) {
+      html += `<tr><td class="tech${state.hidden.has(row.key) ? " off" : ""}" data-key="${row.key}" title="${esc(row.title || row.label)}"><i style="background:${cssVar(row.color)}"></i>${esc(row.label)}</td>`;
+      for (const phase of PHASES) {
+        const key = `${row.key}|${phase.key}`, cell = cells[key];
+        if (cell && !hiddenCell(row.key, phase.key)) {
+          const total = totals[phase.key] ||= { count: 0, mw: 0 };
+          total.count += cell.count; total.mw += cell.mw;
+        }
+        const color = dotColor(row, phase.key);
+        html += `<td class="cell${hiddenCell(row.key, phase.key) ? " off" : ""}" data-key="${key}" title="${esc(`${row.label} · ${phase.label}: ${cell ? `${cell.count} projects, ${fmtGw(cell.mw)}` : "none"}`)}">` +
+          `${cell ? `<i style="background:${color};${phase.ring ? `box-shadow:0 0 0 1.5px ${cssVar("--text")}` : ""}"></i>` : ""}${show(cell)}</td>`;
+      }
+      html += "</tr>";
+    }
+    html += `<tr class="total"><td>Shown</td>${PHASES.map(phase => `<td>${show(totals[phase.key])}</td>`).join("")}</tr>`;
+    matrix.innerHTML = html;
+  }
+
+  function renderSizes() {
+    document.getElementById("sizes").innerHTML = [10, 100, 500, 1000].map(mw => {
+      const size = dotSize(mw);
+      return `<div><i style="width:${size}px;height:${size}px"></i>${mw.toLocaleString("en")} MW</div>`;
+    }).join("") + `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.5px var(--text)"></i>past connection date</div>`;
+  }
+
+  function renderMapNote() {
+    const firstFull = queue.sources.find(source => source.doc === "wykaz" && source.rows > 500);
+    document.getElementById("map-note").innerHTML =
+      `Each dot is a project placed at the PSE substation it asked to connect to (OpenStreetMap's position for existing stations; ` +
+      `planned stations at the place PSE names, approximately), not at the plant's site; projects of one station are fanned out around it. ` +
+      `Multi-station projects sit at their first station. Until ${firstFull ? fmtMonth(firstFull.asof).replace(/^\w+/, m => m) : "July 2025"} PSE's main list ` +
+      `showed only generators; storage, distribution and demand projects were in a separate list that PSE did not keep, so they enter the map in July 2025, ` +
+      `with their real conditions dates. Applications under study appear from July 2026, when PSE started listing them by name; the counts before that ` +
+      `(from April 2024) are in the chart below. "Past connection date": PSE keeps plants listed with their agreement in force long after they start ` +
+      `(Kozienice 11, Jaworzno 910 MW), and some never got built, so it means likely, not confirmed, in service.`;
+  }
+
+  /* ---------------- table ---------------- */
+
+  const SORTS = {
+    mw: (a, b) => (b.mw || 0) - (a.mw || 0),
+    newest: (a, b) => (b.project.conditions || b.project.applied || "").localeCompare(a.project.conditions || a.project.applied || ""),
+    oldest: (a, b) => (a.project.conditions || "9999").localeCompare(b.project.conditions || "9999"),
+    deadline: (a, b) => (a.project.deadline || "9999").localeCompare(b.project.deadline || "9999"),
+    changed: (a, b) => lastChange(b.project).localeCompare(lastChange(a.project)),
+    name: (a, b) => projectTitle(a.project).localeCompare(projectTitle(b.project))
+  };
+  const lastChange = project => project.changes.length ? project.changes[project.changes.length - 1].asof : project.first_seen;
+
+  function phaseBadge(item) {
+    const phase = PHASE[item.phase], row = techRow(item.project);
+    const color = phase.exit ? cssVar("--p-exit") : dotColor(row, item.phase);
+    const status = item.project.status;
+    const detail = item.left ? (item.project.left.reason === "after_connection_date" ? "left the list after it" : "dropped from the list")
+      : ["verification", "incomplete", "expired", "terminated", "withdrawn"].includes(status) && state.month === queue.months.length - 1 ? STATUS_LABEL[status] : "";
+    return `<span class="phase" style="border-color:${color}">${esc(phase.label)}</span>${detail ? `<div class="sub">${esc(detail)}</div>` : ""}`;
+  }
+
+  function renderTable(items) {
+    const sorted = [...items].sort(SORTS[state.sort]);
+    const pages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+    state.page = Math.min(state.page, pages - 1);
+    const pageItems = sorted.slice(state.page * PAGE_SIZE, (state.page + 1) * PAGE_SIZE);
+    const mw = items.reduce((sum, item) => sum + (item.mw || 0), 0);
+    document.getElementById("table-title").textContent = `Showing ${pageItems.length} of ${items.length.toLocaleString("en")} projects (${fmtGw(mw)})`;
+    document.getElementById("table-sub").textContent = state.month === queue.months.length - 1
+      ? `PSE's list of ${fmtMonth(queue.asof)}; click a project for its milestones and history`
+      : `Phase as in PSE's list of ${fmtMonth(queue.months[state.month])}; other columns as last listed`;
+    const head = `<thead><tr><th>Project</th><th>Technology</th><th class="num">MW in / out</th><th>Station</th><th>Phase</th><th>Conditions</th><th>Agreement</th><th>Connection date</th></tr></thead>`;
+    const body = pageItems.map(item => {
+      const p = item.project, row = techRow(p);
+      return `<tr data-id="${p.id}" tabindex="0">` +
+        `<td><div class="name">${esc(projectTitle(p))}</div><div class="sub">${esc(p.applicant || "applicant not published")}</div></td>` +
+        `<td><span class="chip"><i style="background:${cssVar(row.color)}"></i>${esc(row.label)}</span><div class="sub">${esc(p.type)}</div></td>` +
+        `<td class="num">${p.mw_in != null ? Math.round(p.mw_in * 10) / 10 : "—"} / ${p.mw_out != null ? Math.round(p.mw_out * 10) / 10 : "—"}</td>` +
+        `<td>${esc(p.stations.join(", ") || p.station || "—")}<div class="sub">${esc(p.region || "")}${p.kv ? ` · ${esc(p.kv)} kV` : ""}</div></td>` +
+        `<td>${phaseBadge(item)}</td>` +
+        `<td class="date">${fmtDate(p.conditions)}</td><td class="date">${fmtDate(p.agreement)}</td><td class="date">${fmtDate(p.deadline)}</td></tr>`;
+    }).join("");
+    document.getElementById("list").innerHTML = head + `<tbody>${body || `<tr><td colspan="8" style="color:var(--muted)">No project matches the filters.</td></tr>`}</tbody>`;
+    document.getElementById("pager").innerHTML = `<button class="btn" type="button" data-page="-1" ${state.page === 0 ? "disabled" : ""}>← Previous</button>` +
+      `<span>Page ${state.page + 1} of ${pages}</span><button class="btn" type="button" data-page="1" ${state.page >= pages - 1 ? "disabled" : ""}>Next →</button>`;
+  }
+
+  function downloadCsv() {
+    const items = shown().sort(SORTS[state.sort]);
+    const columns = [["id", p => p.id], ["name", p => p.name], ["applicant", p => p.applicant], ["pse_id", p => p.pse_id], ["technology", p => techRow(p).label],
+      ["pse_type", p => p.type], ["mw_in", p => p.mw_in], ["mw_out", p => p.mw_out], ["station", p => p.stations.join("; ") || p.station], ["voivodeship", p => p.region],
+      ["kv", p => p.kv], ["status", p => STATUS_LABEL[p.status] || p.status], ["applied", p => p.applied], ["complete", p => p.milestones.complete?.date],
+      ["conditions", p => p.conditions], ["agreement", p => p.agreement], ["connection_date", p => p.deadline], ["first_listed", p => p.first_seen], ["last_listed", p => p.last_seen],
+      ["lat", p => p.lat], ["lon", p => p.lon]];
+    const csv = [columns.map(([name]) => name).join(","), ...items.map(item => columns.map(([, value]) => {
+      const text = String(value(item.project) ?? "");
+      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    }).join(","))].join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    link.download = `pse-queue-${queue.months[state.month]}.csv`;
+    link.click();
+  }
+
+  /* ---------------- timing ---------------- */
+
+  function renderHistory() {
+    const visibleTech = TECH.filter(row => !state.hidden.has(row.key));
+    const memberOf = Object.fromEntries(TECH.flatMap(row => row.members.map(member => [member, row.key])));
+    const series = [];
+    const stackPhases = ["application", "study", "conditions", "agreement", "operating"];
+    const colors = { application: "--p-5", study: "--p-4", conditions: "--p-3", agreement: "--p-2", operating: "--p-1" };
+    for (const phase of stackPhases) {
+      if (state.hidden.has(phase)) continue;
+      const data = history.monthly.map(entry => {
+        let mw = 0, any = false;
+        const source = phase === "application" || phase === "study" ? (entry.lists && entry.lists[phase]) || null : entry.cells;
+        if (phase === "application" || phase === "study") {
+          // Before July 2026 these come from PSE's application lists; since, from the main list.
+          if (source) { for (const [tech, [, value]] of Object.entries(source)) { const key = memberOf[tech] || "other"; if (visibleTech.some(row => row.key === key) && !state.hidden.has(`${key}|${phase}`)) { mw += value; any = true; } } }
+          else for (const [key, [, value]] of Object.entries(entry.cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
+        } else {
+          for (const [key, [, value]] of Object.entries(entry.cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
+        }
+        return [entry.asof, any ? Math.round(mw) / 1000 : 0];
+      });
+      series.push({ name: PHASE[phase].label, type: "line", stack: "queue", areaStyle: { opacity: 0.9 }, symbol: "none", connectNulls: false, step: "end",
+        lineStyle: { width: 0 }, color: cssVar(colors[phase]), data });
+    }
+    const listsStart = history.monthly.find(entry => entry.lists)?.asof;
+    if (series.length && listsStart) series[series.length - 1].markLine = { silent: true, symbol: "none", label: { formatter: "application lists start", color: cssVar("--muted"), fontSize: 10.5, position: "insideEndTop" },
+      lineStyle: { color: cssVar("--muted-2"), type: "dashed", width: 1 }, data: [{ xAxis: listsStart }] };
+    historyChart.setOption({
+      animation: false, backgroundColor: "transparent",
+      grid: { left: 46, right: 12, top: 34, bottom: 28 },
+      legend: { top: 0, left: 0, icon: "rect", itemWidth: 12, itemHeight: 8, textStyle: { color: cssVar("--muted"), fontSize: 11.5 } },
+      tooltip: {
+        trigger: "axis", backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), textStyle: { color: cssVar("--text"), fontSize: 12 },
+        axisPointer: { type: "line", lineStyle: { color: cssVar("--axis") } },
+        formatter: params => `<b>${fmtMonth(params[0].value[0])}</b>` + params.filter(p => p.value[1] != null).reverse()
+          .map(p => tooltipRow(p.color, p.seriesName, `${p.value[1].toLocaleString("en", { maximumFractionDigits: 1 })} GW`)).join("")
+      },
+      xAxis: { type: "time", axisLine: { lineStyle: { color: cssVar("--axis") } }, axisLabel: { color: cssVar("--axis-label"), fontSize: 11 }, splitLine: { show: false } },
+      yAxis: { type: "value", axisLabel: { color: cssVar("--axis-label"), fontSize: 11 }, splitLine: { lineStyle: { color: cssVar("--grid") } } },
+      series
+    }, true);
+    document.getElementById("history-sub").innerHTML =
+      `Conditions and agreements from PSE's main list (generators only until June 2025; storage, distribution and demand added from July 2025, hence the jump). ` +
+      `Applications and those under study from PSE's application lists from April 2024. Refusals since 2023: ` +
+      `${refusalSummary()}.`;
+  }
+
+  function refusalSummary() {
+    if (!history.refusals || !history.refusals.length) return "not available";
+    const memberOf = Object.fromEntries(TECH.flatMap(row => row.members.map(member => [member, row.key])));
+    let count = 0, mw = 0;
+    for (const quarter of history.refusals) for (const [tech, [n, value]] of Object.entries(quarter.cells)) {
+      if (state.hidden.has(memberOf[tech] || "other")) continue;
+      count += n; mw += value;
+    }
+    const last = history.refusals[history.refusals.length - 1];
+    return `${count.toLocaleString("en")} applications, ${fmtGw(mw)} (PSE's list of ${fmtMonth(history.refusals_asof)}, to ${last.quarter})`;
+  }
+
+  function renderDurations(items) {
+    const steps = [
+      { label: "Complete → conditions", from: p => p.milestones.complete?.date, to: p => p.conditions },
+      { label: "Conditions → agreement", from: p => p.conditions, to: p => p.agreement },
+      { label: "Agreement → connection date", from: p => p.agreement, to: p => p.deadline },
+      { label: "Conditions → connection date, past date", from: p => p.conditions, to: p => p.deadline, only: item => item.phase === "operating" }
+    ];
+    const rows = TECH.filter(row => !state.hidden.has(row.key)).map(row => {
+      const mine = items.filter(item => techRow(item.project) === row);
+      return { row, values: steps.map(step => {
+        const gaps = mine.filter(item => !step.only || step.only(item)).map(item => [step.from(item.project), step.to(item.project)])
+          .filter(([a, b]) => a && b && b >= a).map(([a, b]) => months(a, b));
+        return { median: median(gaps), n: gaps.length };
+      }) };
+    }).filter(entry => entry.values.some(value => value.n));
+    const all = steps.map((step, index) => {
+      const gaps = items.filter(item => !step.only || step.only(item)).map(item => [step.from(item.project), step.to(item.project)])
+        .filter(([a, b]) => a && b && b >= a).map(([a, b]) => months(a, b));
+      return { median: median(gaps), n: gaps.length };
+    });
+    const max = Math.max(1, ...rows.flatMap(entry => entry.values.map(value => value.median || 0)), ...all.map(value => value.median || 0));
+    const cell = value => `<td>${value.n ? `<span class="bar" style="width:${Math.round(38 * value.median / max)}px"></span>${value.median.toFixed(value.median < 10 ? 1 : 0)}<span class="n">${value.n}</span>` : `<span style="color:var(--muted-2)">—</span>`}</td>`;
+    document.getElementById("durations").innerHTML =
+      `<tr><th></th>${steps.map(step => `<th>${esc(step.label)}</th>`).join("")}</tr>` +
+      rows.map(entry => `<tr><td><span class="chip"><i style="background:${cssVar(entry.row.color)}"></i>${esc(entry.row.label)}</span></td>${entry.values.map(cell).join("")}</tr>`).join("") +
+      `<tr><td><b>All shown</b></td>${all.map(cell).join("")}</tr>`;
+  }
+
+  /* ---------------- detail ---------------- */
+
+  function sourceFor(asof) {
+    return queue.sources.filter(source => source.asof === asof).pop();
+  }
+
+  function openDetail(project) {
+    const p = project, row = techRow(p);
+    state.openId = p.id;
+    const now = at(p, queue.months.length - 1) || { phase: p.phase };
+    document.getElementById("d-title").textContent = projectTitle(p);
+    document.getElementById("d-sub").textContent = [p.applicant || "Applicant not published", p.stations.join(", ") || p.station, p.region].filter(Boolean).join(" · ");
+    const statusText = p.left ? `${PHASE[p.phase].label}` : STATUS_LABEL[p.status] || PHASE[now.phase].label;
+    const tiles = [
+      ["Current status", statusText],
+      ["Capacity", p.mw_out && p.mw_in && Math.abs(p.mw_in - p.mw_out) > 0.5 ? `${fmtMw(p.mw_in)} in · ${fmtMw(p.mw_out)} out` : fmtMw(p.mw)],
+      ["Technology", row.label],
+      ["Last listed", fmtMonth(p.last_seen)],
+      ["Changes", String(p.changes.reduce((sum, change) => sum + change.diffs.length, 0))]
+    ];
+    document.getElementById("d-tiles").innerHTML = tiles.map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
+    renderSteps(p);
+    renderCod(p);
+    renderChanges(p);
+    renderFacts(p);
+    const dialog = document.getElementById("detail");
+    if (!dialog.open) dialog.showModal();
+    dialog.scrollTop = 0;
+    requestAnimationFrame(() => { renderMini(p); if (codChart) codChart.resize(); });
+  }
+
+  function renderSteps(p) {
+    const m = p.milestones;
+    const order = { application: 0, study: 1, conditions: 2, agreement: 3, operating: 4 };
+    const steps = [
+      { label: "Application filed", date: p.applied, how: p.applied ? "PSE's date" : m.received ? `listed awaiting verification, ${fmtMonth(m.received.seen)}` : "" },
+      { label: "Application complete", date: m.complete?.date, how: m.complete?.date ? (m.complete.matched ? "matched in PSE's list of complete applications" : "") : m.complete ? `under study in ${fmtMonth(m.complete.seen)}` : "" },
+      { label: "Conditions issued", date: p.conditions, how: "" },
+      { label: "Agreement signed", date: p.agreement, how: "" },
+      { label: "Connection date", date: p.deadline, how: p.deadline ? (p.deadline < queue.asof ? "passed" : "in the agreement") : "" }
+    ];
+    let reached;
+    let exit = null;
+    if (p.phase === "refused") { reached = 1; exit = { label: "Refused", date: p.refused, how: p.refusal_reason || "" }; }
+    else if (p.phase === "withdrawn") {
+      reached = p.agreement ? 3 : p.conditions ? 2 : p.milestones.complete ? 1 : 0;
+      const reason = { withdrawn: "Application withdrawn", expired: "Conditions expired", terminated: "Agreement ended" }[p.status];
+      exit = reason ? { label: reason, date: p.expired || p.terminated, how: "" }
+        : { label: "Dropped from the list", date: null, how: `not in PSE's list of ${fmtMonth(p.left?.asof)}` };
+    } else reached = order[p.phase] ?? 2;
+    const html = steps.map((step, index) => {
+      if (exit && index > reached) return "";
+      let cls = index < reached ? "done" : index === reached ? (p.phase === "operating" && index === 4 ? "done" : "current") : "";
+      if (exit && index === reached) cls = "done";
+      const when = step.date ? fmtDate(step.date) : cls === "done" ? "date not published" : "";
+      return `<div class="step ${cls}"><div class="dot">${cls === "done" ? "✓" : ""}</div><div class="lbl">${esc(step.label)}</div>` +
+        `<div class="when">${esc(when)}</div><div class="how">${esc(step.how)}</div></div>`;
+    }).join("") + (exit ? `<div class="step exit"><div class="dot">×</div><div class="lbl">${esc(exit.label)}</div><div class="when">${esc(exit.date ? fmtDate(exit.date) : exit.how)}</div><div class="how">${esc(exit.date ? exit.how : "")}</div></div>` : "");
+    document.getElementById("d-steps").innerHTML = html;
+    document.getElementById("d-steps-sub").textContent = `The path every project follows; the current step is highlighted. Dates are PSE's; ` +
+      `"date not published" means PSE's lists never gave it (applications before 2024, or before the project entered the lists in ${fmtMonth(p.first_seen)}).`;
+  }
+
+  function renderCod(p) {
+    const box = document.getElementById("d-cod");
+    if (codChart) { codChart.dispose(); codChart = null; }
+    if (!p.cod.length) { box.innerHTML = `<div class="cod-big"><div class="k">No connection date yet</div><div class="v" style="font-size:16px;color:var(--muted)">It comes with the connection agreement</div></div>`; return; }
+    if (p.cod.length === 1) {
+      box.innerHTML = `<div class="cod-big"><div class="k">Connection date</div><div class="v">${fmtDate(p.cod[0].date)}</div><div class="k" style="margin-top:6px">unchanged since ${fmtMonth(p.cod[0].seen)}</div></div>`;
+      return;
+    }
+    box.innerHTML = `<div id="cod-chart"></div>`;
+    codChart = echarts.init(document.getElementById("cod-chart"));
+    const end = p.last_seen;
+    const data = p.cod.map(entry => [entry.seen, entry.date]).concat([[end, p.cod[p.cod.length - 1].date]]);
+    codChart.setOption({
+      animation: false, backgroundColor: "transparent",
+      grid: { left: 86, right: 20, top: 14, bottom: 28 },
+      tooltip: { trigger: "axis", backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), textStyle: { color: cssVar("--text"), fontSize: 12 },
+        formatter: params => `List of ${fmtMonth(params[0].value[0])}: <b>${fmtDate(params[0].value[1])}</b>` },
+      xAxis: { type: "time", axisLine: { lineStyle: { color: cssVar("--axis") } }, axisLabel: { color: cssVar("--axis-label"), fontSize: 11 }, splitLine: { show: false } },
+      yAxis: { type: "time", splitNumber: 4, min: value => value.min - 120 * 86400000, max: value => value.max + 120 * 86400000,
+        axisLabel: { color: cssVar("--axis-label"), fontSize: 11, hideOverlap: true, formatter: value => fmtMonth(new Date(value).toISOString().slice(0, 10)) }, splitLine: { lineStyle: { color: cssVar("--grid") } } },
+      series: [{ type: "line", step: "end", data, symbol: "circle", symbolSize: 8, showSymbol: true, color: cssVar(techRow(p).color), lineStyle: { width: 2 },
+        label: { show: true, position: "top", color: cssVar("--muted"), fontSize: 11, formatter: params => params.dataIndex < data.length - 1 ? fmtMonth(params.value[1]) : "" } }]
+    });
+  }
+
+  function changeValue(diff, value) {
+    if (value == null || value === "") return "—";
+    if (diff.field === "status") return STATUS_LABEL[value] || value;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return fmtDate(value);
+    if (typeof value === "number") return fmtMw(value);
+    return String(value);
+  }
+
+  function renderChanges(p) {
+    const changes = [...p.changes].reverse();
+    document.getElementById("d-changes-title").textContent = `Changes between monthly lists (${changes.length})`;
+    document.getElementById("d-changes-sub").textContent = `First listed ${fmtMonth(p.first_seen)} · listed in ${p.months_listed} monthly lists` +
+      (p.left ? ` · not in the list of ${fmtMonth(p.left.asof)}` : "");
+    document.getElementById("d-changes").innerHTML = changes.length
+      ? `<table class="changes"><tr><th>List of</th><th>Change</th></tr>${changes.map(change => `<tr><td style="white-space:nowrap">${fmtMonth(change.asof)}</td><td>${change.diffs.map(diff =>
+        `<div><b>${esc(diff.label)}</b>: <span class="from">${esc(changeValue(diff, diff.from))}</span> → ${esc(changeValue(diff, diff.to))}</div>`).join("")}</td></tr>`).join("")}</table>`
+      : `<div style="color:var(--muted)">Nothing changed in PSE's lists since ${fmtMonth(p.first_seen)}.</div>`;
+  }
+
+  function renderFacts(p) {
+    const codes = (p.type.match(/MFW|FW|PV|MEE|EJ|ESP|JBM|JW|BGP|BG|SG|JS|JG|EW|OGW|ODB|OSDn|OSD|SD|MIX|OZE|KJW/g) || []);
+    const installed = Object.entries(p.installed || {}).map(([key, value]) => `${{ pv: "PV", wind: "wind", storage_out: "storage discharge", storage_in: "storage charge", load: "load", other: typeName(p.type).toLowerCase() }[key] || key} ${fmtMw(value)}`).join(", ");
+    const stations = p.stations.map(name => { const s = queue.stations[name] || {}; return esc(`${name}${s.code ? ` (${s.code})` : ""}${s.kv ? `, ${s.kv} kV station` : ""}${s.planned ? ` – planned; ${s.note || ""}` : ""}`); }).join("<br>");
+    const first = sourceFor(p.first_seen), last = sourceFor(p.last_seen);
+    const facts = [
+      ["Project name", p.name || "Not published (PSE named projects only from July 2026)"],
+      ["Applicant", [p.applicant || "Not published", p.seat].filter(Boolean).join(", ")],
+      ["Grid operator", p.operator],
+      ["PSE application id", p.pse_id],
+      ["Connection point", `${stations || esc(p.station)}${p.station && !p.stations.includes(p.station) ? `<br><span style="color:var(--muted-2)">PSE wrote: ${esc(p.station.split("\n").join("; "))}</span>` : ""}`, true],
+      ["Voltage", p.kv ? `${p.kv} kV` : ""],
+      ["Voivodeship", p.region],
+      ["Installation", `${p.type}${codes.length ? ` (${codes.map(code => TYPE_LABEL[code] || code).join(", ")})` : ""}${p.change_request ? " · change of conditions requested" : ""}`],
+      ["Installed capacity", installed],
+      ["Connection capacity", `${fmtMw(p.mw_in)} injected · ${fmtMw(p.mw_out)} withdrawn`],
+      ["Advance paid", p.advance ? fmtDate(p.advance) : ""],
+      ["PSE's lists", `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtMonth(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtMonth(p.last_seen)}</a>`, true]
+    ].filter(([, value]) => value);
+    document.getElementById("d-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
+  }
+
+  function renderMini(p) {
+    if (!miniChart) miniChart = echarts.init(document.getElementById("mini-map"));
+    miniChart.resize();
+    const row = techRow(p);
+    const station = p.stations[0] && queue.stations[p.stations[0]];
+    miniChart.setOption({
+      animation: false, backgroundColor: "transparent",
+      geo: { map: "poland", roam: false, silent: true, aspectScale: 0.64, layoutCenter: ["50%", "50%"], layoutSize: "92%",
+        itemStyle: { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.8 }, label: { show: false } },
+      series: [
+        { type: "lines", coordinateSystem: "geo", polyline: true, silent: true, data: gridLines.lines.filter(line => line.kv === 400).map(line => ({ coords: line.c })), lineStyle: { color: cssVar("--line-400"), width: 0.8 } },
+        { type: "effectScatter", coordinateSystem: "geo", silent: true, data: p.lat != null ? [[p.lon, p.lat]] : [], symbolSize: 10,
+          rippleEffect: { scale: 3, brushType: "stroke" }, itemStyle: { color: cssVar(row.color) },
+          label: { show: !!station, position: "right", formatter: p.stations[0] || "", color: cssVar("--text"), fontSize: 11 } }
+      ]
+    }, true);
+  }
+
+  /* ---------------- wiring ---------------- */
+
+  function renderAll(full) {
+    const items = drawMap(full);
+    renderSide(items);
+    renderTable(items);
+    renderHistory();
+    renderDurations(items);
+  }
+
+  function stopPlay() { if (state.timer) clearInterval(state.timer); state.timer = null; }
+
+  function setup() {
+    mapChart = echarts.init(document.getElementById("map"));
+    historyChart = echarts.init(document.getElementById("history-chart"));
+    const slider = document.getElementById("month");
+    slider.max = queue.months.length - 1;
+    slider.addEventListener("input", () => { stopPlay(); state.month = Number(slider.value); state.page = 0; renderAll(false); });
+    document.getElementById("play").addEventListener("click", () => {
+      if (state.timer) { stopPlay(); renderSide(shown()); return; }
+      if (state.month >= queue.months.length - 1) state.month = 0;
+      state.timer = setInterval(() => {
+        if (state.month >= queue.months.length - 1) { stopPlay(); renderAll(false); return; }
+        state.month += 1;
+        const items = drawMap(false);
+        renderSide(items);
+      }, 450);
+      renderAll(false);
+    });
+    document.getElementById("matrix").addEventListener("click", event => {
+      const target = event.target.closest("[data-key]");
+      if (!target) return;
+      const key = target.dataset.key;
+      if (state.hidden.has(key)) state.hidden.delete(key); else state.hidden.add(key);
+      state.page = 0;
+      renderAll(false);
+    });
+    document.getElementById("metric").addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      state.metric = button.dataset.metric;
+      document.querySelectorAll("#metric button").forEach(b => b.classList.toggle("on", b === button));
+      renderSide(shown());
+    });
+    const presets = {
+      active: ["refused", "withdrawn"],
+      past: PHASES.filter(phase => phase.key !== "operating").map(phase => phase.key),
+      exited: PHASES.filter(phase => !phase.exit).map(phase => phase.key),
+      all: []
+    };
+    const applyPreset = name => { state.hidden = new Set(presets[name]); state.page = 0; state.month = queue.months.length - 1; renderAll(false); };
+    document.getElementById("presets").addEventListener("click", event => { const b = event.target.closest("button"); if (b) applyPreset(b.dataset.preset); });
+    document.getElementById("show-past").addEventListener("click", () => { applyPreset("past"); state.sort = "deadline"; document.getElementById("sort").value = "deadline"; renderAll(false); document.getElementById("table-panel").scrollIntoView({ behavior: "smooth" }); });
+    document.getElementById("map-back").addEventListener("click", () => { state.region = null; state.page = 0; renderAll(true); });
+    mapChart.on("click", params => {
+      if (params.seriesId === "projects" && params.data && params.data.item) openDetail(params.data.item.project);
+      else if (params.componentType === "geo" && params.name) { state.region = params.name; state.page = 0; renderAll(true); }
+    });
+    document.getElementById("layer-lines").addEventListener("change", event => { state.lines = event.target.checked; drawMap(false); });
+    document.getElementById("layer-stations").addEventListener("change", event => { state.stations = event.target.checked; drawMap(false); });
+    document.getElementById("sort").addEventListener("change", event => { state.sort = event.target.value; state.page = 0; renderTable(shown()); });
+    let typing;
+    document.getElementById("search").addEventListener("input", event => {
+      clearTimeout(typing);
+      typing = setTimeout(() => { state.search = event.target.value.trim(); state.page = 0; renderAll(false); }, 180);
+    });
+    document.getElementById("csv").addEventListener("click", downloadCsv);
+    document.getElementById("pager").addEventListener("click", event => {
+      const button = event.target.closest("button[data-page]");
+      if (!button || button.disabled) return;
+      state.page += Number(button.dataset.page);
+      renderTable(shown());
+      document.getElementById("table-panel").scrollIntoView({ behavior: "smooth" });
+    });
+    const list = document.getElementById("list");
+    const openRow = event => { const tr = event.target.closest("tr[data-id]"); if (!tr) return; openDetail(queue.projects.find(p => p.id === Number(tr.dataset.id))); };
+    list.addEventListener("click", openRow);
+    list.addEventListener("keydown", event => { if (event.key === "Enter") openRow(event); });
+    const dialog = document.getElementById("detail");
+    document.getElementById("d-close").addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
+    window.addEventListener("resize", () => { mapChart.resize(); historyChart.resize(); if (miniChart) miniChart.resize(); if (codChart) codChart.resize(); });
+    document.getElementById("theme").addEventListener("click", () => {
+      const root = document.documentElement;
+      const dark = getComputedStyle(root).colorScheme.includes("dark");
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("pg-theme", root.dataset.theme); } catch (error) { /* private mode */ }
+      renderAll(true);
+      if (document.getElementById("detail").open) openDetail(queue.projects.find(p => p.id === state.openId) || queue.projects[0]);
+    });
+    renderIntro();
+    renderSizes();
+    renderMapNote();
+    document.getElementById("map-sub").textContent = `${queue.projects.length.toLocaleString("en")} projects listed by PSE at some point since ${fmtMonth(queue.months[0])}; the slider replays the monthly lists`;
+    document.getElementById("footer").innerHTML =
+      `Data: <a href="https://www.pse.pl/obszary-dzialalnosci/krajowy-system-elektroenergetyczny/wykaz-obiektow-planowanych-do-przylaczenia" target="_blank" rel="noopener">PSE S.A., wykaz obiektów planowanych do przyłączenia</a> ` +
+      `(every monthly version since 2020, read from PSE's document archive; earlier versions, 2017–2020, are scans not yet read). ` +
+      `Substations and lines: © OpenStreetMap contributors (ODbL). Voivodeships: GUGiK PRG via polska-geojson (MIT). ` +
+      `Project names, ids and statuses are PSE's; the technology groups, phases, positions and the linking of projects across months are this site's, and can be wrong. ` +
+      `<a href="https://github.com/aragn/polish-grid" target="_blank" rel="noopener">Code and data on GitHub</a>.`;
+  }
+
+  (function initTheme() {
+    try { const saved = localStorage.getItem("pg-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch (error) { /* private mode */ }
+  })();
+  load().catch(error => {
+    document.getElementById("intro-text").textContent = `Could not load the data: ${error.message}`;
+    console.error(error);
+  });
+  </script>
+</body>
+</html>

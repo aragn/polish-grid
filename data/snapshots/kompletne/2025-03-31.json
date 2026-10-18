@@ -1,0 +1,205 @@
+{
+"doc": "kompletne",
+"asof": "2025-03-31",
+"source": {
+"title": "Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc",
+"ext": "xlsx",
+"version": "1.2",
+"published": "Fri, 25 Apr 2025 07:51:26 GMT",
+"url": "https://www.pse.pl/documents/20182/51490/Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc.xlsx?version=1.2",
+"md5": "57cda4f6e8363c77beb60e87328c2360"
+},
+"notes": [],
+"rows": [
+{
+"type": "MEE",
+"station": "Łośnice",
+"kv": "110",
+"mw_in": 151.98,
+"mw_out": null,
+"change": false,
+"date": "2024-08-20",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Stanisławów",
+"kv": "400",
+"mw_in": 303.96,
+"mw_out": null,
+"change": false,
+"date": "2024-08-20",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Mory\nOłtarzew\nMościska",
+"kv": "110 110 110",
+"mw_in": 151.98,
+"mw_out": null,
+"change": false,
+"date": "2024-08-20",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Kielce",
+"kv": "220",
+"mw_in": 201.15,
+"mw_out": null,
+"change": false,
+"date": "2024-08-20",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Stanisławów",
+"kv": "400",
+"mw_in": 53.193,
+"mw_out": null,
+"change": false,
+"date": "2024-08-23",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Kopanina",
+"kv": "110",
+"mw_in": 143.091,
+"mw_out": null,
+"change": false,
+"date": "2024-08-27",
+"quarter": null
+},
+{
+"type": "SD (MEE)",
+"station": "Płock",
+"kv": "400",
+"mw_in": 399.432,
+"mw_out": null,
+"change": false,
+"date": "2024-08-27",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Leszno Gronowo",
+"kv": "220",
+"mw_in": 118.36,
+"mw_out": null,
+"change": false,
+"date": "2024-08-29",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Łomża Systemowa",
+"kv": "400",
+"mw_in": 200.429,
+"mw_out": null,
+"change": false,
+"date": "2024-08-30",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Dobrzeń",
+"kv": "400;110",
+"mw_in": 145.2,
+"mw_out": null,
+"change": false,
+"date": "2024-08-30",
+"quarter": null
+},
+{
+"type": "SD (PV)",
+"station": "Stryków (planowana)\nJanów",
+"kv": "400;220;110 220",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-08-30",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Sochaczew",
+"kv": "220;110",
+"mw_in": 448.504,
+"mw_out": null,
+"change": false,
+"date": "2024-09-01",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Zgierz",
+"kv": "220;110",
+"mw_in": 448.61,
+"mw_out": null,
+"change": false,
+"date": "2024-09-01",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Adamów",
+"kv": "220;110",
+"mw_in": 448.504,
+"mw_out": null,
+"change": false,
+"date": "2024-09-01",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Konin",
+"kv": "220;110",
+"mw_in": 425.25,
+"mw_out": null,
+"change": false,
+"date": "2024-09-01",
+"quarter": null
+},
+{
+"type": "BGP",
+"station": "Płock",
+"kv": "400",
+"mw_in": 115.0,
+"mw_out": null,
+"change": false,
+"date": "2024-09-02",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Ołtarzew",
+"kv": "400;220;110",
+"mw_in": 444.777,
+"mw_out": null,
+"change": false,
+"date": "2024-09-02",
+"quarter": null
+},
+{
+"type": "SD (PV)",
+"station": "Boguszów\nŚwiebodzice",
+"kv": "220 400;220",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-09-02",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Ełk Bis",
+"kv": "110",
+"mw_in": 107.997745,
+"mw_out": null,
+"change": false,
+"date": "2024-09-03",
+"quarter": null
+}
+]
+}

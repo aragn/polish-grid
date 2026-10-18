@@ -1,0 +1,195 @@
+{
+"doc": "kompletne",
+"asof": "2024-12-31",
+"source": {
+"title": "Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc",
+"ext": "pdf",
+"version": "1.9",
+"published": "Tue, 28 Jan 2025 12:47:59 GMT",
+"url": "https://www.pse.pl/documents/20182/51490/Informacja_na_temat_zlozonych_wnioskow_o_okreslenie_warunkow_przylaczenia_do_sieci_przesylowej_dla_ktorych_potwierdzono_kompletnosc.pdf?version=1.9",
+"md5": "f4ecd5616bf8cfacd1652d82c17d517e"
+},
+"notes": [],
+"rows": [
+{
+"type": "FW + PV",
+"station": "Pelplin",
+"kv": "110",
+"mw_in": 143.5,
+"mw_out": null,
+"change": false,
+"date": "2024-05-15",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Olsztyn Mątki\nOlsztyn I",
+"kv": "400;220;110 220",
+"mw_in": 191.99973,
+"mw_out": null,
+"change": false,
+"date": "2024-05-17",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Łomża Systemowa",
+"kv": "400",
+"mw_in": 250.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-21",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Rożki",
+"kv": "220",
+"mw_in": 236.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-23",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Olsztyn Mątki",
+"kv": "400",
+"mw_in": 227.98,
+"mw_out": null,
+"change": false,
+"date": "2024-05-23",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Legnica",
+"kv": "110",
+"mw_in": 273.24,
+"mw_out": null,
+"change": false,
+"date": "2024-05-23",
+"quarter": null
+},
+{
+"type": "FW",
+"station": "Ostrów\nKonin\nPątnów",
+"kv": "110 220;110 220;110",
+"mw_in": 25.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-24",
+"quarter": null
+},
+{
+"type": "PV + MEE",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "400",
+"mw_in": 162.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-24",
+"quarter": null
+},
+{
+"type": "SD (PV)",
+"station": "Kielce\nRadkowice",
+"kv": "400;220 220",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-24",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Świebodzice",
+"kv": "400",
+"mw_in": 200.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-27",
+"quarter": null
+},
+{
+"type": "SD (PV)",
+"station": "Płock\nPodolszyce",
+"kv": "400 220",
+"mw_in": 300.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-28",
+"quarter": null
+},
+{
+"type": "FW",
+"station": "Gdańsk Błonia",
+"kv": "110",
+"mw_in": 48.0,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "PV",
+"station": "Żagań (planowana)",
+"kv": "220",
+"mw_in": 264.49228,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Włocławek Azoty",
+"kv": "220;110",
+"mw_in": 419.925,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Podolszyce",
+"kv": "220;110",
+"mw_in": 413.843,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "SD (FW + PV + MEE + ODB)",
+"station": "Płock",
+"kv": "400;110",
+"mw_in": 430.046,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "SD (FW)",
+"station": "Baczyna Systemowa (planowana)",
+"kv": "400;220;110",
+"mw_in": 178.2,
+"mw_out": null,
+"change": false,
+"date": "2024-05-29",
+"quarter": null
+},
+{
+"type": "MEE",
+"station": "Toruń Elana",
+"kv": "220",
+"mw_in": 53.244,
+"mw_out": null,
+"change": false,
+"date": "2024-06-04",
+"quarter": null
+}
+]
+}

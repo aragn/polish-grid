@@ -1,0 +1,47 @@
+# Checks PSE's page every morning for a new monthly connection-queue file;
+# when there is one, archives it, rebuilds data/ and commits. GitHub Pages
+# (deploying from main) then republishes the site.
+name: Update PSE queue
+
+on:
+  schedule:
+    - cron: "40 5 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "normal, backfill (every old version, ~1 h) or rebuild (from data/snapshots only)"
+        default: normal
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Fetch and build
+        run: |
+          case "${{ github.event.inputs.mode }}" in
+            backfill) python etl/update.py --backfill ;;
+            rebuild) python etl/update.py --rebuild ;;
+            *) python etl/update.py ;;
+          esac
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data archive
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "PSE queue: $(python -c "import json; print(json.load(open('data/queue.json'))['asof'])") list"
+          git push

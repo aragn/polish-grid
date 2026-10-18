@@ -1,0 +1,1475 @@
+{
+ "stations": {
+  "Abramowice": {
+   "osm_name": "Stacja elektroenergetyczna \"Abramowice\" 220/110 kV",
+   "code": "ABR",
+   "lat": 51.1963,
+   "lon": 22.584,
+   "kv": "220/110",
+   "osm_id": "way/170249563",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Adamów": {
+   "osm_name": "Stacja elektroenergetyczna Adamów 220/110 kV",
+   "code": "ADA",
+   "lat": 52.0122,
+   "lon": 18.5418,
+   "kv": "220/110",
+   "osm_id": "way/171383831",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Aniołów": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Aniołów”",
+   "code": "ANI",
+   "lat": 50.8321,
+   "lon": 19.1423,
+   "kv": "220/110",
+   "osm_id": "way/216060722",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Anwil R110": {
+   "osm_name": "Stacja elektroenergetyczna 110kV \"Anwil R110\"",
+   "code": "ANW",
+   "lat": 52.7147,
+   "lon": 18.9561,
+   "kv": "220/110",
+   "osm_id": "way/245964556",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "Azoty Tarnów": {
+   "osm_name": "Stacja elektroenergetyczna \"Azoty Tarnów\" 220/110kV",
+   "code": "ATA",
+   "lat": 50.0226,
+   "lon": 20.9266,
+   "kv": "220/110",
+   "osm_id": "way/191038569",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "BESS Ełk": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/33 kV BESS Ełk",
+   "code": null,
+   "lat": 53.7661,
+   "lon": 22.2947,
+   "kv": "220/110",
+   "osm_id": "way/1532623635",
+   "source": "osm",
+   "region": "Warmińsko-mazurskie"
+  },
+  "Baczyna": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110 kV Baczyna",
+   "code": "BCS",
+   "lat": 52.7668,
+   "lon": 15.0386,
+   "kv": "400/220/110",
+   "osm_id": "way/912842670",
+   "source": "osm",
+   "region": "Lubuskie"
+  },
+  "Bieruń": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Bieruń”",
+   "code": "BIR",
+   "lat": 50.086,
+   "lon": 19.1695,
+   "kv": "220/110",
+   "osm_id": "way/255232597",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Blachownia": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Blachownia”",
+   "code": "BLA",
+   "lat": 50.3591,
+   "lon": 18.2936,
+   "kv": "220/110",
+   "osm_id": "way/185454704",
+   "source": "osm",
+   "region": "Opolskie"
+  },
+  "Boguchwała": {
+   "osm_name": "Stacja elektroenergetyczna \"Boguchwała\" 220/110 kV",
+   "code": "BGC",
+   "lat": 49.9941,
+   "lon": 21.9328,
+   "kv": "220/110",
+   "osm_id": "way/198635989",
+   "source": "osm",
+   "region": "Podkarpackie"
+  },
+  "Boguszów": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/20kV „SE Boguszów”",
+   "code": "BOG",
+   "lat": 50.7526,
+   "lon": 16.191,
+   "kv": "220/110",
+   "osm_id": "way/177749653",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Bujaków": {
+   "osm_name": "Stacja elektroenergetyczna 220kV „SE Bujaków”",
+   "code": "BUJ",
+   "lat": 49.8424,
+   "lon": 19.2127,
+   "kv": "220",
+   "osm_id": "way/44389929",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Byczyna": {
+   "osm_name": "Stacja elektroenergetyczna 400/220kV „SE Byczyna”",
+   "code": "BYC",
+   "lat": 50.1639,
+   "lon": 19.2914,
+   "kv": "400/220",
+   "osm_id": "way/133537926",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Bydgoszcz Zachód": {
+   "osm_name": "Stacja elektroenergetyczna \"Bydgoszcz Zachód\" 400/110 kV",
+   "code": "BYD",
+   "lat": 53.0887,
+   "lon": 17.8782,
+   "kv": "400/110",
+   "osm_id": "way/255293400",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "CPK": {
+   "lat": 52.1233,
+   "lon": 20.4826,
+   "source": "place",
+   "note": "Planned station in the area of the CPK airport; placed at Baranów (Grodzisk Mazowiecki).",
+   "planned": true,
+   "region": "Mazowieckie"
+  },
+  "Chełm": {
+   "osm_name": "Stacja elektroenergetyczna \"Chełm\" 400/220/110 kV",
+   "code": "CHS",
+   "lat": 51.1582,
+   "lon": 23.439,
+   "kv": "400/220/110",
+   "osm_id": "way/194903381",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Chmielów": {
+   "osm_name": "Stacja elektroenergetyczna \"Chmielów\" 220/110 kV",
+   "code": "CHM",
+   "lat": 50.5042,
+   "lon": 21.6715,
+   "kv": "220/110",
+   "osm_id": "way/191352746",
+   "source": "osm",
+   "region": "Podkarpackie"
+  },
+  "Choczewo": {
+   "osm_name": "Stacja elektroenergetyczna 400kV Choczewo",
+   "code": "CWO",
+   "lat": 54.7713,
+   "lon": 17.912,
+   "kv": "400",
+   "osm_id": "way/1119590976",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Cieplice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Cieplice”",
+   "code": "CPC",
+   "lat": 50.8872,
+   "lon": 15.6847,
+   "kv": "220/110",
+   "osm_id": "way/178756295",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Czarna": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Czarna”",
+   "code": "CRN",
+   "lat": 51.3919,
+   "lon": 16.2897,
+   "kv": "400/110",
+   "osm_id": "way/154894455",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Czeczott": {
+   "osm_name": "Stacja elektroenergetyczna 220/6kV „SE Czeczott” (w likwidacji)",
+   "code": "CZT",
+   "lat": 50.0182,
+   "lon": 19.1048,
+   "kv": "220",
+   "osm_id": "way/291375946",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Czerwonak": {
+   "osm_name": "Stacja elektroenergetyczna \"Czerwonak\" 220/110 kV",
+   "code": "CZE",
+   "lat": 52.4743,
+   "lon": 16.9774,
+   "kv": "220/110",
+   "osm_id": "way/293484894",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Dobrzeń": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Dobrzeń”",
+   "code": "DBN",
+   "lat": 50.7465,
+   "lon": 17.8737,
+   "kv": "400/110",
+   "osm_id": "way/255277953",
+   "source": "osm",
+   "region": "Opolskie"
+  },
+  "Dunowo": {
+   "osm_name": "Stacja elektroenergetyczna \"Dunowo\" 400/220/110 kV",
+   "code": "DUN",
+   "lat": 54.1265,
+   "lon": 16.096,
+   "kv": "400/220/110",
+   "osm_id": "way/175406958",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Ełk": {
+   "osm_name": "Stacja elektroenergetyczna \"Ełk\" 220/110/15kV",
+   "code": "ELK",
+   "lat": 53.7738,
+   "lon": 22.3233,
+   "kv": "220/110",
+   "osm_id": "way/170259740",
+   "source": "osm",
+   "region": "Warmińsko-mazurskie"
+  },
+  "Ełk Bis": {
+   "osm_name": "Stacja elektroenergetyczna \"Ełk Bis\" 400 kV/110kV",
+   "code": "EKB",
+   "lat": 53.7576,
+   "lon": 22.302,
+   "kv": "400/110",
+   "osm_id": "way/303870256",
+   "source": "osm",
+   "region": "Warmińsko-mazurskie"
+  },
+  "FW Darłowo": {
+   "osm_name": "Stacja elektroenergetyczna 400kV FW Darłowo",
+   "code": null,
+   "lat": 54.1274,
+   "lon": 16.0909,
+   "kv": "400",
+   "osm_id": "way/216446549",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "FW Korytnica": {
+   "osm_name": "Stacja Elektroenergetyczna FW Korytnica 400/110kV",
+   "code": "KOR",
+   "lat": 52.2711,
+   "lon": 21.5521,
+   "kv": "400/110",
+   "osm_id": "way/661438570",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Gdańsk Błonia": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Gdańsk Błonia”",
+   "code": "GBL",
+   "lat": 54.3387,
+   "lon": 18.7096,
+   "kv": "400/110",
+   "osm_id": "way/112614319",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Gdańsk I": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Gdańsk I”",
+   "code": "GDA",
+   "lat": 54.3377,
+   "lon": 18.4413,
+   "kv": "400/220/110",
+   "osm_id": "way/154838041",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Gdańsk Przyjaźń": {
+   "osm_name": "Stacja elektroenergetyczna 400kV „SE Gdańsk Przyjaźń”",
+   "code": "GDP",
+   "lat": 54.2817,
+   "lon": 18.3815,
+   "kv": "400",
+   "osm_id": "way/385118244",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Glinki": {
+   "osm_name": "Stacja elektroenergetyczna \"Glinki\" 220/110 kV",
+   "code": "GLN",
+   "lat": 53.4999,
+   "lon": 14.581,
+   "kv": "220/110",
+   "osm_id": "way/40062974",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Gorzów": {
+   "osm_name": "Stacja elektroenergetyczna \"Gorzów\" 220/110 kV",
+   "code": null,
+   "lat": 52.7478,
+   "lon": 15.269,
+   "kv": "220/110",
+   "osm_id": "way/193956108",
+   "source": "osm",
+   "region": "Lubuskie"
+  },
+  "Groszowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/30/15kV „SE Groszowice”",
+   "code": "GRO",
+   "lat": 50.6135,
+   "lon": 17.9714,
+   "kv": "220/110",
+   "osm_id": "way/336990960",
+   "source": "osm",
+   "region": "Opolskie"
+  },
+  "Grudziądz Węgrowo": {
+   "osm_name": "Stacja elektroenergetyczna \"Grudziądz - Węgrowo\" 400/220/110 kV",
+   "code": "GRU",
+   "lat": 53.4469,
+   "lon": 18.8045,
+   "kv": "400/220/110",
+   "osm_id": "way/46092396",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "Halemba": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Halemba”",
+   "code": "HAL",
+   "lat": 50.2309,
+   "lon": 18.8523,
+   "kv": "220/110",
+   "osm_id": "way/183259405",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Huta Częstochowa": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Huta Częstochowa”",
+   "code": "HCZ",
+   "lat": 50.776,
+   "lon": 19.1683,
+   "kv": "220/110",
+   "osm_id": "way/224727316",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Jamki": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Jamki”",
+   "code": "JAM",
+   "lat": 50.3258,
+   "lon": 19.2697,
+   "kv": "220/110",
+   "osm_id": "way/40946790",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Janów": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/15kV „Janów”",
+   "code": "JAN",
+   "lat": 51.7577,
+   "lon": 19.5614,
+   "kv": "220/110",
+   "osm_id": "way/35366436",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Jarosław": {
+   "lat": 50.016,
+   "lon": 22.678,
+   "source": "place",
+   "note": "Planned station near Jarosław; placed at the town.",
+   "planned": true,
+   "region": "Podkarpackie"
+  },
+  "Jasiniec": {
+   "osm_name": "Stacja elektroenergetyczna \"Jasiniec\" 400/220/110 kV",
+   "code": "JAS",
+   "lat": 53.1355,
+   "lon": 18.1077,
+   "kv": "400/220/110",
+   "osm_id": "way/46235456",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "Joachimów": {
+   "osm_name": "Stacja elektroenergetyczna „Joachimów” 400/220 kV",
+   "code": "JOA",
+   "lat": 50.76,
+   "lon": 19.3167,
+   "kv": "400/220",
+   "osm_id": "way/241842600",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Katowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/6kV „SE Katowice”",
+   "code": "KAT",
+   "lat": 50.2645,
+   "lon": 19.0544,
+   "kv": "220/110",
+   "osm_id": "way/29139402",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Kielce": {
+   "osm_name": "Stacja elektroenergetyczna 400/220kV „SE Kielce”",
+   "code": "KIE",
+   "lat": 50.8997,
+   "lon": 20.4151,
+   "kv": "400/220",
+   "osm_id": "way/199098050",
+   "source": "osm",
+   "region": "Świętokrzyskie"
+  },
+  "Kielce Piaski": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/30/15kV „SE Kielce Piaski”",
+   "code": "KPK",
+   "lat": 50.9047,
+   "lon": 20.6381,
+   "kv": "220/110",
+   "osm_id": "way/228154083",
+   "source": "osm",
+   "region": "Świętokrzyskie"
+  },
+  "Klikowa": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Klikowa”",
+   "code": "KLA",
+   "lat": 50.0638,
+   "lon": 20.9451,
+   "kv": "220/110",
+   "osm_id": "way/191035265",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Koksochemia": {
+   "osm_name": "Stacja elektroenergetyczna 220/6kV „SE Koksochemia”",
+   "code": "KHK",
+   "lat": 50.3387,
+   "lon": 19.3446,
+   "kv": "220",
+   "osm_id": "way/66051759",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Komorowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/15kV „SE Komorowice”",
+   "code": "KOM",
+   "lat": 49.8623,
+   "lon": 19.0533,
+   "kv": "220/110",
+   "osm_id": "way/98634956",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Konin": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „Elektrownia Konin”",
+   "code": "KON",
+   "lat": 52.2868,
+   "lon": 18.2702,
+   "kv": "220/110",
+   "osm_id": "way/216975352",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Kopalnia Bełchatów": {
+   "osm_name": "Stacja elektroenergetyczna \"Kopalnia Bełchatów\" 220/110kV",
+   "code": "BEK",
+   "lat": 51.2419,
+   "lon": 19.3847,
+   "kv": "220/110",
+   "osm_id": "way/155971668",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Kopanina": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Kopanina”",
+   "code": "KOP",
+   "lat": 50.1306,
+   "lon": 18.8496,
+   "kv": "220/110",
+   "osm_id": "way/183945016",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Kozienice": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV \"Kozienice\"",
+   "code": "KOZ",
+   "lat": 51.6621,
+   "lon": 21.4558,
+   "kv": "400/220/110",
+   "osm_id": "way/173582810",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Krajnik": {
+   "osm_name": "Stacja elektroenergetyczna \"Krajnik\" 400/220 kV",
+   "code": "KRA",
+   "lat": 53.1964,
+   "lon": 14.4757,
+   "kv": "400/220",
+   "osm_id": "way/39428977",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Kromolice": {
+   "osm_name": "Stacja elektroenergetyczna Kromolice 400/110kV",
+   "code": "KRM",
+   "lat": 52.2812,
+   "lon": 17.169,
+   "kv": "400/110",
+   "osm_id": "way/254938713",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Krosno Iskrzynia": {
+   "osm_name": "Stacja elektroenergetyczna \"Krosno Iskrzynia\" 400/110 kV",
+   "code": "KRI",
+   "lat": 49.6882,
+   "lon": 21.8526,
+   "kv": "400/110",
+   "osm_id": "way/166838338",
+   "source": "osm",
+   "region": "Podkarpackie"
+  },
+  "Krzemienica": {
+   "lat": 54.49,
+   "lon": 16.8224,
+   "source": "place",
+   "note": "New 400 kV station near Słupsk (Krzemienica, gmina Redzikowo); PSE earlier listed it as \"SE1, future station near Słupsk\".",
+   "planned": true,
+   "region": "Pomorskie"
+  },
+  "Kędzierzyn": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Kędzierzyn”",
+   "code": "KED",
+   "lat": 50.3171,
+   "lon": 18.2541,
+   "kv": "220/110",
+   "osm_id": "way/185459155",
+   "source": "osm",
+   "region": "Opolskie"
+  },
+  "Legnica (MKA)": {
+   "lat": 51.207,
+   "lon": 16.1619,
+   "source": "place",
+   "note": "Planned station \"MKA\" near Legnica; placed at Legnica.",
+   "planned": true,
+   "region": "Dolnośląskie"
+  },
+  "Leszno Gronowo": {
+   "osm_name": "Stacja elektroenergetyczna \"Leszno Gronowo\" 220/110 kV",
+   "code": "LES",
+   "lat": 51.8763,
+   "lon": 16.5901,
+   "kv": "220/110",
+   "osm_id": "way/148197330",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Leśniów": {
+   "osm_name": "Stacja elektroenergetyczna \"Leśniów\" 220/110 kV",
+   "code": "LSN",
+   "lat": 51.9884,
+   "lon": 15.293,
+   "kv": "220/110",
+   "osm_id": "way/158232924",
+   "source": "osm",
+   "region": "Lubuskie"
+  },
+  "Lublin Systemowa": {
+   "osm_name": "Stacja elektroenergetyczna \"Lublin Systemowa\" 400/110kV",
+   "code": "LSY",
+   "lat": 51.2981,
+   "lon": 22.6162,
+   "kv": "400/110",
+   "osm_id": "way/148060965",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Lubocza": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/15 kV „SE Lubocza”",
+   "code": "LUA",
+   "lat": 50.096,
+   "lon": 20.0991,
+   "kv": "220/110",
+   "osm_id": "way/87667718",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "MFW Baltic Power": {
+   "osm_name": "Stacja Elektroenergetyczna 220/400kV MFW Baltic Power",
+   "code": null,
+   "lat": 54.7756,
+   "lon": 17.915,
+   "kv": "400/220",
+   "osm_id": "way/1190053706",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Mikułowa": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Mikułowa”",
+   "code": "MIK",
+   "lat": 51.091,
+   "lon": 15.112,
+   "kv": "400/220/110",
+   "osm_id": "way/111615226",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Miłosna": {
+   "osm_name": "Stacja elektroenergetyczna \"Miłosna\" 400/220/110 kV",
+   "code": "MIL",
+   "lat": 52.2271,
+   "lon": 21.2898,
+   "kv": "400/220/110",
+   "osm_id": "way/99593626",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Mokre": {
+   "osm_name": "Stacja elektroenergetyczna „Mokre” 220/110 kV",
+   "code": "MKR",
+   "lat": 50.6985,
+   "lon": 23.1479,
+   "kv": "220/110",
+   "osm_id": "way/170368942",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Mory": {
+   "osm_name": "Stacja elektroenergetyczna \"Mory\" 220/110kV",
+   "code": "MOR",
+   "lat": 52.2144,
+   "lon": 20.8776,
+   "kv": "220/110",
+   "osm_id": "way/29115701",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Morzyczyn": {
+   "osm_name": "Stacja elektroenergetyczna \"Morzyczyn\" 400/220/110 kV",
+   "code": "MON",
+   "lat": 53.3547,
+   "lon": 14.8967,
+   "kv": "400/220/110",
+   "osm_id": "way/32943179",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Moszczenica": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Moszczenica”",
+   "code": "MOS",
+   "lat": 49.9412,
+   "lon": 18.5634,
+   "kv": "220/110",
+   "osm_id": "way/184899160",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Mościska": {
+   "osm_name": "Stacja elektroenergetyczna \"Mościska\" 400/110 kV",
+   "code": "MSK",
+   "lat": 52.2906,
+   "lon": 20.8812,
+   "kv": "400/110",
+   "osm_id": "way/91384044",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Narew": {
+   "osm_name": "Stacja elektroenergetyczna „Narew” 400/110kV",
+   "code": "NAR",
+   "lat": 53.0269,
+   "lon": 23.0462,
+   "kv": "400/110",
+   "osm_id": "way/293489663",
+   "source": "osm",
+   "region": "Podlaskie"
+  },
+  "Near Lublin Systemowa": {
+   "lat": 51.2981,
+   "lon": 22.6162,
+   "source": "place",
+   "note": "Potential station near Lublin Systemowa (PSE footnote); placed at Lublin Systemowa.",
+   "planned": true,
+   "region": "Lubelskie"
+  },
+  "Nory": {
+   "lat": 53.9395,
+   "lon": 22.5448,
+   "source": "place",
+   "note": "Planned station \"NOR\" on the Poland–Lithuania interconnection; placed at Nory (gmina Wieliczki).",
+   "planned": true,
+   "region": "Warmińsko-mazurskie"
+  },
+  "Nowe Czarnowo": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/30kV Nowe Czarnowo",
+   "code": null,
+   "lat": 53.203,
+   "lon": 14.4937,
+   "kv": "220/110",
+   "osm_id": "way/655265164",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Nuclear plant (Lubiatowo)": {
+   "lat": 54.7977,
+   "lon": 17.8615,
+   "source": "place",
+   "note": "Future station for the Pomeranian nuclear plant (\"SE EJ\"); placed at Lubiatowo.",
+   "planned": true,
+   "region": "Pomorskie"
+  },
+  "Nysa": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Nysa”",
+   "code": null,
+   "lat": 50.5153,
+   "lon": 17.3466,
+   "kv": "220/110",
+   "osm_id": "way/798799662",
+   "source": "osm",
+   "region": "Opolskie"
+  },
+  "Olsztyn I": {
+   "osm_name": "Stacja elektroenergetyczna „Olsztyn I” 220/110/15 kV",
+   "code": "OLS",
+   "lat": 53.8029,
+   "lon": 20.5291,
+   "kv": "220/110",
+   "osm_id": "way/101915790",
+   "source": "osm",
+   "region": "Warmińsko-mazurskie"
+  },
+  "Olsztyn Mątki": {
+   "osm_name": "Stacja elektroenergetyczna „Olsztyn Mątki” 400/220/110 kV",
+   "code": "OLM",
+   "lat": 53.8275,
+   "lon": 20.3479,
+   "kv": "400/220/110",
+   "osm_id": "way/101914781",
+   "source": "osm",
+   "region": "Warmińsko-mazurskie"
+  },
+  "Ostrowiec Systemowa": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Ostrowiec Systemowa”",
+   "code": "OSC",
+   "lat": 50.9387,
+   "lon": 21.4511,
+   "kv": "400/110",
+   "osm_id": "way/254235846",
+   "source": "osm",
+   "region": "Świętokrzyskie"
+  },
+  "Ostrołęka": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV \"Ostrołęka\"",
+   "code": "OST",
+   "lat": 53.1071,
+   "lon": 21.6233,
+   "kv": "400/220/110",
+   "osm_id": "way/121656686",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Ostrów": {
+   "osm_name": "Stacja elektroenergetyczna \"Ostrów\" 400/110 kV",
+   "code": "OSR",
+   "lat": 51.6363,
+   "lon": 17.8491,
+   "kv": "400/110",
+   "osm_id": "way/255293403",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Ołtarzew": {
+   "osm_name": "Stacja elektroenergetyczna \"Ołtarzew\" 400/220/110kV",
+   "code": "OLT",
+   "lat": 52.227,
+   "lon": 20.7419,
+   "kv": "400/220/110",
+   "osm_id": "way/251239544",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "PKN Orlen": {
+   "osm_name": "Stacja Elektroenergetyczna 400kV PKN Orlen",
+   "code": null,
+   "lat": 52.5854,
+   "lon": 19.703,
+   "kv": "400",
+   "osm_id": "way/658600169",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Pabianice": {
+   "osm_name": "Stacja elektroenergetyczna \"Pabianice\" 220/110 kV",
+   "code": "PAB",
+   "lat": 51.6775,
+   "lon": 19.3677,
+   "kv": "220/110",
+   "osm_id": "way/102165724",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Pasikurowice": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Pasikurowice”",
+   "code": "PAS",
+   "lat": 51.2138,
+   "lon": 17.1192,
+   "kv": "400/110",
+   "osm_id": "way/79033485",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Pelplin": {
+   "osm_name": "Stacja elektroenergetyczna 400/110 kV Pelplin",
+   "code": "PLP",
+   "lat": 53.9454,
+   "lon": 18.6654,
+   "kv": "400/110",
+   "osm_id": "way/385098015",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Piaseczno": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Piaseczno”",
+   "code": "PIA",
+   "lat": 52.0912,
+   "lon": 21.0355,
+   "kv": "220/110",
+   "osm_id": "way/29098336",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Piotrków": {
+   "osm_name": "Stacja elektroenergetyczna „Piotrków” 220/110 kV",
+   "code": "PIO",
+   "lat": 51.4282,
+   "lon": 19.6833,
+   "kv": "220/110",
+   "osm_id": "way/170316833",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Piła Krzewina": {
+   "osm_name": "Stacja elektroenergetyczna \"Piła Krzewina\" 400/220/110 kV",
+   "code": "PKW",
+   "lat": 53.0784,
+   "lon": 16.8733,
+   "kv": "400/220/110",
+   "osm_id": "way/238640596",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Plewiska": {
+   "osm_name": "Stacja elektroenergetyczna \"Plewiska\" 400/220/110 kV",
+   "code": "PLE",
+   "lat": 52.3686,
+   "lon": 16.7791,
+   "kv": "400/220/110",
+   "osm_id": "way/32036484",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Podborze": {
+   "lat": 50.2138,
+   "lon": 20.9604,
+   "source": "place",
+   "note": "Planned 400/220/110 kV station (line Podborze–Byczyna); placed at Podborze, gmina Olesno (Małopolska).",
+   "planned": true,
+   "region": "Małopolskie"
+  },
+  "Podolszyce": {
+   "osm_name": "Stacja elektroenergetyczna \"Podolszyce\" 220/110kV",
+   "code": "PDE",
+   "lat": 52.5366,
+   "lon": 19.7357,
+   "kv": "220/110",
+   "osm_id": "way/171992870",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Police": {
+   "osm_name": "Stacja elektroenergetyczna \"Police\" 220/110kV",
+   "code": "PLC",
+   "lat": 53.5643,
+   "lon": 14.522,
+   "kv": "220/110",
+   "osm_id": "way/165763717",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Polkowice": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Polkowice”",
+   "code": "POL",
+   "lat": 51.4965,
+   "lon": 16.0756,
+   "kv": "400/220/110",
+   "osm_id": "way/180542657",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Pomorzany": {
+   "osm_name": "Stacja Elektroenergetyczna 220kV Pomorzany",
+   "code": null,
+   "lat": 53.3903,
+   "lon": 14.5218,
+   "kv": "220",
+   "osm_id": "way/628655950",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Porąbka Żar": {
+   "osm_name": "Stacja elektroenergetyczna 220kV \"Porąbka Żar\"",
+   "code": "ZAP",
+   "lat": 49.7804,
+   "lon": 19.2118,
+   "kv": "220",
+   "osm_id": "way/98611253",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Poręba": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Poręba”",
+   "code": "PRB",
+   "lat": 50.0007,
+   "lon": 19.2734,
+   "kv": "220/110",
+   "osm_id": "way/135598292",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Poznań Południe": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/15 kV Poznań Południe",
+   "code": "PPD",
+   "lat": 52.3315,
+   "lon": 16.914,
+   "kv": "220/110",
+   "osm_id": "way/131120723",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Połaniec": {
+   "osm_name": "Stacja elektroenergetyczna \"Połaniec\" 400/220/110kV",
+   "code": "PEL",
+   "lat": 50.4427,
+   "lon": 21.332,
+   "kv": "400/220/110",
+   "osm_id": "way/199098053",
+   "source": "osm",
+   "region": "Świętokrzyskie"
+  },
+  "Praga": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV \"Praga\"",
+   "code": "PRG",
+   "lat": 52.2927,
+   "lon": 20.9952,
+   "kv": "220/110",
+   "osm_id": "way/25898810",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Pszczew": {
+   "lat": 52.4792,
+   "lon": 15.7783,
+   "source": "place",
+   "note": "Planned station; placed at Pszczew village.",
+   "planned": true,
+   "region": "Lubuskie"
+  },
+  "Puławy": {
+   "osm_name": "Stacja elektroenergetyczna 220kV \"Puławy\"",
+   "code": "PUL",
+   "lat": 51.4538,
+   "lon": 21.9893,
+   "kv": "220",
+   "osm_id": "way/88544449",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Pątnów": {
+   "osm_name": "Stacja elektroenergetyczna \"Pątnów\" 400/220/110 kV",
+   "code": "PAT",
+   "lat": 52.3054,
+   "lon": 18.2354,
+   "kv": "400/220/110",
+   "osm_id": "way/255284259",
+   "source": "osm",
+   "region": "Wielkopolskie"
+  },
+  "Płock": {
+   "osm_name": "Stacja elektroenergetyczna „Płock” 400/110 kV",
+   "code": "PLO",
+   "lat": 52.6357,
+   "lon": 19.7195,
+   "kv": "400/110",
+   "osm_id": "way/144646702",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Radkowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/15kV „SE Radkowice”",
+   "code": "RAD",
+   "lat": 50.7878,
+   "lon": 20.5221,
+   "kv": "220/110",
+   "osm_id": "way/199098055",
+   "source": "osm",
+   "region": "Świętokrzyskie"
+  },
+  "Recław": {
+   "osm_name": "Stacja Elektroenergetyczna 220kV Recław",
+   "code": "REC",
+   "lat": 53.8466,
+   "lon": 14.6316,
+   "kv": "220",
+   "osm_id": "way/668348943",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  },
+  "Rogowiec": {
+   "osm_name": "Stacja elektroenergetyczna \"Rogowiec\" 400/220 kV",
+   "code": "ROG",
+   "lat": 51.316,
+   "lon": 19.3288,
+   "kv": "400/220",
+   "osm_id": "way/293484891",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Rokitnica": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Rokitnica”",
+   "code": "ROK",
+   "lat": 50.3655,
+   "lon": 18.772,
+   "kv": "400/110",
+   "osm_id": "way/293489607",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Rożki": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/30kV „SE Rożki”",
+   "code": "ROZ",
+   "lat": 51.3381,
+   "lon": 21.0462,
+   "kv": "220/110",
+   "osm_id": "way/189851841",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Rzeszów Systemowa": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Rzeszów Systemowa”",
+   "code": "RZE",
+   "lat": 50.1908,
+   "lon": 21.8712,
+   "kv": "400/110",
+   "osm_id": "way/215282393",
+   "source": "osm",
+   "region": "Podkarpackie"
+  },
+  "SBO": {
+   "lat": null,
+   "lon": null,
+   "source": "unknown",
+   "note": "Planned station \"SBO\": location not published.",
+   "planned": true
+  },
+  "Siedlce Ujrzanów": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV \"Siedlce Ujrzanów\"",
+   "code": "SDU",
+   "lat": 52.1297,
+   "lon": 22.344,
+   "kv": "400/110",
+   "osm_id": "way/255972397",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Siersza": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Siersza”",
+   "code": "SIE",
+   "lat": 50.2086,
+   "lon": 19.4649,
+   "kv": "220/110",
+   "osm_id": "relation/9399771",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Skawina": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110 kV „SE Skawina”",
+   "code": "SKA",
+   "lat": 49.975,
+   "lon": 19.8058,
+   "kv": "400/220/110",
+   "osm_id": "way/189501431",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Sochaczew": {
+   "osm_name": "Stacja elektroenergetyczna \"Sochaczew\" 220/110kV",
+   "code": "SOC",
+   "lat": 52.2327,
+   "lon": 20.2589,
+   "kv": "220/110",
+   "osm_id": "way/145037309",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Stalowa Wola": {
+   "osm_name": "Stacja elektroenergetyczna 220/110 kV Stalowa Wola",
+   "code": "STW",
+   "lat": 50.5553,
+   "lon": 22.0775,
+   "kv": "220/110",
+   "osm_id": "way/726776987",
+   "source": "osm",
+   "region": "Podkarpackie"
+  },
+  "Stanisławów": {
+   "osm_name": "Stacja elektroenergetyczna 400kV \"Stanisławów\"",
+   "code": "STN",
+   "lat": 52.2697,
+   "lon": 21.5566,
+   "kv": "400",
+   "osm_id": "way/255973806",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Stryków": {
+   "lat": 51.9267,
+   "lon": 19.7533,
+   "source": "place",
+   "note": "Planned station Stryków, in Dmosin; placed at Dmosin village.",
+   "planned": true,
+   "region": "Łódzkie"
+  },
+  "Słupsk Wierzbięcino": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV \"Słupsk Wierzbięcin\"",
+   "code": "SLK",
+   "lat": 54.5015,
+   "lon": 16.8919,
+   "kv": "400/110",
+   "osm_id": "relation/18085709",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Tarnów": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Tarnów”",
+   "code": "TAW",
+   "lat": 49.9694,
+   "lon": 20.965,
+   "kv": "400/110",
+   "osm_id": "way/166710856",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Toruń Elana": {
+   "osm_name": "Stacja elektroenergetyczna „Toruń - Elana” 220/110 kV",
+   "code": "TEL",
+   "lat": 53.0448,
+   "lon": 18.6704,
+   "kv": "220/110",
+   "osm_id": "way/143484238",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "Towarowa": {
+   "osm_name": "Stacja elektroenergetyczna \"Towarowa\" 220/110/15kV",
+   "code": "WTO",
+   "lat": 52.2272,
+   "lon": 20.9852,
+   "kv": "220/110",
+   "osm_id": "way/89434732",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Trębaczew": {
+   "osm_name": "Stacja elektroenergetyczna „Trębaczew” 400/110 kV",
+   "code": "TRE",
+   "lat": 51.1429,
+   "lon": 18.9074,
+   "kv": "400/110",
+   "osm_id": "way/171917072",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Tucznawa": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Tucznawa”",
+   "code": "TCN",
+   "lat": 50.3768,
+   "lon": 19.3317,
+   "kv": "400/110",
+   "osm_id": "way/40946784",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Wanda": {
+   "osm_name": "Stacja elektroenergetyczna 220/110 kV „SE Wanda”",
+   "code": "WAN",
+   "lat": 50.0613,
+   "lon": 20.0792,
+   "kv": "220/110",
+   "osm_id": "way/115801644",
+   "source": "osm",
+   "region": "Małopolskie"
+  },
+  "Wcinka": {
+   "lat": null,
+   "lon": null,
+   "source": "unknown",
+   "note": "New station \"RS Wcinka\": location not found.",
+   "planned": true
+  },
+  "Wielopole": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Wielopole”",
+   "code": "WIE",
+   "lat": 50.1226,
+   "lon": 18.541,
+   "kv": "400/220/110",
+   "osm_id": "way/139452056",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Wigry": {
+   "lat": 54.0688,
+   "lon": 23.0867,
+   "source": "place",
+   "note": "Planned station \"WIG\" on the Poland–Lithuania interconnection; placed at Wigry (Suwałki).",
+   "planned": true,
+   "region": "Podlaskie"
+  },
+  "Witonia": {
+   "lat": 52.147,
+   "lon": 19.2943,
+   "source": "place",
+   "note": "New station \"Kutno (Witonia)\"; placed at Witonia village.",
+   "planned": true,
+   "region": "Łódzkie"
+  },
+  "Wrocław Południe": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „SE Wrocław Południe”",
+   "code": "WRC",
+   "lat": 51.0034,
+   "lon": 16.8806,
+   "kv": "400/110",
+   "osm_id": "way/154510504",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Wrzosowa": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/30/15kV „SE Wrzosowa”",
+   "code": "WRZ",
+   "lat": 50.754,
+   "lon": 19.1665,
+   "kv": "220/110",
+   "osm_id": "way/217899005",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Wypędy": {
+   "lat": 52.1373,
+   "lon": 20.8856,
+   "source": "place",
+   "note": "Planned station \"WYP\" near Warsaw; placed at Wypędy (gmina Raszyn).",
+   "planned": true,
+   "region": "Mazowieckie"
+  },
+  "Wyszków": {
+   "osm_name": "Stacja elektroenergetyczna 400(220)/110kV \"Wyszków\"",
+   "code": "WYS",
+   "lat": 52.6188,
+   "lon": 21.4935,
+   "kv": "220/110",
+   "osm_id": "way/1022342082",
+   "source": "osm",
+   "region": "Mazowieckie"
+  },
+  "Włocławek Azoty": {
+   "osm_name": "Stacja elektroenergetyczna \"Włocławek Azoty\" 220/110 kV",
+   "code": "WLA",
+   "lat": 52.7006,
+   "lon": 18.9595,
+   "kv": "220/110",
+   "osm_id": "way/72879943",
+   "source": "osm",
+   "region": "Kujawsko-pomorskie"
+  },
+  "Zamość": {
+   "osm_name": "Stacja elektroenergetyczna „Zamość” 220/110/15 kV",
+   "code": "ZAM",
+   "lat": 50.7167,
+   "lon": 23.2929,
+   "kv": "220/110",
+   "osm_id": "way/173613665",
+   "source": "osm",
+   "region": "Lubelskie"
+  },
+  "Zgierz": {
+   "osm_name": "Stacja elektroenergetyczna „Zgierz” 220/110 kV",
+   "code": "ZGI",
+   "lat": 51.8308,
+   "lon": 19.3835,
+   "kv": "220/110",
+   "osm_id": "way/101982559",
+   "source": "osm",
+   "region": "Łódzkie"
+  },
+  "Ząbkowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110/20kV „SE Ząbkowice”",
+   "code": "ZBK",
+   "lat": 50.5941,
+   "lon": 16.7898,
+   "kv": "220/110",
+   "osm_id": "way/179279860",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Złoczew (Kuźnica)": {
+   "lat": 51.4181,
+   "lon": 18.606,
+   "source": "place",
+   "note": "Planned 400 kV station \"Kuźnica\" in the Złoczew area; placed at Złoczew.",
+   "planned": true,
+   "region": "Łódzkie"
+  },
+  "Łagisza": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Łagisza”",
+   "code": "LAG",
+   "lat": 50.3521,
+   "lon": 19.1412,
+   "kv": "400/220/110",
+   "osm_id": "way/66161634",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Łomża Systemowa": {
+   "osm_name": "Stacja elektroenergetyczna 400kV \"Łomża\"",
+   "code": "LMS",
+   "lat": 53.0909,
+   "lon": 22.134,
+   "kv": "400",
+   "osm_id": "way/255972326",
+   "source": "osm",
+   "region": "Podlaskie"
+  },
+  "Łośnice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Łośnice”",
+   "code": "LOS",
+   "lat": 50.4968,
+   "lon": 19.4619,
+   "kv": "220/110",
+   "osm_id": "way/153838553",
+   "source": "osm",
+   "region": "Śląskie"
+  },
+  "Świebodzice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Świebodzice”",
+   "code": "SWI",
+   "lat": 50.8542,
+   "lon": 16.352,
+   "kv": "220/110",
+   "osm_id": "way/179138441",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Żagań (Marszów)": {
+   "lat": 51.6337,
+   "lon": 15.216,
+   "source": "place",
+   "note": "Station Żagań at Marszów (gmina Żary); placed at the village.",
+   "planned": true,
+   "region": "Lubuskie"
+  },
+  "Żarnowiec": {
+   "osm_name": "Stacja elektroenergetyczna 400/110kV „Żarnowiec”",
+   "code": "ZRC",
+   "lat": 54.7188,
+   "lon": 18.1094,
+   "kv": "400/110",
+   "osm_id": "way/86494356",
+   "source": "osm",
+   "region": "Pomorskie"
+  },
+  "Żukowice": {
+   "osm_name": "Stacja elektroenergetyczna 220/110kV „SE Żukowice”",
+   "code": "ZUK",
+   "lat": 51.6624,
+   "lon": 16.006,
+   "kv": "220/110",
+   "osm_id": "way/180535363",
+   "source": "osm",
+   "region": "Dolnośląskie"
+  },
+  "Żydowo Kierzkowo": {
+   "osm_name": "Stacja elektroenergetyczna 400/220/110kV „SE Żydowo Kierzkowo”",
+   "code": "ZDK",
+   "lat": 54.0414,
+   "lon": 16.7307,
+   "kv": "400/220/110",
+   "osm_id": "way/534238983",
+   "source": "osm",
+   "region": "Zachodniopomorskie"
+  }
+ },
+ "aliases": {
+  "Baczyna Systemowa": "Baczyna",
+  "Chełm Systemowa": "Chełm",
+  "Czeczot": "Czeczott",
+  "DMO": "Stryków",
+  "Dmosin": "Stryków",
+  "Gdańsk I": "Gdańsk I",
+  "Grudziądz": "Grudziądz Węgrowo",
+  "Kutno": "Witonia",
+  "Kutno (Witonia)": "Witonia",
+  "Kuźnica": "Złoczew (Kuźnica)",
+  "Kędzierzyn Koźle": "Kędzierzyn",
+  "Legnica": "Legnica (MKA)",
+  "Leszno-Gronowo": "Leszno Gronowo",
+  "Lublin": "Lublin Systemowa",
+  "MKA": "Legnica (MKA)",
+  "Makowisko": "Jarosław",
+  "Marszów": "Żagań (Marszów)",
+  "Marszów (Żagań)": "Żagań (Marszów)",
+  "NOR": "Nory",
+  "Norki": "Nory",
+  "Olsztyn I": "Olsztyn I",
+  "Ostrowiec": "Ostrowiec Systemowa",
+  "RS Wcinka": "Wcinka",
+  "Rzeszów": "Rzeszów Systemowa",
+  "SE": "Choczewo",
+  "SE EJ": "Nuclear plant (Lubiatowo)",
+  "SE1": "Krzemienica",
+  "SE2": "Choczewo",
+  "SE3": "Near Lublin Systemowa",
+  "Skwina": "Skawina",
+  "Stryków (Dmosin)": "Stryków",
+  "Stryków (planowana) DMO": "Stryków",
+  "Słupsk Wierzbięcin": "Słupsk Wierzbięcino",
+  "WIG": "Wigry",
+  "WIGY": "Wigry",
+  "WYP": "Wypędy",
+  "Widełka": "Rzeszów Systemowa",
+  "Wigry": "Wigry",
+  "Ząbkowice Śląskie": "Ząbkowice",
+  "Ząbkwice": "Ząbkowice",
+  "nowa SE RS \"Wcinka\"": "Wcinka",
+  "Łomża": "Łomża Systemowa",
+  "Żagań": "Żagań (Marszów)",
+  "Żydowo": "Żydowo Kierzkowo",
+  "Żydowo Kieszkowo": "Żydowo Kierzkowo"
+ }
+}
