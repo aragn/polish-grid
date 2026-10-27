@@ -47,6 +47,7 @@ LEGACY = [
     ("odmowy", "Wykaz_wydanych_odmow_okreslenia_warunkow_przylaczenia_do_sieci_od_01012023", "xlsx"),
 ]
 ART7 = re.compile(r"Informacje_publikowane_zgodnie_z_Art_7_ust_8l_ustawy_PE_stan_na_(\d{2})_(\d{2})_(\d{4})\.xlsx")
+ART7_FIXED = "Informacje_publikowane_zgodnie_z_Art_7_ust_8l_ustawy_PE"
 # Where both exist for a month, the spreadsheet wins over the PDF.
 PREFERENCE = {"xlsx": 0, "xls": 1, "pdf": 2}
 
@@ -99,6 +100,9 @@ def discover():
     for match in sorted(set(ART7.findall(html))):
         day, month, year = match
         found.append(("art7", f"Informacje_publikowane_zgodnie_z_Art_7_ust_8l_ustawy_PE_stan_na_{day}_{month}_{year}", "xlsx"))
+    # From October 2026 PSE publishes it under one fixed name (no date); each upload is a Liferay version.
+    if ART7_FIXED + ".xlsx" in html:
+        found.append(("art7", ART7_FIXED, "xlsx"))
     return found
 
 

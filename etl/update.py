@@ -31,7 +31,7 @@ def main():
         sources = pse.load_sources()
         targets = pse.discover()
         if not targets:
-            sys.exit("PSE's page links no 'Informacje_publikowane_..._stan_na_DD_MM_YYYY.xlsx' file: check the page and etl/pse.py")
+            sys.exit("PSE's page links no 'Informacje_publikowane_...PE.xlsx' file: check the page and etl/pse.py")
         if args.backfill:
             targets = pse.LEGACY + targets
         new = []
