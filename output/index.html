@@ -290,7 +290,8 @@
   async function fetchAll(endpoint, filter, signal, onPage) {
     const first = new URL(API + endpoint);
     first.searchParams.set("$filter", filter);
-    first.searchParams.set("$first", "20000");
+    // PSE's server gives up after about 30 s, which a 20,000-row page can take.
+    first.searchParams.set("$first", "5000");
     let next = first.href;
     const rows = [];
     const seen = new Set();
@@ -301,7 +302,12 @@
       signal.addEventListener("abort", abort, { once: true });
       const timer = setTimeout(abort, 45000);
       try {
-        const response = await fetch(next, { headers: { Accept: "application/json" }, signal: controller.signal });
+        let response;
+        for (let attempt = 0; ; attempt++) {
+          response = await fetch(next, { headers: { Accept: "application/json" }, signal: controller.signal });
+          if (response.status < 500 || attempt === 2) break;
+          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+        }
         if (!response.ok) throw new Error(`PSE ${endpoint} answered HTTP ${response.status}`);
         const payload = await response.json();
         for (const row of payload.value || []) rows.push(row);
