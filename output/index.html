@@ -59,10 +59,10 @@
     .intro h1 { font-size:22px; margin:0 0 4px; font-weight:650; }
     .intro p { margin:0; color:var(--muted); line-height:1.5; max-width:980px; }
 
-    .range { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-top:16px; }
-    .range label { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:6px; }
-    .range .status { color:var(--muted); font-size:12.5px; margin-left:auto; }
-    .range .status.error { color:var(--error); }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-top:16px; }
+    .controls label { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:6px; }
+    .controls .status { color:var(--muted); font-size:12.5px; margin-left:auto; }
+    .controls .status.error { color:var(--error); }
     .input, .select { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; font-family:inherit; }
     .input.search { width:260px; }
     .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; }
@@ -168,7 +168,7 @@
       .nav a { padding:6px 8px; font-size:12.5px; }
       .tools { margin-left:0; width:100%; }
       .input.search { width:100%; }
-      .range .status { margin-left:0; width:100%; }
+      .controls .status { margin-left:0; width:100%; }
       #chart, .chart-empty { height:340px; }
       .granularity button { padding:8px 8px; }
     }
@@ -190,7 +190,7 @@
     <section class="intro">
       <h1>What Poland's big power plants generate</h1>
       <p>Metered output of every centrally dispatched unit (JWCD) on PSE's transmission grid, quarter-hour by quarter-hour, with the pumping of the two pumped-storage plants, the rest of the system, load and cross-border flows; today and tomorrow from PSE's day-ahead plan. Read live from PSE's public API; the meter data come in during the day, a few hours behind.</p>
-      <div class="range">
+      <div class="controls">
         <div class="calendar-trigger-wrap">
           <button id="calendar-trigger" type="button" aria-label="Open date selector" aria-expanded="false">
             <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M8 2.8v3.4M16 2.8v3.4M3 9.5h18"></path><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"></path></svg>
@@ -356,11 +356,12 @@
   const value = row => { const v = Number(row.value); return row.value == null || row.value === "" || !Number.isFinite(v) ? null : v; };
 
   /* ---------------- PSE API ---------------- */
-  async function fetchAll(endpoint, filter, signal, onPage) {
+  async function fetchAll(endpoint, filter, signal, onPage, options = {}) {
     const first = new URL(API + endpoint);
     first.searchParams.set("$filter", filter);
-    // PSE's server gives up after about 30 s, which a 20,000-row page can take.
-    first.searchParams.set("$first", "5000");
+    // PSE's server gives up after about 30 s, which a 20,000-row page over several days can take.
+    first.searchParams.set("$first", String(options.first || 5000));
+    if (options.select) first.searchParams.set("$select", options.select);
     let next = first.href;
     const rows = [];
     const seen = new Set();
@@ -399,6 +400,29 @@
     return rows;
   }
 
+  // PSE pages by a cursor, so the pages of one query come one after another (a week of gen-jw was
+  // 16 pages, about 37 s).  One query per day, a day to a page and only the fields used, eight days
+  // at a time: a week in about 5 s.
+  const DAY_QUERY = {
+    "gen-jw": { first: 12000, select: "dtime_utc,power_plant,resource_code,value,operating_mode_eng,business_date,publication_ts" },
+    pdwkseub: { first: 12000, select: "dtime_utc,resource_code,available_capacity,non_us_cap,grid_lim" }
+  };
+  async function fetchDays(endpoint, signal, onProgress) {
+    const days = [];
+    for (let day = state.from; day <= state.to; day = addDays(day, 1)) days.push(day);
+    const parts = days.map(() => []);
+    let next = 0;
+    const worker = async () => {
+      while (next < days.length) {
+        const index = next++;
+        parts[index] = await fetchAll(endpoint, `business_date eq '${days[index]}'`, signal, null, DAY_QUERY[endpoint]);
+        if (onProgress) onProgress(parts.flat());
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(8, days.length) }, worker));
+    return parts.flat();
+  }
+
   async function load() {
     if (state.controller) state.controller.abort();
     const request = ++state.request;
@@ -410,7 +434,7 @@
     renderAll();
     Promise.all([loadPrices(state.from, state.to), loadGeneration(state.from, state.to)]).then(() => { if (request === state.request) renderChart(); });
     const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
-    const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
+    const capacity = fetchDays("pdwkseub", controller.signal).then(rows => ({ rows }), error => ({ error }));
     state.system = new Map();
     state.plan = new Map();
     // PSE's system balance: total generation = jg (scheduled units) + jnwrb (units outside the balancing
@@ -443,7 +467,7 @@
     }, () => { /* no plan: actuals only */ });
     let lastDraw = 0;
     try {
-      state.rows = await fetchAll("gen-jw", filter, controller.signal, rows => {
+      state.rows = await fetchDays("gen-jw", controller.signal, rows => {
         if (request !== state.request) return;
         state.rows = rows;
         setStatus(`Loading ${rangeText()} from PSE… ${rows.length.toLocaleString("en")} readings`);
