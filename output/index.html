@@ -13,7 +13,7 @@
       --hover:#1a1f25; --accent:#5b9cff; --chip:#1c2127;
       --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
       --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
-      --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-gas:#d95926; --f-hydro:#9085e9;
+      --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-biomass:#4f9d4a; --f-gas:#d95926; --f-hydro:#9085e9;
       --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9; --f-wind:#199e70; --f-rest:#8a7f6e;
       --error:#e66767; --price:#ff6fae; --load:#f1f3f5; --f-import:#4fb3c8; --shadow:rgba(0,0,0,.55);
       --range:#252b32; --selected-bg:#e8eaed; --selected-text:#0b0d10;
@@ -25,7 +25,7 @@
         --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
         --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
         --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
-        --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
+        --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-biomass:#3d8a37; --f-gas:#eb6834; --f-hydro:#6250d6;
         --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
         --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
       --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
@@ -37,7 +37,7 @@
       --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
       --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
       --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
-      --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
+      --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-biomass:#3d8a37; --f-gas:#eb6834; --f-hydro:#6250d6;
       --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
       --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
       --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
@@ -282,8 +282,13 @@
     { key: "Hard coal", color: "--f-coal" },
     { key: "Hard coal + biomass", color: "--f-cofiring" },
     { key: "Natural gas", color: "--f-gas" },
+    { key: "Biomass", color: "--f-biomass" },
+    { key: "Oil, coal gas, other", color: "--f-rest" },
+    { key: "Other thermal, hydro, biomass", color: "--f-rest" },
+    { key: "Hydro", color: "--f-hydro" },
     { key: "Hydro · pumped storage", color: "--f-hydro" },
     { key: "Offshore wind", color: "--f-offshore" },
+    { key: "Onshore wind", color: "--f-wind" },
     { key: "Solar PV", color: "--f-solar" },
     { key: "Not mapped", color: "--f-other" }
   ];
@@ -753,6 +758,20 @@
     $("chart-title").textContent = `Generation and load, ${rangeText()}`;
     if (empty) { if (chart) chart.clear(); return; }
 
+    // By fuel, the rest of the system is part of its fuel (other gas is gas); by plant it stays apart.
+    if (rest && state.group === "fuel") {
+      const into = { "Other coal": "Hard coal", "Other gas": "Natural gas", "Other biomass": "Biomass", "Other hydro": "Hydro",
+        "Other oil, coal gas, other": "Oil, coal gas, other", [REST_WIND]: "Onshore wind", [REST_SOLAR]: "Solar PV",
+        [REST_OTHER]: "Other thermal, hydro, biomass", "Hydro · pumped storage": "Hydro" };
+      for (const t of times) {
+        for (const map of [t.rest, t.series]) for (const [name, v] of [...map]) {
+          const fuel = into[name];
+          if (!fuel) continue;
+          map.delete(name);
+          t.series.set(fuel, (t.series.get(fuel) || 0) + v);
+        }
+      }
+    }
     const totals = new Map(), plantFuel = new Map();
     for (const row of state.rows) plantFuel.set(row.power_plant, fuelOf(row.power_plant));
     for (const t of times) for (const [name, v] of t.series) totals.set(name, (totals.get(name) || 0) + v);
@@ -822,7 +841,9 @@
       lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
     });
     $("chart-sub").textContent = `Average MW per ${res === "day" ? "day" : res === "hour" ? "hour" : "quarter-hour"}, stacked; pumping and exports below zero` +
-      (rest ? "; “Other” is the rest of Poland's generation (PSE's totals less the JWCD units, split by fuel with ENTSO-E)" : "") +
+      (rest ? state.group === "fuel"
+        ? "; each fuel is all of Poland's generation of it: the JWCD units plus the rest of the system (PSE's totals less the JWCD units, split by fuel with ENTSO-E)"
+        : "; “Other” is the rest of Poland's generation (PSE's totals less the JWCD units, split by fuel with ENTSO-E)" : "") +
       (whole ? "; the solid line is load, the dashed one PSE's day-ahead forecast" : "") +
       (priced.length ? `; pink: ENTSO-E's day-ahead price, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)` : "");
     const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
