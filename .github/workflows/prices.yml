@@ -1,0 +1,46 @@
+# Fetches Poland's day-ahead price from ENTSO-E after the day-ahead auction
+# (results about 12:45 Warsaw time) and commits data/prices/; the unit-output
+# page draws it over the generation chart.
+name: Update day-ahead prices
+
+on:
+  schedule:
+    - cron: "20 12 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "normal (last 10 days) or backfill (since June 2024)"
+        default: normal
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Fetch
+        env:
+          ENTSOE_API_KEY: ${{ secrets.ENTSOE_API_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "backfill" ]; then python etl/prices.py --backfill; else python etl/prices.py; fi
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/prices
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Day-ahead prices: $(date -u +%Y-%m-%d)"
+          git pull --rebase
+          git push
