@@ -58,7 +58,7 @@
     .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
     .brand span { color:var(--muted); font-weight:500; }
     .nav { display:flex; gap:4px; }
-    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; white-space:nowrap; }
     .nav a.active { color:var(--text); background:var(--hover); }
     .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
     main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
@@ -200,6 +200,9 @@
       main { padding:14px 16px 32px; }
       .topbar { padding:10px 16px; gap:10px; }
       .brand span { display:none; }
+      .brand { white-space:nowrap; }
+      .nav { overflow-x:auto; min-width:0; scrollbar-width:none; }
+      .nav a { padding:6px 8px; font-size:12.5px; }
       .map-wrap { min-height:420px; }
       .input { width:100%; }
       .table-tools { margin-left:0; width:100%; }
@@ -214,7 +217,7 @@
 <body>
   <header class="topbar">
     <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
-    <nav class="nav"><a class="active" href="./">Connection queue (PSE)</a></nav>
+    <nav class="nav"><a class="active" href="./">Connection queue (PSE)</a><a href="output/">Unit output (JWCD)</a></nav>
     <button class="theme" type="button" id="theme">Theme</button>
   </header>
   <main>

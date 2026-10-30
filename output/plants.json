@@ -1,0 +1,185 @@
+{
+  "source": "Plant-level operator, location, and primary fuel/technology enrichment; not interval-specific fuel consumption.",
+  "plants": {
+    "Bełchatów": {
+      "operator": "PGE Górnictwo i Energetyka Konwencjonalna S.A.",
+      "location": "Rogowiec · Łódzkie",
+      "source": "Lignite"
+    },
+    "Chorzów": {
+      "operator": "CEZ Chorzów Sp. z o.o.",
+      "location": "Chorzów · Śląskie",
+      "source": "Hard coal"
+    },
+    "EC Czechnica-2": {
+      "operator": "Kogeneracja S.A. (PGE Energia Ciepła)",
+      "location": "Siechnice · Dolnośląskie",
+      "source": "Natural gas"
+    },
+    "EC Łódź-4": {
+      "operator": "Veolia Energia Łódź S.A.",
+      "location": "Łódź · Łódzkie",
+      "source": "Hard coal + biomass"
+    },
+    "EC Rzeszów": {
+      "operator": "PGE Energia Ciepła S.A.",
+      "location": "Rzeszów · Podkarpackie",
+      "source": "Natural gas"
+    },
+    "EC Siekierki": {
+      "operator": "ORLEN Termika S.A.",
+      "location": "Warszawa · Mazowieckie",
+      "source": "Hard coal + biomass"
+    },
+    "EC Stalowa Wola": {
+      "operator": "Elektrociepłownia Stalowa Wola S.A.",
+      "location": "Stalowa Wola · Podkarpackie",
+      "source": "Natural gas"
+    },
+    "EC Włocławek": {
+      "operator": "ORLEN S.A.",
+      "location": "Włocławek · Kujawsko-Pomorskie",
+      "source": "Natural gas"
+    },
+    "EC Wrotków": {
+      "operator": "PGE Energia Ciepła S.A.",
+      "location": "Lublin · Lubelskie",
+      "source": "Natural gas"
+    },
+    "EC Żerań 2": {
+      "operator": "ORLEN Termika S.A.",
+      "location": "Warszawa · Mazowieckie",
+      "source": "Natural gas"
+    },
+    "Gryfino": {
+      "operator": "PGE Górnictwo i Energetyka Konwencjonalna S.A.",
+      "location": "Gryfino · Zachodniopomorskie",
+      "source": "Natural gas"
+    },
+    "Jaworzno 2 JWCD": {
+      "operator": "TAURON Wytwarzanie S.A.",
+      "location": "Jaworzno · Śląskie",
+      "source": "Hard coal"
+    },
+    "Jaworzno 3": {
+      "operator": "TAURON Wytwarzanie S.A.",
+      "location": "Jaworzno · Śląskie",
+      "source": "Hard coal"
+    },
+    "Karolin 2": {
+      "operator": "Veolia Energia Poznań S.A.",
+      "location": "Poznań · Wielkopolskie",
+      "source": "Hard coal"
+    },
+    "Katowice": {
+      "operator": null,
+      "location": "Katowice · Śląskie",
+      "source": "Hard coal"
+    },
+    "Kozienice 1": {
+      "operator": "ENEA Wytwarzanie Sp. z o.o.",
+      "location": "Świerże Górne · Mazowieckie",
+      "source": "Hard coal"
+    },
+    "Kozienice 2": {
+      "operator": "ENEA Wytwarzanie Sp. z o.o.",
+      "location": "Świerże Górne · Mazowieckie",
+      "source": "Hard coal"
+    },
+    "Kraków Łęg": {
+      "operator": "PGE Energia Ciepła S.A.",
+      "location": "Kraków · Małopolskie",
+      "source": "Hard coal"
+    },
+    "Łagisza": {
+      "operator": "TAURON Wytwarzanie S.A.",
+      "location": "Będzin / Łagisza · Śląskie",
+      "source": "Hard coal"
+    },
+    "Łaziska 3": {
+      "operator": "TAURON Wytwarzanie S.A.",
+      "location": "Łaziska Górne · Śląskie",
+      "source": "Hard coal"
+    },
+    "MFW Baltic Power": {
+      "operator": "Baltic Power Sp. z o.o.",
+      "location": "Baltic Sea · Pomorskie coast",
+      "source": "Offshore wind"
+    },
+    "Opole": {
+      "operator": "PGE Górnictwo i Energetyka Konwencjonalna S.A.",
+      "location": "Brzezie · Opolskie",
+      "source": "Hard coal"
+    },
+    "Ostrołęka B": {
+      "operator": "ENERGA Elektrownie Ostrołęka S.A.",
+      "location": "Ostrołęka · Mazowieckie",
+      "source": "Hard coal"
+    },
+    "Pątnów 2": {
+      "operator": "ZE PAK S.A.",
+      "location": "Pątnów · Wielkopolskie",
+      "source": "Lignite"
+    },
+    "Płock": {
+      "operator": "ORLEN S.A.",
+      "location": "Płock · Mazowieckie",
+      "source": "Natural gas"
+    },
+    "Połaniec": {
+      "operator": "ENEA Elektrownia Połaniec S.A.",
+      "location": "Połaniec · Świętokrzyskie",
+      "source": "Hard coal + biomass"
+    },
+    "Połaniec 2-Pasywna": {
+      "operator": "ENEA Elektrownia Połaniec S.A.",
+      "location": "Połaniec · Świętokrzyskie",
+      "source": "Hard coal + biomass"
+    },
+    "Porąbka Żar": {
+      "operator": "PGE Energia Odnawialna S.A.",
+      "location": "Międzybrodzie Bialskie · Śląskie",
+      "source": "Hydro · pumped storage"
+    },
+    "Rybnik": {
+      "operator": "PGE Górnictwo i Energetyka Konwencjonalna S.A.",
+      "location": "Rybnik · Śląskie",
+      "source": "Hard coal"
+    },
+    "Siersza": {
+      "operator": "TAURON Wytwarzanie S.A.",
+      "location": "Trzebinia · Małopolskie",
+      "source": "Hard coal"
+    },
+    "Skawina": {
+      "operator": "PGE Energia Ciepła S.A.",
+      "location": "Skawina · Małopolskie",
+      "source": "Hard coal + biomass"
+    },
+    "Turów": {
+      "operator": "PGE Górnictwo i Energetyka Konwencjonalna S.A.",
+      "location": "Bogatynia · Dolnośląskie",
+      "source": "Lignite"
+    },
+    "Wrocław": {
+      "operator": "Kogeneracja S.A. (PGE Energia Ciepła)",
+      "location": "Wrocław · Dolnośląskie",
+      "source": "Hard coal + biomass"
+    },
+    "Żarnowiec": {
+      "operator": "PGE Energia Odnawialna S.A.",
+      "location": "Czymanowo · Pomorskie",
+      "source": "Hydro · pumped storage"
+    },
+    "Zielona Góra": {
+      "operator": "Elektrociepłownia Zielona Góra S.A.",
+      "location": "Zielona Góra · Lubuskie",
+      "source": "Natural gas"
+    },
+    "Zwartowo": {
+      "operator": null,
+      "location": "Potęgowo · Pomorskie",
+      "source": "Solar PV"
+    }
+  }
+}

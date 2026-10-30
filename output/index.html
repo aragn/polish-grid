@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polish Grid · Unit output</title>
+  <meta name="description" content="Metered output of Poland's centrally dispatched generating units (JWCD), quarter-hour by quarter-hour, from PSE's public API.">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
+      --hover:#1a1f25; --accent:#5b9cff; --chip:#1c2127;
+      --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
+      --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
+      --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-gas:#d95926; --f-hydro:#9085e9;
+      --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9;
+      --error:#e66767;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+        --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+        --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+        --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+        --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
+        --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
+        --error:#d03b3b;
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+      --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+      --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+      --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+      --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
+      --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
+      --error:#d03b3b;
+    }
+
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; }
+    a { color:var(--accent); }
+    button { font-family:inherit; }
+    .topbar { display:flex; align-items:center; gap:18px; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; }
+    .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+    .brand span { color:var(--muted); font-weight:500; }
+    .nav { display:flex; gap:4px; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; white-space:nowrap; }
+    .nav a.active { color:var(--text); background:var(--hover); }
+    .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
+    .intro h1 { font-size:22px; margin:0 0 4px; font-weight:650; }
+    .intro p { margin:0; color:var(--muted); line-height:1.5; max-width:980px; }
+
+    .range { display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; margin-top:16px; }
+    .range label { color:var(--muted); font-size:12.5px; display:flex; align-items:center; gap:6px; }
+    .range .status { color:var(--muted); font-size:12.5px; margin-left:auto; }
+    .range .status.error { color:var(--error); }
+    .input, .select { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 9px; font-size:13px; font-family:inherit; }
+    .input.search { width:260px; }
+    .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; }
+    .btn:hover { background:var(--hover); }
+    .btn:disabled { opacity:.45; cursor:default; }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+    .seg button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 10px; font-size:12px; cursor:pointer; }
+    .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
+
+    .tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; margin:16px 0; }
+    .tile { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
+    .tile .k { color:var(--muted); font-size:12px; }
+    .tile .v { font-size:22px; font-weight:650; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .tile .v small { font-size:13px; color:var(--muted); font-weight:500; }
+    .tile .s { color:var(--muted-2); font-size:12px; margin-top:2px; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-top:16px; }
+    .panel-head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:14px 16px 10px; }
+    .panel-title { font-weight:650; font-size:15px; }
+    .panel-sub { color:var(--muted); font-size:12.5px; }
+    .tools { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; align-items:center; }
+    .note { color:var(--muted); font-size:12px; line-height:1.5; padding:0 16px 14px; }
+    #chart { height:430px; border-top:1px solid var(--border); }
+    .chart-empty { height:430px; display:flex; align-items:center; justify-content:center; color:var(--muted); border-top:1px solid var(--border); }
+
+    .table-wrap { overflow-x:auto; border-top:1px solid var(--border); }
+    table.list { width:100%; border-collapse:collapse; font-size:13px; }
+    .list th { text-align:left; color:var(--muted); font-weight:600; font-size:12px; padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; position:sticky; top:0; background:var(--panel); }
+    .list th.num { text-align:right; }
+    .list th.sorted { color:var(--text); }
+    .list td { padding:7px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+    .list tr:hover td { background:var(--hover); }
+    .list .num { text-align:right; font-variant-numeric:tabular-nums; }
+    .list .code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; color:var(--muted); }
+    .list .op { max-width:240px; overflow:hidden; text-overflow:ellipsis; color:var(--muted); }
+    .list .dim { color:var(--muted-2); }
+    .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:6px; vertical-align:baseline; }
+    .bar { display:inline-block; height:6px; border-radius:0 3px 3px 0; background:var(--muted-2); margin-right:8px; vertical-align:middle; opacity:.7; }
+    .pager { display:flex; align-items:center; gap:10px; padding:10px 16px; color:var(--muted); font-size:12.5px; }
+    .pager .btn { padding:4px 10px; }
+    .pager .count { margin-right:auto; }
+    .message { padding:28px 16px; color:var(--muted); text-align:center; border-top:1px solid var(--border); }
+    .message.error { color:var(--error); }
+
+    footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
+
+    @media (max-width: 1100px) {
+      .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .tiles .tile:last-child:nth-child(odd) { grid-column:span 2; }
+    }
+    @media (max-width: 640px) {
+      main { padding:14px 16px 32px; }
+      .topbar { padding:10px 16px; gap:10px; }
+      .brand span { display:none; }
+      .brand { white-space:nowrap; }
+      .nav { overflow-x:auto; min-width:0; scrollbar-width:none; }
+      .nav a { padding:6px 8px; font-size:12.5px; }
+      .tools { margin-left:0; width:100%; }
+      .input.search { width:100%; }
+      .range .status { margin-left:0; width:100%; }
+      #chart, .chart-empty { height:340px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
+    <nav class="nav"><a href="../">Connection queue (PSE)</a><a class="active" href="./">Unit output (JWCD)</a></nav>
+    <button class="theme" type="button" id="theme">Theme</button>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>What Poland's big power plants generate</h1>
+      <p>Metered output of every centrally dispatched unit (JWCD) on PSE's transmission grid, quarter-hour by quarter-hour, with the pumping of the two pumped-storage plants. Read live from PSE's public API; PSE publishes each day the next morning.</p>
+      <div class="range">
+        <label>From <input class="input" type="date" id="from"></label>
+        <label>to <input class="input" type="date" id="to"></label>
+        <div class="seg" id="presets">
+          <button type="button" data-days="1">Yesterday</button>
+          <button type="button" data-days="7">7 days</button>
+          <button type="button" data-days="30">30 days</button>
+        </div>
+        <span class="status" id="status"></span>
+      </div>
+    </section>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="chart-title">Generation</div>
+          <div class="panel-sub" id="chart-sub">Average MW in each interval, stacked; pumping drawn below zero</div>
+        </div>
+        <div class="tools">
+          <div class="seg" id="resolution"><button type="button" data-v="15m" class="on">15 min</button><button type="button" data-v="hour">Hourly</button></div>
+          <div class="seg" id="group"><button type="button" data-v="fuel" class="on">By fuel</button><button type="button" data-v="plant">By plant</button></div>
+          <select class="select" id="chart-fuel" aria-label="Fuel"></select>
+          <select class="select" id="chart-plant" aria-label="Plant"></select>
+        </div>
+      </div>
+      <div id="chart"></div>
+      <div class="chart-empty" id="chart-empty" hidden></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="table-title">Units</div>
+          <div class="panel-sub" id="table-sub"></div>
+        </div>
+        <div class="tools">
+          <div class="seg" id="view"><button type="button" data-v="units" class="on">By unit</button><button type="button" data-v="intervals">15-min readings</button></div>
+          <select class="select" id="mode" aria-label="Mode"><option value="">Generation and pumping</option><option value="Generation">Generation</option><option value="Pumping">Pumping</option></select>
+          <input class="input search" id="search" type="search" placeholder="Search plant, unit, fuel, operator, place" aria-label="Search">
+          <button class="btn" type="button" id="csv">CSV</button>
+        </div>
+      </div>
+      <div class="message" id="table-message">Loading…</div>
+      <div class="table-wrap" id="table-wrap" hidden><table class="list" id="list"></table></div>
+      <div class="pager" id="pager" hidden><span class="count" id="page-count"></span><button class="btn" type="button" id="prev" aria-label="Previous page">‹</button><span id="page-label"></span><button class="btn" type="button" id="next" aria-label="Next page">›</button></div>
+      <div class="note" id="table-note"></div>
+    </section>
+
+    <footer id="footer">
+      Data: <a href="https://api.raporty.pse.pl/" target="_blank" rel="noopener">PSE S.A. reporting API</a>, reports
+      <i>gen-jw</i> (metered output of JWCD units, average MW per quarter-hour) and <i>pdwkseub</i> (available capacity, declared non-usable capacity and grid limits, published for about half the units)
+      (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
+      Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
+      Fuel, operator and place are this site's plant-level labels (from the <a href="https://gpi.tge.pl/pl/wykaz-jednostek" target="_blank" rel="noopener">TGE unit register</a> and operators' own pages), not the fuel burnt in a given quarter-hour, and can be wrong.
+      Times are Warsaw time; on the October clock change the repeated hour is marked CEST and CET.
+      <a href="https://github.com/aragn/polish-grid" target="_blank" rel="noopener">Code on GitHub</a>.
+    </footer>
+  </main>
+
+  <script>
+  "use strict";
+  /*
+   * Polish Grid: metered output of PSE's centrally dispatched units (JWCD).
+   * Nothing is stored here: the page reads PSE's public API (gen-jw for
+   * output, pdwkseub for capacity) for the chosen dates and joins
+   * output/plants.json for fuel, operator and place.  Rows are keyed by
+   * dtime_utc: PSE's local dtime is ambiguous on the autumn clock change
+   * (gen-jw writes the repeated hour as "02a:15", pdwkseub repeats "02:15").
+   */
+  const API = "https://api.raporty.pse.pl/api/";
+  const FIRST_DAY = "2024-06-14";
+  const MAX_DAYS = 31;
+  const PAGE = 50;
+  // Stacking order from the bottom: baseload first, weather-driven on top.
+  const FUELS = [
+    { key: "Lignite", color: "--f-lignite" },
+    { key: "Hard coal", color: "--f-coal" },
+    { key: "Hard coal + biomass", color: "--f-cofiring" },
+    { key: "Natural gas", color: "--f-gas" },
+    { key: "Hydro · pumped storage", color: "--f-hydro" },
+    { key: "Offshore wind", color: "--f-offshore" },
+    { key: "Solar PV", color: "--f-solar" },
+    { key: "Not mapped", color: "--f-other" }
+  ];
+  const FUEL_RANK = Object.fromEntries(FUELS.map((fuel, index) => [fuel.key, index]));
+
+  const state = {
+    from: "", to: "", rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: false,
+    plants: {}, request: 0, controller: null,
+    resolution: "15m", group: "fuel", chartFuel: "", chartPlant: "",
+    view: "units", mode: "", search: "", page: 0, sort: { units: ["net", -1], intervals: ["time", 1] }
+  };
+  let chart = null;
+
+  const $ = id => document.getElementById(id);
+  const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = value => String(value == null ? "" : value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]));
+  const pad = value => String(value).padStart(2, "0");
+  const num = (value, digits = 0) => value == null || !Number.isFinite(value) ? "—" : value.toLocaleString("en", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  const fuelColor = fuel => cssVar((FUELS[FUEL_RANK[fuel]] || FUELS[FUELS.length - 1]).color);
+  const meta = plant => state.plants[plant] || {};
+  const fuelOf = plant => meta(plant).source || "Not mapped";
+
+  /* ---------------- dates and times ---------------- */
+  const warsawFormat = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Warsaw", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZoneName: "short"
+  });
+  const warsawCache = new Map();
+  function warsaw(ms) {
+    let parts = warsawCache.get(ms);
+    if (!parts) {
+      const values = {};
+      warsawFormat.formatToParts(new Date(ms)).forEach(part => { values[part.type] = part.value; });
+      parts = { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour}:${values.minute}`, zone: values.timeZoneName };
+      warsawCache.set(ms, parts);
+    }
+    return parts;
+  }
+  const todayWarsaw = () => warsaw(Math.floor(Date.now() / 60000) * 60000).date;
+  function addDays(key, days) {
+    const date = new Date(`${key}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  const daysBetween = (a, b) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000) + 1;
+  const fmtDay = key => new Date(`${key}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+  const rangeText = () => state.from === state.to ? fmtDay(state.from) : `${fmtDay(state.from)} – ${fmtDay(state.to)}`;
+
+  // dtime_utc is the end of the quarter-hour, in UTC, without a zone suffix.
+  function endMs(row) {
+    const ms = Date.parse(`${String(row.dtime_utc || "").replace(" ", "T").slice(0, 19)}Z`);
+    return Number.isFinite(ms) ? ms : null;
+  }
+  // Start of the quarter-hour in Warsaw time; the repeated autumn hour carries its zone.
+  function slot(row) {
+    if (row._slot) return row._slot;
+    const end = endMs(row);
+    if (end === null) return (row._slot = { ms: null, date: row.business_date, label: String(row.period || ""), order: `${row.business_date} ${row.dtime}` });
+    const ms = end - 900000;
+    const start = warsaw(ms);
+    const minutes = (Number(start.time.slice(0, 2)) * 60 + Number(start.time.slice(3)) + 15) % 1440;
+    const ambiguous = warsaw(ms - 3600000).time === start.time || warsaw(ms + 3600000).time === start.time;
+    return (row._slot = {
+      ms, date: start.date, time: start.time,
+      label: `${start.time}–${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}${ambiguous ? " " + start.zone : ""}`,
+      order: String(ms).padStart(15, "0")
+    });
+  }
+  const isPumping = row => (row.operating_mode_eng || (row.operating_mode === "Pobór" ? "Pumping" : "Generation")) === "Pumping";
+  const value = row => { const v = Number(row.value); return row.value == null || row.value === "" || !Number.isFinite(v) ? null : v; };
+
+  /* ---------------- PSE API ---------------- */
+  async function fetchAll(endpoint, filter, signal, onPage) {
+    const first = new URL(API + endpoint);
+    first.searchParams.set("$filter", filter);
+    first.searchParams.set("$first", "20000");
+    let next = first.href;
+    const rows = [];
+    const seen = new Set();
+    while (next && !seen.has(next)) {
+      seen.add(next);
+      const controller = new AbortController();
+      const abort = () => controller.abort();
+      signal.addEventListener("abort", abort, { once: true });
+      const timer = setTimeout(abort, 45000);
+      try {
+        const response = await fetch(next, { headers: { Accept: "application/json" }, signal: controller.signal });
+        if (!response.ok) throw new Error(`PSE ${endpoint} answered HTTP ${response.status}`);
+        const payload = await response.json();
+        for (const row of payload.value || []) rows.push(row);
+        next = payload.nextLink ? new URL(payload.nextLink, first.href).href : "";
+      } catch (error) {
+        if (signal.aborted) throw error;
+        throw new Error(error.name === "AbortError" ? `PSE ${endpoint} did not answer in 45 s` : error.message);
+      } finally {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", abort);
+      }
+      if (onPage) onPage(rows);
+    }
+    return rows;
+  }
+
+  async function load() {
+    if (state.controller) state.controller.abort();
+    const request = ++state.request;
+    const controller = new AbortController();
+    state.controller = controller;
+    Object.assign(state, { rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: true, page: 0 });
+    try { history.replaceState(null, "", `#${state.from}${state.from === state.to ? "" : "_" + state.to}`); } catch (error) { /* file:// */ }
+    setStatus(`Loading ${rangeText()} from PSE…`);
+    renderAll();
+    const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
+    const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
+    let lastDraw = 0;
+    try {
+      state.rows = await fetchAll("gen-jw", filter, controller.signal, rows => {
+        if (request !== state.request) return;
+        state.rows = rows;
+        setStatus(`Loading ${rangeText()} from PSE… ${rows.length.toLocaleString("en")} readings`);
+        if (Date.now() - lastDraw > 1500) { lastDraw = Date.now(); renderAll(); }
+      });
+    } catch (error) {
+      if (request !== state.request) return;
+      state.loading = false;
+      controller.abort();
+      setStatus(`Could not load PSE's output data: ${error.message}. Try again or pick other dates.`, true);
+      renderAll();
+      return;
+    }
+    if (request !== state.request) return;
+    state.loading = false;
+    const published = state.rows.map(row => row.publication_ts || "").sort().pop();
+    setStatus(state.rows.length
+      ? `${state.rows.length.toLocaleString("en")} readings${published ? ` · PSE published ${published.slice(0, 16)} Warsaw time` : ""}`
+      : `PSE has published no readings for ${rangeText()} yet; each day appears the next morning.`);
+    renderAll();
+    const result = await capacity;
+    if (request !== state.request) return;
+    state.capacityDone = true;
+    if (result.error) state.capacityError = result.error.message;
+    else {
+      state.capacityError = "";
+      state.capacityRows = result.rows.length;
+      for (const row of result.rows) {
+        const parts = [row.available_capacity, row.non_us_cap, row.grid_lim].map(v => v == null || v === "" ? null : Number(v));
+        if (parts.every(v => v === null || !Number.isFinite(v))) continue;
+        const total = parts.reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0);
+        state.capacity.set(`${row.resource_code}|${endMs(row)}`, { total, available: Number.isFinite(parts[0]) ? parts[0] : null });
+      }
+    }
+    renderTiles();
+    renderTable();
+  }
+
+  function setStatus(text, error) {
+    $("status").textContent = text;
+    $("status").classList.toggle("error", !!error);
+  }
+
+  /* ---------------- aggregation ---------------- */
+  function units() {
+    const map = new Map();
+    for (const row of state.rows) {
+      const code = row.resource_code || "—";
+      let unit = map.get(code);
+      if (!unit) {
+        const plant = row.power_plant || "Unknown plant";
+        map.set(code, unit = { code, plant, fuel: fuelOf(plant), operator: meta(plant).operator || "", place: meta(plant).location || "",
+          gen: 0, pump: 0, genN: 0, pumpN: 0, peak: 0, capacity: null, availSum: 0, availN: 0 });
+      }
+      const v = value(row);
+      if (v === null) continue;
+      if (isPumping(row)) { unit.pump += Math.abs(v) * 0.25; unit.pumpN++; }
+      else { unit.gen += v * 0.25; unit.genN++; if (v > unit.peak) unit.peak = v; }
+      const cap = state.capacity.get(`${code}|${endMs(row)}`);
+      if (cap && !isPumping(row)) {
+        if (unit.capacity === null || cap.total > unit.capacity) unit.capacity = cap.total;
+        if (cap.available !== null) { unit.availSum += cap.available; unit.availN++; }
+      }
+    }
+    return [...map.values()].map(unit => Object.assign(unit, {
+      net: unit.gen - unit.pump,
+      avg: unit.genN ? unit.gen * 4 / unit.genN : 0,
+      available: unit.availN ? unit.availSum / unit.availN : null
+    }));
+  }
+
+  /* ---------------- tiles ---------------- */
+  function energy(mwh) {
+    return Math.abs(mwh) >= 10000 ? `${num(mwh / 1000, 1)} <small>GWh</small>` : `${num(mwh)} <small>MWh</small>`;
+  }
+  function renderTiles() {
+    let gen = 0, pump = 0;
+    const genUnits = new Set(), pumpUnits = new Set(), plants = new Set(), byTime = new Map();
+    for (const row of state.rows) {
+      const v = value(row);
+      if (v === null) continue;
+      plants.add(row.power_plant);
+      if (isPumping(row)) { pump += Math.abs(v) * 0.25; pumpUnits.add(row.resource_code); }
+      else {
+        gen += v * 0.25; genUnits.add(row.resource_code);
+        const s = slot(row);
+        byTime.set(s.order, (byTime.get(s.order) || 0) + v);
+      }
+    }
+    let peak = null, peakAt = "";
+    for (const row of state.rows) {
+      if (isPumping(row)) continue;
+      const s = slot(row), total = byTime.get(s.order);
+      if (peak === null || total > peak) { peak = total; peakAt = `${s.date === state.from && state.from === state.to ? "" : fmtDay(s.date) + ", "}${s.label}`; }
+    }
+    const covered = new Set([...state.capacity.keys()].map(key => key.split("|")[0]).filter(code => genUnits.has(code)));
+    const has = state.rows.length > 0;
+    const coverage = !state.capacityDone ? (has ? "loading…" : "—")
+      : state.capacityError ? "unavailable"
+      : !state.capacityRows && has ? "not yet published"
+      : `${covered.size} <small>of ${genUnits.size} units</small>`;
+    const tiles = [
+      ["Net output", has ? energy(gen - pump) : "—", "generation less pumping"],
+      ["Generated", has ? energy(gen) : "—", `${genUnits.size} units at ${plants.size} plants`],
+      ["Pumped", has ? energy(pump) : "—", `${pumpUnits.size} pumping series (Żarnowiec, Porąbka-Żar)`],
+      ["Peak fleet output", has ? `${num(peak)} <small>MW</small>` : "—", peakAt ? `quarter-hour ${peakAt}` : "highest quarter-hour"],
+      ["Capacity data", coverage, state.capacityDone && !state.capacityRows && has && !state.capacityError ? "PSE publishes availability the next morning" : "units with PSE's availability report"]
+    ];
+    $("tiles").innerHTML = tiles.map(([k, v, s]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+  }
+
+  /* ---------------- chart ---------------- */
+  function shade(hex, amount) {
+    const match = /^#?([0-9a-f]{6})$/i.exec(hex);
+    if (!match) return hex;
+    const n = parseInt(match[1], 16), mix = amount >= 0 ? 255 : 0, t = Math.abs(amount);
+    const channel = shift => Math.round(((n >> shift) & 255) * (1 - t) + mix * t);
+    return `rgb(${channel(16)},${channel(8)},${channel(0)})`;
+  }
+
+  function fillOptions() {
+    const plants = [...new Set(state.rows.map(row => row.power_plant).filter(Boolean))]
+      .filter(plant => !state.chartFuel || fuelOf(plant) === state.chartFuel).sort((a, b) => a.localeCompare(b, "pl"));
+    const fuels = [...new Set(state.rows.map(row => fuelOf(row.power_plant)))].sort((a, b) => FUEL_RANK[a] - FUEL_RANK[b]);
+    if (state.chartPlant && !plants.includes(state.chartPlant)) state.chartPlant = "";
+    if (state.chartFuel && !fuels.includes(state.chartFuel)) state.chartFuel = "";
+    $("chart-fuel").innerHTML = `<option value="">All fuels</option>` + fuels.map(f => `<option${f === state.chartFuel ? " selected" : ""}>${esc(f)}</option>`).join("");
+    $("chart-plant").innerHTML = `<option value="">All plants</option>` + plants.map(p => `<option${p === state.chartPlant ? " selected" : ""}>${esc(p)}</option>`).join("");
+  }
+
+  function renderChart() {
+    const buckets = new Map();
+    const hourly = state.resolution === "hour";
+    for (const row of state.rows) {
+      const plant = row.power_plant || "Unknown plant", fuel = fuelOf(plant);
+      if (state.chartFuel && fuel !== state.chartFuel) continue;
+      if (state.chartPlant && plant !== state.chartPlant) continue;
+      const v = value(row), s = slot(row);
+      if (v === null || s.ms === null) continue;
+      // Warsaw is a whole number of hours from UTC, so UTC hours are Warsaw clock hours.
+      const key = hourly ? Math.floor(s.ms / 3600000) * 3600000 : s.ms;
+      let bucket = buckets.get(key);
+      if (!bucket) buckets.set(key, bucket = { ms: key, quarters: new Set(), series: new Map() });
+      bucket.quarters.add(s.ms);
+      const name = isPumping(row) ? "Pumping" : state.group === "plant" ? plant : fuel;
+      bucket.series.set(name, (bucket.series.get(name) || 0) + (isPumping(row) ? -Math.abs(v) : v));
+    }
+    const times = [...buckets.values()].sort((a, b) => a.ms - b.ms);
+    const empty = !times.length;
+    $("chart").hidden = empty;
+    $("chart-empty").hidden = !empty;
+    $("chart-empty").textContent = state.loading ? "Loading…" : state.rows.length ? "No readings match these filters." : "No readings for these dates.";
+    $("chart-title").textContent = `Generation, ${rangeText()}`;
+    if (empty) { if (chart) chart.clear(); return; }
+
+    const totals = new Map(), plantFuel = new Map();
+    for (const row of state.rows) plantFuel.set(row.power_plant, fuelOf(row.power_plant));
+    for (const t of times) for (const [name, v] of t.series) totals.set(name, (totals.get(name) || 0) + v);
+    const names = [...totals.keys()].filter(name => name !== "Pumping").sort((a, b) => {
+      const fa = state.group === "plant" ? plantFuel.get(a) : a, fb = state.group === "plant" ? plantFuel.get(b) : b;
+      return (FUEL_RANK[fa] ?? 99) - (FUEL_RANK[fb] ?? 99) || totals.get(b) - totals.get(a);
+    });
+    const colors = new Map();
+    if (state.group === "plant") {
+      const seen = new Map();
+      for (const name of names) {
+        const fuel = plantFuel.get(name), i = seen.get(fuel) || 0, count = names.filter(n => plantFuel.get(n) === fuel).length;
+        seen.set(fuel, i + 1);
+        colors.set(name, shade(fuelColor(fuel), count > 1 ? (i / (count - 1) - 0.5) * 0.6 : 0));
+      }
+    } else names.forEach(name => colors.set(name, fuelColor(name)));
+    const hasPumping = totals.has("Pumping");
+    const series = names.map(name => ({
+      name, type: "line", stack: "gen", step: false, symbol: "none", sampling: "lttb",
+      lineStyle: { width: 0 }, areaStyle: { color: colors.get(name), opacity: 0.92 }, itemStyle: { color: colors.get(name) },
+      emphasis: { focus: "series" },
+      data: times.map(t => (t.series.get(name) || 0) / t.quarters.size)
+    }));
+    if (hasPumping) series.push({
+      name: "Pumping", type: "line", stack: "pump", symbol: "none",
+      lineStyle: { width: 0 }, areaStyle: { color: cssVar("--f-pumping"), opacity: 0.8 }, itemStyle: { color: cssVar("--f-pumping") },
+      data: times.map(t => (t.series.get("Pumping") || 0) / t.quarters.size)
+    });
+    const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
+    const labelAt = ms => {
+      const w = warsaw(ms);
+      if (days === 1) return w.time.endsWith(":00") && Number(w.time.slice(0, 2)) % 3 === 0;
+      return w.time === "00:00" && (daysBetween(state.from, w.date) - 1) % every === 0;
+    };
+    const labelText = ms => { const w = warsaw(ms); return days === 1 ? w.time : fmtDay(w.date).replace(/ \d{4}$/, ""); };
+    chart = chart || echarts.init($("chart"), null, { renderer: "canvas" });
+    const muted = cssVar("--tooltip-muted");
+    chart.setOption({
+      animation: false,
+      grid: { left: 64, right: 20, top: state.group === "plant" ? 74 : 40, bottom: 34 },
+      legend: { type: "scroll", top: 6, left: 12, right: 12, icon: "rect", itemWidth: 12, itemHeight: 8, textStyle: { color: cssVar("--muted"), fontSize: 11.5 },
+        pageTextStyle: { color: cssVar("--muted") }, pageIconColor: cssVar("--muted"), pageIconInactiveColor: cssVar("--grid") },
+      tooltip: {
+        trigger: "axis", confine: true, backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), borderWidth: 1,
+        textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;",
+        axisPointer: { type: "line", lineStyle: { color: cssVar("--axis") } },
+        formatter: params => {
+          if (!params.length) return "";
+          const ms = times[params[0].dataIndex].ms, w = warsaw(ms), end = warsaw(ms + (hourly ? 3600000 : 900000));
+          const ambiguous = warsaw(ms - 3600000).time === w.time || warsaw(ms + 3600000).time === w.time;
+          const items = params.filter(p => Math.abs(p.value) >= 0.5).sort((a, b) => b.value - a.value);
+          const gen = items.filter(p => p.seriesName !== "Pumping").reduce((sum, p) => sum + p.value, 0);
+          const shown = items.slice(0, 14), rest = items.slice(14).reduce((sum, p) => sum + p.value, 0);
+          return `<b>${fmtDay(w.date)}, ${w.time}–${end.time}${ambiguous ? " " + w.zone : ""}</b>` +
+            `<div style="color:${muted};margin:2px 0 6px">${hourly ? "hourly average" : "quarter-hour"}, MW</div>` +
+            shown.map(p => `<div style="display:flex;gap:8px;align-items:center"><span class="swatch" style="background:${p.color}"></span>${esc(p.seriesName)}<b style="margin-left:auto;padding-left:14px">${num(p.value)}</b></div>`).join("") +
+            (items.length > 14 ? `<div style="display:flex;color:${muted}">${items.length - 14} more<b style="margin-left:auto">${num(rest)}</b></div>` : "") +
+            `<div style="display:flex;border-top:1px solid ${cssVar("--tooltip-border")};margin-top:5px;padding-top:4px">Generation<b style="margin-left:auto;padding-left:14px">${num(gen)}</b></div>`;
+        }
+      },
+      xAxis: {
+        // A category axis, so the labels fall on Warsaw midnights (or every third hour of a single day), not on UTC ticks.
+        type: "category", boundaryGap: false, data: times.map(t => t.ms),
+        axisLine: { lineStyle: { color: cssVar("--axis") } }, axisTick: { show: false }, splitLine: { show: false },
+        axisLabel: { color: cssVar("--axis-label"), fontSize: 11, interval: index => labelAt(times[index].ms), formatter: ms => labelText(Number(ms)) }
+      },
+      yAxis: {
+        type: "value",
+        axisLabel: { color: cssVar("--axis-label"), fontSize: 11, formatter: v => v.toLocaleString("en") },
+        splitLine: { lineStyle: { color: cssVar("--grid") } }
+      },
+      series
+    }, { notMerge: true });
+  }
+
+  /* ---------------- table ---------------- */
+  const UNIT_COLS = [
+    ["plant", "Plant", ""], ["code", "Unit", ""], ["fuel", "Fuel", ""], ["operator", "Operator", ""], ["place", "Place", ""],
+    ["capacity", "Capacity MW", "num"], ["available", "Avg available MW", "num"], ["avg", "Avg output MW", "num"], ["peak", "Peak MW", "num"],
+    ["gen", "Generated MWh", "num"], ["pump", "Pumped MWh", "num"], ["net", "Net MWh", "num"]
+  ];
+  const INTERVAL_COLS = [
+    ["time", "Quarter-hour (Warsaw)", ""], ["plant", "Plant", ""], ["code", "Unit", ""], ["fuel", "Fuel", ""], ["mode", "Mode", ""],
+    ["mw", "Output MW", "num"], ["mwh", "MWh", "num"], ["capacity", "Capacity MW", "num"], ["available", "Available MW", "num"]
+  ];
+
+  function intervalItem(row) {
+    const plant = row.power_plant || "Unknown plant", s = slot(row), v = value(row);
+    const cap = state.capacity.get(`${row.resource_code}|${endMs(row)}`);
+    return {
+      time: s.order, date: s.date, label: s.label, plant, code: row.resource_code || "—", fuel: fuelOf(plant), operator: meta(plant).operator || "", place: meta(plant).location || "",
+      mode: isPumping(row) ? "Pumping" : "Generation", mw: v === null ? null : isPumping(row) ? -Math.abs(v) : v,
+      mwh: v === null ? null : (isPumping(row) ? -Math.abs(v) : v) * 0.25,
+      capacity: cap && !isPumping(row) ? cap.total : null, available: cap && !isPumping(row) ? cap.available : null
+    };
+  }
+
+  function tableItems() {
+    const q = state.search.trim().toLocaleLowerCase("pl");
+    const items = state.view === "units" ? units() : state.rows.map(intervalItem);
+    const kept = items.filter(item => {
+      if (state.mode === "Generation" && (state.view === "units" ? !item.genN : item.mode !== "Generation")) return false;
+      if (state.mode === "Pumping" && (state.view === "units" ? !item.pumpN : item.mode !== "Pumping")) return false;
+      return !q || [item.plant, item.code, item.fuel, item.operator, item.place].join(" ").toLocaleLowerCase("pl").includes(q);
+    });
+    const [key, dir] = state.sort[state.view];
+    return kept.sort((a, b) => {
+      const x = a[key], y = b[key];
+      if (typeof x === "number" || typeof y === "number") return ((x ?? -Infinity) - (y ?? -Infinity)) * dir || a.code.localeCompare(b.code);
+      return String(x ?? "").localeCompare(String(y ?? ""), "pl", { numeric: true }) * dir || String(a.time || "").localeCompare(String(b.time || ""));
+    });
+  }
+
+  function renderTable() {
+    const units = state.view === "units";
+    const cols = units ? UNIT_COLS : INTERVAL_COLS;
+    const items = tableItems();
+    const pages = Math.max(1, Math.ceil(items.length / PAGE));
+    state.page = Math.min(state.page, pages - 1);
+    const shown = items.slice(state.page * PAGE, state.page * PAGE + PAGE);
+    const [key, dir] = state.sort[state.view];
+    $("table-title").textContent = units ? `Units, ${state.from ? rangeText() : ""}` : `Quarter-hour readings, ${state.from ? rangeText() : ""}`;
+    $("table-sub").textContent = units
+      ? "Energy over the dates shown; click a column to sort"
+      : "One PSE reading per unit and mode; pumping is negative";
+    const message = state.loading && !state.rows.length ? "Loading…"
+      : !state.rows.length ? (state.request && $("status").classList.contains("error") ? $("status").textContent : "No readings for these dates.")
+      : !items.length ? "No units match the search." : "";
+    $("table-message").hidden = !message;
+    $("table-message").textContent = message;
+    $("table-message").classList.toggle("error", $("status").classList.contains("error"));
+    $("table-wrap").hidden = !!message;
+    $("pager").hidden = !!message;
+    if (message) return;
+    const maxPeak = units ? Math.max(1, ...items.map(item => item.peak)) : 1;
+    $("list").innerHTML = `<thead><tr>${cols.map(([k, label, cls]) =>
+      `<th class="${cls}${k === key ? " sorted" : ""}" data-k="${k}">${esc(label)}${k === key ? (dir > 0 ? " ↑" : " ↓") : ""}</th>`).join("")}</tr></thead><tbody>` +
+      shown.map(item => units ? `<tr>
+        <td>${esc(item.plant)}</td><td class="code">${esc(item.code)}</td>
+        <td><span class="swatch" style="background:${fuelColor(item.fuel)}"></span>${esc(item.fuel)}</td>
+        <td class="op" title="${esc(item.operator)}">${esc(item.operator || "—")}</td><td class="dim">${esc(item.place || "—")}</td>
+        <td class="num">${num(item.capacity)}</td><td class="num">${num(item.available)}</td><td class="num">${num(item.avg)}</td>
+        <td class="num"><span class="bar" style="width:${Math.round(item.peak / maxPeak * 60)}px"></span>${num(item.peak)}</td>
+        <td class="num">${num(item.gen)}</td><td class="num">${item.pumpN ? num(item.pump) : "—"}</td><td class="num"><b>${num(item.net)}</b></td></tr>`
+      : `<tr>
+        <td>${esc(item.date === state.from && state.from === state.to ? "" : fmtDay(item.date) + ", ")}${esc(item.label)}</td><td>${esc(item.plant)}</td><td class="code">${esc(item.code)}</td>
+        <td><span class="swatch" style="background:${fuelColor(item.fuel)}"></span>${esc(item.fuel)}</td><td class="dim">${item.mode}</td>
+        <td class="num">${num(item.mw, 1)}</td><td class="num">${num(item.mwh, 1)}</td><td class="num">${num(item.capacity)}</td><td class="num">${num(item.available)}</td></tr>`).join("") + "</tbody>";
+    $("page-count").textContent = `${items.length.toLocaleString("en")} ${units ? "units" : "readings"}`;
+    $("page-label").textContent = `${(state.page * PAGE + 1).toLocaleString("en")}–${Math.min(items.length, state.page * PAGE + PAGE).toLocaleString("en")}`;
+    $("prev").disabled = state.page === 0;
+    $("next").disabled = state.page >= pages - 1;
+    $("table-note").textContent = units && state.capacityDone && state.capacityRows
+      ? "Capacity is blank where PSE's availability report does not list the unit."
+      : "";
+  }
+
+  function exportCsv() {
+    const cols = state.view === "units" ? UNIT_COLS : [["date", "Date"], ["label", "Quarter-hour (Warsaw)"], ...INTERVAL_COLS.slice(1)];
+    const items = tableItems();
+    const cell = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
+    const lines = [cols.map(c => cell(c[1])).join(","), ...items.map(item => cols.map(([k]) => cell(typeof item[k] === "number" ? Math.round(item[k] * 1000) / 1000 : item[k])).join(","))];
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" }));
+    link.download = `pse-unit-output-${state.from}-${state.to}-${state.view}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  function renderAll() {
+    renderTiles();
+    fillOptions();
+    renderChart();
+    renderTable();
+    $("csv").disabled = !state.rows.length;
+  }
+
+  /* ---------------- controls ---------------- */
+  function setRange(from, to) {
+    const latest = todayWarsaw();
+    from = from < FIRST_DAY ? FIRST_DAY : from > latest ? latest : from;
+    to = to < from ? from : to > latest ? latest : to;
+    if (daysBetween(from, to) > MAX_DAYS) from = addDays(to, -(MAX_DAYS - 1));
+    state.from = from;
+    state.to = to;
+    $("from").value = from;
+    $("to").value = to;
+    document.querySelectorAll("#presets button").forEach(button => {
+      const days = Number(button.dataset.days), yesterday = addDays(latest, -1);
+      button.classList.toggle("on", to === yesterday && from === addDays(yesterday, -(days - 1)));
+    });
+    if (daysBetween(from, to) > 3 && state.resolution === "15m") setSeg("resolution", state.resolution = "hour");
+    load();
+  }
+  function setSeg(id, v) {
+    document.querySelectorAll(`#${id} button`).forEach(button => button.classList.toggle("on", button.dataset.v === v));
+  }
+  function bindSeg(id, apply) {
+    $(id).addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      setSeg(id, button.dataset.v);
+      apply(button.dataset.v);
+    });
+  }
+
+  function init() {
+    try { const saved = localStorage.getItem("pg-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch (error) { /* private mode */ }
+    const latest = todayWarsaw();
+    for (const id of ["from", "to"]) { $(id).min = FIRST_DAY; $(id).max = latest; }
+    $("from").addEventListener("change", () => { if ($("from").value) setRange($("from").value, $("to").value < $("from").value ? $("from").value : $("to").value); });
+    $("to").addEventListener("change", () => { if ($("to").value) setRange($("from").value > $("to").value ? $("to").value : $("from").value, $("to").value); });
+    $("presets").addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const yesterday = addDays(todayWarsaw(), -1), days = Number(button.dataset.days);
+      if (days === 1) { state.resolution = "15m"; setSeg("resolution", "15m"); }
+      setRange(addDays(yesterday, -(days - 1)), yesterday);
+    });
+    bindSeg("resolution", v => { state.resolution = v; renderChart(); });
+    bindSeg("group", v => { state.group = v; renderChart(); });
+    bindSeg("view", v => { state.view = v; state.page = 0; renderTable(); });
+    $("chart-fuel").addEventListener("change", event => { state.chartFuel = event.target.value; fillOptions(); renderChart(); });
+    $("chart-plant").addEventListener("change", event => { state.chartPlant = event.target.value; renderChart(); });
+    $("mode").addEventListener("change", event => { state.mode = event.target.value; state.page = 0; renderTable(); });
+    $("search").addEventListener("input", event => { state.search = event.target.value; state.page = 0; renderTable(); });
+    $("prev").addEventListener("click", () => { state.page--; renderTable(); });
+    $("next").addEventListener("click", () => { state.page++; renderTable(); });
+    $("csv").addEventListener("click", exportCsv);
+    $("list").addEventListener("click", event => {
+      const th = event.target.closest("th[data-k]");
+      if (!th) return;
+      const sort = state.sort[state.view], k = th.dataset.k;
+      state.sort[state.view] = sort[0] === k ? [k, -sort[1]] : [k, UNIT_COLS.concat(INTERVAL_COLS).find(c => c[0] === k)[2] === "num" ? -1 : 1];
+      state.page = 0;
+      renderTable();
+    });
+    $("theme").addEventListener("click", () => {
+      const root = document.documentElement;
+      const dark = root.dataset.theme ? root.dataset.theme === "dark" : !matchMedia("(prefers-color-scheme: light)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("pg-theme", root.dataset.theme); } catch (error) { /* private mode */ }
+      renderAll();
+    });
+    matchMedia("(prefers-color-scheme: light)").addEventListener("change", renderAll);
+    window.addEventListener("resize", () => chart && chart.resize());
+
+    const hash = /^#(\d{4}-\d{2}-\d{2})(?:_(\d{4}-\d{2}-\d{2}))?$/.exec(location.hash);
+    const yesterday = addDays(latest, -1);
+    setRange(hash ? hash[1] : yesterday, hash ? hash[2] || hash[1] : yesterday);
+  }
+
+  fetch("plants.json").then(response => response.json()).then(data => { state.plants = data.plants || {}; }, () => { /* labels are optional */ }).finally(init);
+  </script>
+</body>
+</html>

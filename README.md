@@ -3,6 +3,8 @@
 Power system data for Poland. First page: **PSE's grid-connection queue**, every
 project that has asked PSE (the transmission system operator) to connect to its
 grid, on a map, in a filterable table, and with each project's history since 2020.
+Second page, `output/`: **unit output (JWCD)**, the metered quarter-hour output of
+PSE's centrally dispatched units, read live from PSE's API (see below).
 
 Open `index.html` through any static server (GitHub Pages serves it from `main`).
 
@@ -96,4 +98,20 @@ etl/stations.py, stations.json  connection points -> stations
 etl/build.py                  linking across months, milestones, phases
 etl/update.py                 the entry point
 geo/                          voivodeships, 220/400 kV lines
+output/index.html             the unit output page (no build step, no stored data)
+output/plants.json            fuel, operator and place per PSE plant name
 ```
+
+## Unit output page
+
+`output/` reads PSE's public API in the browser for the chosen dates (up to 31
+days): [`gen-jw`](https://api.raporty.pse.pl/api/gen-jw) for metered output
+(average MW per quarter-hour, generation and pumping) and
+[`pdwkseub`](https://api.raporty.pse.pl/api/pdwkseub) for capacity (available +
+declared non-usable + grid limit; published for roughly half the units, and a day
+after the output). Energy is MW × 0.25 h. Rows are keyed by `dtime_utc`, since
+PSE's local `dtime` is ambiguous on the October clock change (`gen-jw` writes the
+repeated hour as `02a:15`, `pdwkseub` repeats `02:15`). The fuel, operator and
+place in `output/plants.json` are plant-level labels from the TGE register and
+operators' pages; edit that file when PSE adds a plant (unmapped plants show as
+"Not mapped").
