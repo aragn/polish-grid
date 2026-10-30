@@ -14,7 +14,7 @@
       --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
       --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
       --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-gas:#d95926; --f-hydro:#9085e9;
-      --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9;
+      --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9; --f-wind:#199e70; --f-rest:#8a7f6e;
       --error:#e66767; --price:#f1f3f5;
     }
     @media (prefers-color-scheme: light) {
@@ -25,7 +25,7 @@
         --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
         --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
         --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
-        --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
+        --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
         --error:#d03b3b; --price:#0b0b0b;
       }
     }
@@ -36,7 +36,7 @@
       --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
       --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
       --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
-      --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
+      --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
       --error:#d03b3b; --price:#0b0b0b;
     }
 
@@ -154,6 +154,7 @@
         </div>
         <div class="tools">
           <div class="seg" id="resolution"><button type="button" data-v="15m" class="on">15 min</button><button type="button" data-v="hour">Hourly</button></div>
+          <div class="seg" id="scope" title="Add the rest of Poland's generation from PSE's system balance"><button type="button" data-v="all" class="on">All generation</button><button type="button" data-v="jwcd">JWCD only</button></div>
           <div class="seg" id="group"><button type="button" data-v="fuel" class="on">By fuel</button><button type="button" data-v="plant">By plant</button></div>
           <select class="select" id="chart-fuel" aria-label="Fuel"></select>
           <select class="select" id="chart-plant" aria-label="Plant"></select>
@@ -187,6 +188,7 @@
       <i>gen-jw</i> (metered output of JWCD units, average MW per quarter-hour) and <i>pdwkseub</i> (available capacity, declared non-usable capacity and grid limits, published for about half the units)
       (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
       Day-ahead price: <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E Transparency Platform</a> (Poland bidding zone, €/MWh; hourly until 30 Sep 2025, quarter-hourly since), fetched daily after the auction.
+      The “Other” layers are PSE's system balance (<i>his-wlk-cal</i>) less the JWCD units: total generation is <i>jg</i> + <i>jnwrb</i> (scheduled units plus units outside the balancing market), wind and solar are <i>wi</i> and <i>pv</i>. Other wind and Other solar subtract Baltic Power and Zwartowo; “Other thermal, hydro, biomass” is the rest less the JWCD thermal units as PSE nets them (<i>jgw1</i>) and the pumped-storage output (PSE gives no fuel split for it). PSE's totals are net of the plants' own use and the JWCD layers are gross meter readings, so the top of the stack sits above PSE's total generation by the JWCD plants' own use (about 0.7–1 GW).
       Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
       Fuel, operator and place are this site's plant-level labels (from the <a href="https://gpi.tge.pl/pl/wykaz-jednostek" target="_blank" rel="noopener">TGE unit register</a> and operators' own pages), not the fuel burnt in a given quarter-hour, and can be wrong.
       Times are Warsaw time; on the October clock change the repeated hour is marked CEST and CET.
@@ -223,7 +225,7 @@
 
   const state = {
     from: "", to: "", rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: false,
-    plants: {}, request: 0, controller: null, prices: new Map(),
+    plants: {}, request: 0, controller: null, prices: new Map(), system: new Map(), scope: "all",
     resolution: "15m", group: "fuel", chartFuel: "", chartPlant: "",
     view: "units", mode: "", search: "", page: 0, sort: { units: ["net", -1], intervals: ["time", 1] }
   };
@@ -336,6 +338,20 @@
     loadPrices(state.from, state.to).then(() => { if (request === state.request && state.rows.length) renderChart(); });
     const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
     const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
+    state.system = new Map();
+    // PSE's system balance (net of plants' own use): total generation = jg (scheduled units) + jnwrb
+    // (units outside the balancing market); wi and pv are all wind and all solar; jgw1 is the JWCD thermal
+    // units, net (about 12% under their gross meters in gen-jw; pumped hydro, Baltic Power and Zwartowo
+    // are not in it).  Keyed like slot(): the start of the quarter-hour.
+    fetchAll("his-wlk-cal", filter, controller.signal).then(rows => {
+      if (request !== state.request) return;
+      for (const row of rows) {
+        const end = endMs(row), jg = Number(row.jg), nwrb = Number(row.jnwrb);
+        if (end === null || !Number.isFinite(jg) || !Number.isFinite(nwrb)) continue;
+        state.system.set(end - 900000, { total: jg + nwrb, wind: Number(row.wi) || 0, solar: Number(row.pv) || 0, jwcdThermal: Number(row.jgw1) || 0 });
+      }
+      if (state.rows.length && !state.loading) renderChart();
+    }, () => { /* the chart falls back to the JWCD units alone */ });
     let lastDraw = 0;
     try {
       state.rows = await fetchAll("gen-jw", filter, controller.signal, rows => {
@@ -380,6 +396,7 @@
   /* ---------------- day-ahead prices ---------------- */
   // data/prices/PL/<YYYY-MM>.json (UTC months), written daily from ENTSO-E by etl/prices.py.
   const PRICE = "Day-ahead price";
+  const REST_WIND = "Other wind", REST_SOLAR = "Other solar", REST_OTHER = "Other thermal, hydro, biomass";
   const utcMonth = ms => new Date(ms).toISOString().slice(0, 7);
   async function loadPrices(from, to) {
     const months = new Set();
@@ -510,6 +527,31 @@
       const name = isPumping(row) ? "Pumping" : state.group === "plant" ? plant : fuel;
       bucket.series.set(name, (bucket.series.get(name) || 0) + (isPumping(row) ? -Math.abs(v) : v));
     }
+    // The rest of the system: PSE's totals less the JWCD units (all of them, whatever the filters).
+    const rest = state.scope === "all" && !state.chartFuel && !state.chartPlant && state.system.size > 0;
+    if (rest) {
+      const jwcd = new Map();
+      for (const row of state.rows) {
+        const v = value(row), s = slot(row);
+        if (v === null || s.ms === null || isPumping(row)) continue;
+        const fuel = fuelOf(row.power_plant);
+        const q = jwcd.get(s.ms) || jwcd.set(s.ms, { wind: 0, solar: 0, hydro: 0 }).get(s.ms);
+        if (fuel === "Offshore wind") q.wind += v;
+        if (fuel === "Solar PV") q.solar += v;
+        if (fuel === "Hydro · pumped storage") q.hydro += v;
+      }
+      for (const [ms, q] of jwcd) {
+        const sys = state.system.get(ms);
+        const bucket = buckets.get(hourly ? Math.floor(ms / 3600000) * 3600000 : ms);
+        if (!sys || !bucket) continue;
+        bucket.rest = bucket.rest || new Map();
+        const add = (name, v) => bucket.rest.set(name, (bucket.rest.get(name) || 0) + v);
+        add(REST_WIND, Math.max(0, sys.wind - q.wind));
+        add(REST_SOLAR, Math.max(0, sys.solar - q.solar));
+        // Net against net: the JWCD thermal units as PSE counts them in its total (jgw1), not their gross meters.
+        add(REST_OTHER, Math.max(0, sys.total - sys.wind - sys.solar - sys.jwcdThermal - q.hydro));
+      }
+    }
     const times = [...buckets.values()].sort((a, b) => a.ms - b.ms);
     const empty = !times.length;
     $("chart").hidden = empty;
@@ -541,6 +583,13 @@
       emphasis: { focus: "series" },
       data: times.map(t => (t.series.get(name) || 0) / t.quarters.size)
     }));
+    if (rest) for (const [name, color] of [[REST_OTHER, "--f-rest"], [REST_WIND, "--f-wind"], [REST_SOLAR, "--f-solar"]]) series.push({
+      name, type: "line", stack: "gen", symbol: "none", sampling: "lttb",
+      lineStyle: { width: 0 }, itemStyle: { color: cssVar(color) },
+      areaStyle: { color: cssVar(color), opacity: name === REST_SOLAR ? 0.55 : 0.7 },
+      emphasis: { focus: "series" },
+      data: times.map(t => t.rest && t.rest.has(name) ? t.rest.get(name) / t.quarters.size : null)
+    });
     if (hasPumping) series.push({
       name: "Pumping", type: "line", stack: "pump", symbol: "none",
       lineStyle: { width: 0 }, areaStyle: { color: cssVar("--f-pumping"), opacity: 0.8 }, itemStyle: { color: cssVar("--f-pumping") },
@@ -552,7 +601,8 @@
       name: PRICE, type: "line", yAxisIndex: 1, step: "start", symbol: "none", z: 5,
       lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
     });
-    $("chart-sub").textContent = "Average MW in each interval, stacked; pumping drawn below zero" + (priced.length
+    $("chart-sub").textContent = "Average MW in each interval, stacked; pumping drawn below zero" +
+      (rest ? "; “Other” is the rest of Poland's generation: PSE's system totals less the JWCD units" : "") + (priced.length
       ? `; the line is ENTSO-E's day-ahead price for Poland, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)`
       : "");
     const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
@@ -755,6 +805,7 @@
     });
     bindSeg("resolution", v => { state.resolution = v; renderChart(); });
     bindSeg("group", v => { state.group = v; renderChart(); });
+    bindSeg("scope", v => { state.scope = v; renderChart(); });
     bindSeg("view", v => { state.view = v; state.page = 0; renderTable(); });
     $("chart-fuel").addEventListener("change", event => { state.chartFuel = event.target.value; fillOptions(); renderChart(); });
     $("chart-plant").addEventListener("change", event => { state.chartPlant = event.target.value; renderChart(); });
