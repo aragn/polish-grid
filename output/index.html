@@ -15,7 +15,7 @@
       --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
       --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-gas:#d95926; --f-hydro:#9085e9;
       --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9;
-      --error:#e66767;
+      --error:#e66767; --price:#f1f3f5;
     }
     @media (prefers-color-scheme: light) {
       :root:not([data-theme="dark"]) {
@@ -26,7 +26,7 @@
         --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
         --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
         --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
-        --error:#d03b3b;
+        --error:#d03b3b; --price:#0b0b0b;
       }
     }
     :root[data-theme="light"] {
@@ -37,7 +37,7 @@
       --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
       --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
       --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6;
-      --error:#d03b3b;
+      --error:#d03b3b; --price:#0b0b0b;
     }
 
     * { box-sizing:border-box; }
@@ -150,7 +150,7 @@
       <div class="panel-head">
         <div>
           <div class="panel-title" id="chart-title">Generation</div>
-          <div class="panel-sub" id="chart-sub">Average MW in each interval, stacked; pumping drawn below zero</div>
+          <div class="panel-sub" id="chart-sub">Average MW in each interval, stacked; pumping drawn below zero; the line is the day-ahead price</div>
         </div>
         <div class="tools">
           <div class="seg" id="resolution"><button type="button" data-v="15m" class="on">15 min</button><button type="button" data-v="hour">Hourly</button></div>
@@ -186,6 +186,7 @@
       Data: <a href="https://api.raporty.pse.pl/" target="_blank" rel="noopener">PSE S.A. reporting API</a>, reports
       <i>gen-jw</i> (metered output of JWCD units, average MW per quarter-hour) and <i>pdwkseub</i> (available capacity, declared non-usable capacity and grid limits, published for about half the units)
       (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
+      Day-ahead price: <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E Transparency Platform</a> (Poland bidding zone, €/MWh; hourly until 30 Sep 2025, quarter-hourly since), fetched daily after the auction.
       Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
       Fuel, operator and place are this site's plant-level labels (from the <a href="https://gpi.tge.pl/pl/wykaz-jednostek" target="_blank" rel="noopener">TGE unit register</a> and operators' own pages), not the fuel burnt in a given quarter-hour, and can be wrong.
       Times are Warsaw time; on the October clock change the repeated hour is marked CEST and CET.
@@ -222,7 +223,7 @@
 
   const state = {
     from: "", to: "", rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: false,
-    plants: {}, request: 0, controller: null,
+    plants: {}, request: 0, controller: null, prices: new Map(),
     resolution: "15m", group: "fuel", chartFuel: "", chartPlant: "",
     view: "units", mode: "", search: "", page: 0, sort: { units: ["net", -1], intervals: ["time", 1] }
   };
@@ -326,6 +327,7 @@
     try { history.replaceState(null, "", `#${state.from}${state.from === state.to ? "" : "_" + state.to}`); } catch (error) { /* file:// */ }
     setStatus(`Loading ${rangeText()} from PSE…`);
     renderAll();
+    loadPrices(state.from, state.to).then(() => { if (request === state.request && state.rows.length) renderChart(); });
     const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
     const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
     let lastDraw = 0;
@@ -367,6 +369,30 @@
     }
     renderTiles();
     renderTable();
+  }
+
+  /* ---------------- day-ahead prices ---------------- */
+  // data/prices/PL/<YYYY-MM>.json (UTC months), written daily from ENTSO-E by etl/prices.py.
+  const PRICE = "Day-ahead price";
+  const utcMonth = ms => new Date(ms).toISOString().slice(0, 7);
+  async function loadPrices(from, to) {
+    const months = new Set();
+    for (let day = addDays(from, -1); day <= to; day = addDays(day, 1)) months.add(day.slice(0, 7));
+    await Promise.all([...months].filter(month => !state.prices.has(month)).map(month =>
+      fetch(`../data/prices/PL/${month}.json`).then(r => r.ok ? r.json() : null, () => null).catch(() => null)
+        .then(data => { if (data) state.prices.set(month, data); })));
+  }
+  function priceAt(ms) {
+    const file = state.prices.get(utcMonth(ms));
+    if (!file) return null;
+    const index = Math.floor((ms - file.start) / file.step);
+    return index >= 0 && index < file.v.length ? file.v[index] : null;
+  }
+  // The average price over an interval of the chart (a quarter-hour or an hour).
+  function priceOver(ms, length) {
+    let sum = 0, n = 0;
+    for (let t = ms; t < ms + length; t += 900000) { const v = priceAt(t); if (v !== null) { sum += v; n++; } }
+    return n ? sum / n : null;
   }
 
   function setStatus(text, error) {
@@ -514,6 +540,15 @@
       lineStyle: { width: 0 }, areaStyle: { color: cssVar("--f-pumping"), opacity: 0.8 }, itemStyle: { color: cssVar("--f-pumping") },
       data: times.map(t => (t.series.get("Pumping") || 0) / t.quarters.size)
     });
+    const prices = times.map(t => priceOver(t.ms, hourly ? 3600000 : 900000));
+    const priced = prices.filter(v => v !== null);
+    if (priced.length) series.push({
+      name: PRICE, type: "line", yAxisIndex: 1, step: "start", symbol: "none", z: 5,
+      lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
+    });
+    $("chart-sub").textContent = "Average MW in each interval, stacked; pumping drawn below zero" + (priced.length
+      ? `; the line is ENTSO-E's day-ahead price for Poland, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)`
+      : "");
     const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
     const labelAt = ms => {
       const w = warsaw(ms);
@@ -525,7 +560,7 @@
     const muted = cssVar("--tooltip-muted");
     chart.setOption({
       animation: false,
-      grid: { left: 64, right: 20, top: state.group === "plant" ? 74 : 40, bottom: 34 },
+      grid: { left: 64, right: priced.length ? 58 : 20, top: state.group === "plant" ? 74 : 40, bottom: 34 },
       legend: { type: "scroll", top: 6, left: 12, right: 12, icon: "rect", itemWidth: 12, itemHeight: 8, textStyle: { color: cssVar("--muted"), fontSize: 11.5 },
         pageTextStyle: { color: cssVar("--muted") }, pageIconColor: cssVar("--muted"), pageIconInactiveColor: cssVar("--grid") },
       tooltip: {
@@ -536,14 +571,16 @@
           if (!params.length) return "";
           const ms = times[params[0].dataIndex].ms, w = warsaw(ms), end = warsaw(ms + (hourly ? 3600000 : 900000));
           const ambiguous = warsaw(ms - 3600000).time === w.time || warsaw(ms + 3600000).time === w.time;
-          const items = params.filter(p => Math.abs(p.value) >= 0.5).sort((a, b) => b.value - a.value);
+          const price = params.find(p => p.seriesName === PRICE);
+          const items = params.filter(p => p.seriesName !== PRICE && Math.abs(p.value) >= 0.5).sort((a, b) => b.value - a.value);
           const gen = items.filter(p => p.seriesName !== "Pumping").reduce((sum, p) => sum + p.value, 0);
           const shown = items.slice(0, 14), rest = items.slice(14).reduce((sum, p) => sum + p.value, 0);
           return `<b>${fmtDay(w.date)}, ${w.time}–${end.time}${ambiguous ? " " + w.zone : ""}</b>` +
             `<div style="color:${muted};margin:2px 0 6px">${hourly ? "hourly average" : "quarter-hour"}, MW</div>` +
             shown.map(p => `<div style="display:flex;gap:8px;align-items:center"><span class="swatch" style="background:${p.color}"></span>${esc(p.seriesName)}<b style="margin-left:auto;padding-left:14px">${num(p.value)}</b></div>`).join("") +
             (items.length > 14 ? `<div style="display:flex;color:${muted}">${items.length - 14} more<b style="margin-left:auto">${num(rest)}</b></div>` : "") +
-            `<div style="display:flex;border-top:1px solid ${cssVar("--tooltip-border")};margin-top:5px;padding-top:4px">Generation<b style="margin-left:auto;padding-left:14px">${num(gen)}</b></div>`;
+            `<div style="display:flex;border-top:1px solid ${cssVar("--tooltip-border")};margin-top:5px;padding-top:4px">Generation<b style="margin-left:auto;padding-left:14px">${num(gen)}</b></div>` +
+            (price && price.value != null ? `<div style="display:flex;gap:8px;align-items:center;margin-top:3px"><span class="swatch" style="background:${price.color}"></span>Day-ahead price<b style="margin-left:auto;padding-left:14px">€${num(price.value, 2)}/MWh</b></div>` : "");
         }
       },
       xAxis: {
@@ -552,11 +589,14 @@
         axisLine: { lineStyle: { color: cssVar("--axis") } }, axisTick: { show: false }, splitLine: { show: false },
         axisLabel: { color: cssVar("--axis-label"), fontSize: 11, interval: index => labelAt(times[index].ms), formatter: ms => labelText(Number(ms)) }
       },
-      yAxis: {
+      yAxis: [{
         type: "value",
         axisLabel: { color: cssVar("--axis-label"), fontSize: 11, formatter: v => v.toLocaleString("en") },
         splitLine: { lineStyle: { color: cssVar("--grid") } }
-      },
+      }, {
+        type: "value", position: "right", show: priced.length > 0, splitLine: { show: false },
+        axisLabel: { color: cssVar("--axis-label"), fontSize: 11, formatter: v => `€${v.toLocaleString("en")}` }
+      }],
       series
     }, { notMerge: true });
   }
