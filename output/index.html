@@ -15,7 +15,8 @@
       --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
       --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-gas:#d95926; --f-hydro:#9085e9;
       --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9; --f-wind:#199e70; --f-rest:#8a7f6e;
-      --error:#e66767; --price:#f1f3f5;
+      --error:#e66767; --price:#ff6fae; --load:#f1f3f5; --f-import:#4fb3c8; --shadow:rgba(0,0,0,.55);
+      --range:#252b32; --selected-bg:#e8eaed; --selected-text:#0b0d10;
     }
     @media (prefers-color-scheme: light) {
       :root:not([data-theme="dark"]) {
@@ -26,7 +27,8 @@
         --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
         --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
         --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
-        --error:#d03b3b; --price:#0b0b0b;
+        --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
+      --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
       }
     }
     :root[data-theme="light"] {
@@ -37,7 +39,8 @@
       --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
       --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-gas:#eb6834; --f-hydro:#6250d6;
       --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
-      --error:#d03b3b; --price:#0b0b0b;
+      --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
+      --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
     }
 
     * { box-sizing:border-box; }
@@ -65,6 +68,53 @@
     .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; }
     .btn:hover { background:var(--hover); }
     .btn:disabled { opacity:.45; cursor:default; }
+    /* Date range: the same calendar as the Italian dashboard. */
+    .calendar-trigger-wrap { position:relative; }
+    #calendar-trigger { display:flex; align-items:center; gap:8px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; }
+    #calendar-trigger:hover { background:var(--hover); }
+    .calendar-icon { width:15px; height:15px; flex:0 0 15px; color:var(--muted); }
+    #calendar-trigger:hover .calendar-icon { color:var(--text); }
+    .calendar-dropdown { display:none; position:absolute; top:calc(100% + 10px); left:0; z-index:200; width:520px; padding:12px; background:var(--panel); border:1px solid var(--border); border-radius:10px; box-shadow:0 16px 40px var(--shadow); }
+    .calendar-dropdown.open { display:block; }
+    .calendar-dropdown-body { display:flex; gap:14px; }
+    .calendar-dropdown-quick { width:135px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+    .quick-title { margin-bottom:8px; color:var(--muted-2); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+    .quick-btn { border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:6px; padding:9px 10px; text-align:left; cursor:pointer; font-size:11.5px; font-family:inherit; }
+    .quick-btn:hover { color:var(--text); background:var(--hover); }
+    .calendar-dropdown-calendar { flex:1; min-width:0; }
+    .calendar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .calendar-nav { display:flex; align-items:center; gap:5px; }
+    .calendar-nav button { width:30px; height:30px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:6px; cursor:pointer; font-size:15px; }
+    .calendar-nav button:disabled { opacity:.3; cursor:default; }
+    .calendar-title { border:0; background:transparent; color:var(--text); cursor:pointer; font-size:14px; font-weight:600; padding:5px 8px; border-radius:6px; font-family:inherit; }
+    .calendar-title:hover { background:var(--hover); }
+    .calendar-weekdays, .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+    .calendar-weekdays { margin-bottom:5px; }
+    .weekday { padding:4px 0; color:var(--muted-2); font-size:10px; text-align:center; text-transform:uppercase; }
+    .day { position:relative; height:35px; border:0; border-radius:5px; background:transparent; color:var(--muted); cursor:pointer; font-size:11px; font-family:inherit; }
+    .day:hover:not(.disabled) { background:var(--hover); color:var(--text); }
+    .day.disabled { opacity:.18; cursor:default; }
+    .day.selected { background:var(--selected-bg); color:var(--selected-text); font-weight:600; }
+    .day.range { background:var(--range); color:var(--text); border-radius:0; }
+    .day.range-start { border-radius:5px 0 0 5px; }
+    .day.range-end { border-radius:0 5px 5px 0; }
+    .day.range-start.range-end { border-radius:5px; }
+    .day.range-start, .day.range-end { background:var(--selected-bg); color:var(--selected-text); font-weight:600; }
+    .day.today::after { content:""; position:absolute; bottom:4px; left:50%; width:3px; height:3px; transform:translateX(-50%); border-radius:50%; background:currentColor; }
+    .day.future { font-style:italic; }
+    .selection-info { margin-top:9px; color:var(--muted); font-size:11px; line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:15px; }
+    .selection-info strong { color:var(--text); font-weight:500; }
+    .picker-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+    .picker-btn { height:40px; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:6px; cursor:pointer; font-size:11px; font-family:inherit; }
+    .picker-btn:hover:not(.disabled) { background:var(--hover); color:var(--text); }
+    .picker-btn.disabled { opacity:.2; cursor:default; }
+    .picker-btn.current { border-color:var(--text); color:var(--text); }
+    .calendar-dropdown-footer { display:flex; align-items:center; justify-content:flex-end; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+    .timezone-label { color:var(--muted-2); font-size:11px; white-space:nowrap; }
+    .granularity { display:flex; overflow:hidden; flex-shrink:0; border:1px solid var(--border); border-radius:6px; background:var(--panel-2); }
+    .granularity button { border:0; border-right:1px solid var(--border); background:transparent; color:var(--muted); padding:8px 11px; cursor:pointer; font-size:10.5px; letter-spacing:.03em; font-family:inherit; }
+    .granularity button:last-child { border-right:0; }
+    .granularity button.active { background:var(--selected-bg); color:var(--selected-text); font-weight:600; }
     .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
     .seg button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 10px; font-size:12px; cursor:pointer; }
     .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
@@ -120,6 +170,13 @@
       .input.search { width:100%; }
       .range .status { margin-left:0; width:100%; }
       #chart, .chart-empty { height:340px; }
+      .granularity button { padding:8px 8px; }
+    }
+    @media (max-width: 900px) {
+      .calendar-dropdown { width:min(calc(100vw - 32px), 520px); }
+      .calendar-dropdown-body { flex-direction:column; }
+      .calendar-dropdown-quick { width:100%; flex-direction:row; flex-wrap:wrap; }
+      .quick-title { width:100%; margin-bottom:0; }
     }
   </style>
 </head>
@@ -132,15 +189,23 @@
   <main>
     <section class="intro">
       <h1>What Poland's big power plants generate</h1>
-      <p>Metered output of every centrally dispatched unit (JWCD) on PSE's transmission grid, quarter-hour by quarter-hour, with the pumping of the two pumped-storage plants. Read live from PSE's public API; PSE publishes each day the next morning.</p>
+      <p>Metered output of every centrally dispatched unit (JWCD) on PSE's transmission grid, quarter-hour by quarter-hour, with the pumping of the two pumped-storage plants, the rest of the system, load and cross-border flows; today and tomorrow from PSE's day-ahead plan. Read live from PSE's public API; the meter data come in during the day, a few hours behind.</p>
       <div class="range">
-        <label>From <input class="input" type="date" id="from"></label>
-        <label>to <input class="input" type="date" id="to"></label>
-        <div class="seg" id="presets">
-          <button type="button" data-days="1">Yesterday</button>
-          <button type="button" data-days="7">7 days</button>
-          <button type="button" data-days="30">30 days</button>
+        <div class="calendar-trigger-wrap">
+          <button id="calendar-trigger" type="button" aria-label="Open date selector" aria-expanded="false">
+            <svg class="calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M8 2.8v3.4M16 2.8v3.4M3 9.5h18"></path><path d="M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01"></path></svg>
+            <span id="calendar-trigger-label">Select dates</span>
+          </button>
+          <div id="calendar-dropdown" class="calendar-dropdown">
+            <div class="calendar-dropdown-body">
+              <div class="calendar-dropdown-quick"><div class="quick-title">Quick select</div><button class="quick-btn" data-range="today" type="button">Today</button><button class="quick-btn" data-range="tomorrow" type="button">Tomorrow</button><button class="quick-btn" data-range="yesterday" type="button">Yesterday</button><button class="quick-btn" data-range="3d" type="button">Last 3 Days</button><button class="quick-btn" data-range="7d" type="button">Last 7 Days</button><button class="quick-btn" data-range="30d" type="button">Last 30 Days</button></div>
+              <div class="calendar-dropdown-calendar" id="calendar-body"></div>
+            </div>
+            <div id="selection-info" class="selection-info"></div>
+            <div class="calendar-dropdown-footer"><div class="timezone-label">Timezone: Europe/Warsaw · up to 31 days</div></div>
+          </div>
         </div>
+        <div id="granularity" class="granularity" role="group" aria-label="Chart resolution"><button data-v="15m" type="button">15 MIN</button><button data-v="hour" type="button">HOURLY</button><button data-v="day" type="button">DAILY</button></div>
         <span class="status" id="status"></span>
       </div>
     </section>
@@ -153,7 +218,6 @@
           <div class="panel-sub" id="chart-sub">Average MW in each interval, stacked; pumping drawn below zero; the line is the day-ahead price</div>
         </div>
         <div class="tools">
-          <div class="seg" id="resolution"><button type="button" data-v="15m" class="on">15 min</button><button type="button" data-v="hour">Hourly</button></div>
           <div class="seg" id="scope" title="Add the rest of Poland's generation from PSE's system balance"><button type="button" data-v="all" class="on">All generation</button><button type="button" data-v="jwcd">JWCD only</button></div>
           <div class="seg" id="group"><button type="button" data-v="fuel" class="on">By fuel</button><button type="button" data-v="plant">By plant</button></div>
           <select class="select" id="chart-fuel" aria-label="Fuel"></select>
@@ -189,6 +253,8 @@
       (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
       Day-ahead price: <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E Transparency Platform</a> (Poland bidding zone, €/MWh; hourly until 30 Sep 2025, quarter-hourly since), fetched daily after the auction.
       The “Other” layers are PSE's system balance (<i>his-wlk-cal</i>) less the JWCD units: total generation is <i>jg</i> + <i>jnwrb</i> (scheduled units plus units outside the balancing market), wind and solar are <i>wi</i> and <i>pv</i>, and the top of the stack is PSE's total generation. Other wind and Other solar subtract Baltic Power and Zwartowo. PSE gives no fuel split for the rest, so it is split with <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E's</a> actual generation per type (A75, which PSE submits): each type less the JWCD units of that fuel, scaled to PSE's rest (“Other coal” is hard coal and lignite; “Other oil, coal gas, other” is oil, coal-derived gas, other renewable and other). Where ENTSO-E has not yet published a quarter-hour the rest stays one layer, “Other thermal, hydro, biomass”.
+      Load is PSE's system demand (<i>his-wlk-cal</i>, <i>demand</i>); “Net imports (physical)” is the metered net cross-border exchange (<i>swm_p</i> + <i>swm_np</i>), drawn above generation when Poland imports and below zero when it exports.
+      The dashed line and the paler “Plan” layers are PSE's day-ahead coordination plan (PKD, <i>pdgopkd</i>, published about 15:40 the day before): the load forecast, and the planned supply of scheduled units, other units, wind, solar, net exchange and storage charging. The planned layers fill only quarter-hours without meter data (today and tomorrow); the planned supply can exceed the load in sunny, windy hours, where PSE plans a surplus.
       Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
       Fuel, operator and place are this site's plant-level labels (from the <a href="https://gpi.tge.pl/pl/wykaz-jednostek" target="_blank" rel="noopener">TGE unit register</a> and operators' own pages), not the fuel burnt in a given quarter-hour, and can be wrong.
       Times are Warsaw time; on the October clock change the repeated hour is marked CEST and CET.
@@ -225,7 +291,8 @@
 
   const state = {
     from: "", to: "", rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: false,
-    plants: {}, request: 0, controller: null, prices: new Map(), generation: new Map(), system: new Map(), scope: "all",
+    plants: {}, request: 0, controller: null, prices: new Map(), generation: new Map(), system: new Map(), plan: new Map(), scope: "all",
+    calendar: { month: "", view: "days", picking: "" },
     resolution: "15m", group: "fuel", chartFuel: "", chartPlant: "",
     view: "units", mode: "", search: "", page: 0, sort: { units: ["net", -1], intervals: ["time", 1] }
   };
@@ -299,28 +366,34 @@
     const seen = new Set();
     while (next && !seen.has(next)) {
       seen.add(next);
-      const controller = new AbortController();
-      const abort = () => controller.abort();
-      signal.addEventListener("abort", abort, { once: true });
-      const timer = setTimeout(abort, 45000);
-      try {
-        let response;
-        for (let attempt = 0; ; attempt++) {
-          response = await fetch(next, { headers: { Accept: "application/json" }, signal: controller.signal });
-          if (response.status < 500 || attempt === 2) break;
-          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
+      // PSE often answers a cold query with HTTP 500 after about 30 s and the same query quickly
+      // the next time, so each attempt gets its own 45 s and a server error or timeout is retried.
+      let payload;
+      for (let attempt = 0; ; attempt++) {
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        signal.addEventListener("abort", abort, { once: true });
+        const timer = setTimeout(abort, 45000);
+        let failure;
+        try {
+          const response = await fetch(next, { headers: { Accept: "application/json" }, signal: controller.signal });
+          if (response.ok) payload = await response.json();
+          else failure = new Error(`PSE ${endpoint} answered HTTP ${response.status}`);
+          if (!response.ok && response.status < 500) throw failure;
+        } catch (error) {
+          if (signal.aborted) throw error;
+          if (error === failure) throw error;
+          failure = new Error(error.name === "AbortError" ? `PSE ${endpoint} did not answer in 45 s` : error.message);
+        } finally {
+          clearTimeout(timer);
+          signal.removeEventListener("abort", abort);
         }
-        if (!response.ok) throw new Error(`PSE ${endpoint} answered HTTP ${response.status}`);
-        const payload = await response.json();
-        for (const row of payload.value || []) rows.push(row);
-        next = payload.nextLink ? new URL(payload.nextLink, first.href).href : "";
-      } catch (error) {
-        if (signal.aborted) throw error;
-        throw new Error(error.name === "AbortError" ? `PSE ${endpoint} did not answer in 45 s` : error.message);
-      } finally {
-        clearTimeout(timer);
-        signal.removeEventListener("abort", abort);
+        if (payload) break;
+        if (attempt === 2) throw failure;
+        await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
       }
+      for (const row of payload.value || []) rows.push(row);
+      next = payload.nextLink ? new URL(payload.nextLink, first.href).href : "";
       if (onPage) onPage(rows);
     }
     return rows;
@@ -335,10 +408,11 @@
     try { history.replaceState(null, "", `#${state.from}${state.from === state.to ? "" : "_" + state.to}`); } catch (error) { /* file:// */ }
     setStatus(`Loading ${rangeText()} from PSE…`);
     renderAll();
-    Promise.all([loadPrices(state.from, state.to), loadGeneration(state.from, state.to)]).then(() => { if (request === state.request && state.rows.length) renderChart(); });
+    Promise.all([loadPrices(state.from, state.to), loadGeneration(state.from, state.to)]).then(() => { if (request === state.request) renderChart(); });
     const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
     const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
     state.system = new Map();
+    state.plan = new Map();
     // PSE's system balance: total generation = jg (scheduled units) + jnwrb (units outside the balancing
     // market); wi and pv are all wind (Baltic Power included) and all solar.  Keyed like slot(): the start
     // of the quarter-hour.
@@ -346,11 +420,27 @@
       if (request !== state.request) return;
       for (const row of rows) {
         const end = endMs(row), jg = Number(row.jg), nwrb = Number(row.jnwrb);
-        if (end === null || !Number.isFinite(jg) || !Number.isFinite(nwrb)) continue;
-        state.system.set(end - 900000, { total: jg + nwrb, wind: Number(row.wi) || 0, solar: Number(row.pv) || 0 });
+        // Quarter-hours not yet published come as rows of nulls.
+        if (end === null || row.jg == null || row.jnwrb == null || !Number.isFinite(jg) || !Number.isFinite(nwrb)) continue;
+        // demand is the system load; swm_p + swm_np the metered net exchange, positive for imports.
+        state.system.set(end - 900000, { total: jg + nwrb, wind: Number(row.wi) || 0, solar: Number(row.pv) || 0,
+          demand: row.demand == null ? NaN : Number(row.demand), exchange: (Number(row.swm_p) || 0) + (Number(row.swm_np) || 0) });
       }
-      if (state.rows.length && !state.loading) renderChart();
+      renderChart();
     }, () => { /* the chart falls back to the JWCD units alone */ });
+    // PSE's day-ahead coordination plan (PKD), published about 15:40 the day before: load forecast and the
+    // planned supply.  Its balance: scheduled units + units outside the balancing market (wind and solar
+    // included) + net exchange - storage charging = load, plus any planned surplus in sunny, windy hours.
+    fetchAll("pdgopkd", filter, controller.signal).then(rows => {
+      if (request !== state.request) return;
+      for (const row of rows) {
+        const end = endMs(row), n = key => Number(row[key]) || 0;
+        if (end === null || row.kse_pow_dem == null) continue;
+        state.plan.set(end - 900000, { demand: n("kse_pow_dem"), scheduled: n("gen_jgw_jgm_jgz_jga"), outside: n("gen_not_activ_part"),
+          wind: n("gen_wi"), solar: n("gen_fv"), exchange: n("dom_balance_exchange_par") + n("dom_balance_exchange_non_par"), charging: n("tot_jgm_char_pow") });
+      }
+      renderChart();
+    }, () => { /* no plan: actuals only */ });
     let lastDraw = 0;
     try {
       state.rows = await fetchAll("gen-jw", filter, controller.signal, rows => {
@@ -372,7 +462,7 @@
     const published = state.rows.map(row => row.publication_ts || "").sort().pop();
     setStatus(state.rows.length
       ? `${state.rows.length.toLocaleString("en")} readings${published ? ` · PSE published ${published.slice(0, 16)} Warsaw time` : ""}`
-      : `PSE has published no readings for ${rangeText()} yet; each day appears the next morning.`);
+      : `No meter readings for ${rangeText()} yet; the chart shows PSE's day-ahead plan where published.`);
     renderAll();
     const result = await capacity;
     if (request !== state.request) return;
@@ -538,41 +628,68 @@
     $("chart-plant").innerHTML = `<option value="">All plants</option>` + plants.map(p => `<option${p === state.chartPlant ? " selected" : ""}>${esc(p)}</option>`).join("");
   }
 
+  const IMPORTS = "Net imports (physical)", LOAD = "Load", LOAD_PLAN = "Load forecast (day-ahead)";
+  const PLAN = [
+    { name: "Plan · scheduled units", key: p => p.scheduled, color: "--f-coal" },
+    { name: "Plan · other units", key: p => Math.max(0, p.outside - p.wind - p.solar), color: "--f-rest" },
+    { name: "Plan · wind", key: p => p.wind, color: "--f-wind" },
+    { name: "Plan · solar", key: p => p.solar, color: "--f-solar" }
+  ];
+  const PLAN_IMPORTS = "Plan · net imports", PLAN_CHARGING = "Plan · storage charging";
+  const LINES = new Set([LOAD, LOAD_PLAN, PRICE]);
+  const BELOW = new Set(["Pumping", PLAN_CHARGING]);
+  const resolutionMs = () => ({ "15m": 900000, hour: 3600000, day: 86400000 })[state.resolution];
+
   function renderChart() {
     const buckets = new Map();
-    const hourly = state.resolution === "hour";
+    const res = state.resolution;
+    // A bucket is a quarter-hour, an hour or a Warsaw day; ms is its first quarter-hour.
+    const bucketAt = ms => {
+      // Warsaw is a whole number of hours from UTC, so UTC hours are Warsaw clock hours.
+      const key = res === "day" ? warsaw(ms).date : res === "hour" ? Math.floor(ms / 3600000) * 3600000 : ms;
+      let bucket = buckets.get(key);
+      if (!bucket) buckets.set(key, bucket = { ms, quarters: new Set(), planned: new Set(), series: new Map(), rest: new Map(), plan: new Map(), lines: new Map() });
+      if (ms < bucket.ms) bucket.ms = ms;
+      return bucket;
+    };
+    const average = (bucket, name, v) => {
+      const line = bucket.lines.get(name) || bucket.lines.set(name, { sum: 0, n: 0 }).get(name);
+      line.sum += v;
+      line.n++;
+    };
+    // The rest of the system, load, flows and the day-ahead plan need the whole fleet, so not with a filter.
+    const whole = state.scope === "all" && !state.chartFuel && !state.chartPlant;
+    const metered = new Map();
+    for (const row of state.rows) {
+      const v = value(row), s = slot(row);
+      if (v === null || s.ms === null || isPumping(row)) continue;
+      const q = metered.get(s.ms) || metered.set(s.ms, { all: 0, fuels: new Map() }).get(s.ms);
+      const fuel = fuelOf(row.power_plant);
+      q.all += v;
+      q.fuels.set(fuel, (q.fuels.get(fuel) || 0) + v);
+    }
+    // PSE's system balance runs an hour or so behind the unit meters: where the plan exists, a quarter-hour
+    // is drawn from the meters only once both are in, and from the plan until then.
+    const planned = ms => whole && state.plan.has(ms) && !(metered.has(ms) && state.system.has(ms));
     for (const row of state.rows) {
       const plant = row.power_plant || "Unknown plant", fuel = fuelOf(plant);
       if (state.chartFuel && fuel !== state.chartFuel) continue;
       if (state.chartPlant && plant !== state.chartPlant) continue;
       const v = value(row), s = slot(row);
-      if (v === null || s.ms === null) continue;
-      // Warsaw is a whole number of hours from UTC, so UTC hours are Warsaw clock hours.
-      const key = hourly ? Math.floor(s.ms / 3600000) * 3600000 : s.ms;
-      let bucket = buckets.get(key);
-      if (!bucket) buckets.set(key, bucket = { ms: key, quarters: new Set(), series: new Map() });
+      if (v === null || s.ms === null || planned(s.ms)) continue;
+      const bucket = bucketAt(s.ms);
       bucket.quarters.add(s.ms);
       const name = isPumping(row) ? "Pumping" : state.group === "plant" ? plant : fuel;
       bucket.series.set(name, (bucket.series.get(name) || 0) + (isPumping(row) ? -Math.abs(v) : v));
     }
-    // The rest of the system: PSE's totals less the JWCD units (all of them, whatever the filters),
-    // split by fuel with ENTSO-E where it has published the quarter-hour.
-    const rest = state.scope === "all" && !state.chartFuel && !state.chartPlant && state.system.size > 0;
+    const rest = whole && state.system.size > 0;
     if (rest) {
-      const jwcd = new Map();
-      for (const row of state.rows) {
-        const v = value(row), s = slot(row);
-        if (v === null || s.ms === null || isPumping(row)) continue;
-        const q = jwcd.get(s.ms) || jwcd.set(s.ms, { all: 0, fuels: new Map() }).get(s.ms);
-        const fuel = fuelOf(row.power_plant);
-        q.all += v;
-        q.fuels.set(fuel, (q.fuels.get(fuel) || 0) + v);
-      }
-      for (const [ms, q] of jwcd) {
+      // PSE's totals less the JWCD units (all of them), split by fuel with ENTSO-E where it has published.
+      for (const [ms, q] of metered) {
         const sys = state.system.get(ms);
-        const bucket = buckets.get(hourly ? Math.floor(ms / 3600000) * 3600000 : ms);
+        if (planned(ms)) continue;
+        const bucket = buckets.get(res === "day" ? warsaw(ms).date : res === "hour" ? Math.floor(ms / 3600000) * 3600000 : ms);
         if (!sys || !bucket) continue;
-        bucket.rest = bucket.rest || new Map();
         const add = (name, v) => bucket.rest.set(name, (bucket.rest.get(name) || 0) + v);
         const own = fuel => q.fuels.get(fuel) || 0;
         add(REST_WIND, Math.max(0, sys.wind - own("Offshore wind")));
@@ -585,14 +702,31 @@
         const sum = parts.reduce((a, b) => a + (b || 0), 0);
         if (parts.some(v => v === null) || sum <= 0) add(REST_OTHER, thermal);
         else REST.forEach((group, i) => add(group.name, thermal * parts[i] / sum));
+        add(IMPORTS, sys.exchange);
+      }
+    }
+    if (whole) {
+      for (const [ms, sys] of state.system) if (Number.isFinite(sys.demand)) average(bucketAt(ms), LOAD, sys.demand);
+      for (const [ms, plan] of state.plan) {
+        const bucket = bucketAt(ms);
+        average(bucket, LOAD_PLAN, plan.demand);
+        // The planned supply fills the quarter-hours that have no meter data yet.
+        if (!planned(ms)) continue;
+        bucket.planned.add(ms);
+        const add = (name, v) => bucket.plan.set(name, (bucket.plan.get(name) || 0) + v);
+        for (const layer of PLAN) add(layer.name, layer.key(plan));
+        add(PLAN_IMPORTS, plan.exchange);
+        add(PLAN_CHARGING, -plan.charging);
       }
     }
     const times = [...buckets.values()].sort((a, b) => a.ms - b.ms);
     const empty = !times.length;
     $("chart").hidden = empty;
     $("chart-empty").hidden = !empty;
-    $("chart-empty").textContent = state.loading ? "Loading…" : state.rows.length ? "No readings match these filters." : "No readings for these dates.";
-    $("chart-title").textContent = `Generation, ${rangeText()}`;
+    $("chart-empty").textContent = state.loading ? "Loading…" : state.rows.length ? "No readings match these filters."
+      : state.to > todayWarsaw() ? "PSE has not published the day-ahead plan for these dates yet; it comes out about 15:40 the day before."
+      : "No readings or day-ahead plan for these dates.";
+    $("chart-title").textContent = `Generation and load, ${rangeText()}`;
     if (empty) { if (chart) chart.clear(); return; }
 
     const totals = new Map(), plantFuel = new Map();
@@ -611,52 +745,76 @@
         colors.set(name, shade(fuelColor(fuel), count > 1 ? (i / (count - 1) - 0.5) * 0.6 : 0));
       }
     } else names.forEach(name => colors.set(name, fuelColor(name)));
-    const hasPumping = totals.has("Pumping");
-    const series = names.map(name => ({
-      name, type: "line", stack: "gen", step: false, symbol: "none", sampling: "lttb",
-      lineStyle: { width: 0 }, areaStyle: { color: colors.get(name), opacity: 0.92 }, itemStyle: { color: colors.get(name) },
-      emphasis: { focus: "series" },
-      data: times.map(t => (t.series.get(name) || 0) / t.quarters.size)
-    }));
+    // An hour or a day can be part metered, part planned: each part counts for its share of the interval.
+    const span = t => t.quarters.size + t.planned.size;
+    const meanOf = (t, map, name, size) => size && map.has(name) ? map.get(name) / span(t) : null;
+    const area = (name, color, data, stack, opacity) => ({
+      // Interval averages, so steps; they also close the gap where the meters hand over to the plan.
+      name, type: "line", stack, symbol: "none", step: res === "day" ? false : "start", connectNulls: false,
+      lineStyle: { width: 0 }, itemStyle: { color }, areaStyle: { color, opacity }, emphasis: { focus: "series" }, data
+    });
+    const series = names.map(name => area(name, colors.get(name), times.map(t => t.quarters.size ? (t.series.get(name) || 0) / span(t) : null), "up", 0.92));
     // The rest is drawn in paler versions of the fuel colours, above the JWCD units.
     const restLayers = [...REST.map(group => [group.name, shade(cssVar(group.color), 0.35)]),
       [REST_OTHER, cssVar("--f-rest")], [REST_WIND, cssVar("--f-wind")], [REST_SOLAR, shade(cssVar("--f-solar"), 0.3)]];
-    if (rest) for (const [name, color] of restLayers) {
-      if (!times.some(t => t.rest && t.rest.get(name) > 0)) continue;
-      series.push({
-        name, type: "line", stack: "gen", symbol: "none", sampling: "lttb",
-        lineStyle: { width: 0 }, itemStyle: { color }, areaStyle: { color, opacity: 0.8 },
-        emphasis: { focus: "series" },
-        data: times.map(t => t.rest && t.rest.has(name) ? t.rest.get(name) / t.quarters.size : null)
-      });
+    for (const [name, color] of restLayers) {
+      if (!times.some(t => t.rest.get(name) > 0)) continue;
+      series.push(area(name, color, times.map(t => meanOf(t, t.rest, name, t.quarters.size)), "up", 0.8));
     }
-    if (hasPumping) series.push({
-      name: "Pumping", type: "line", stack: "pump", symbol: "none",
-      lineStyle: { width: 0 }, areaStyle: { color: cssVar("--f-pumping"), opacity: 0.8 }, itemStyle: { color: cssVar("--f-pumping") },
-      data: times.map(t => (t.series.get("Pumping") || 0) / t.quarters.size)
+    // A net flow is one legend entry drawn as two series: imports on top of generation, exports below zero.
+    const flow = (name, map, size, color, opacity) => {
+      const values = times.map(t => meanOf(t, t[map], name, size(t)));
+      if (!values.some(v => v)) return;
+      series.push(area(name, color, values.map(v => v === null ? null : Math.max(0, v)), "up", opacity));
+      series.push(area(name, color, values.map(v => v === null ? null : Math.min(0, v)), "down", opacity));
+    };
+    flow(IMPORTS, "rest", t => t.quarters.size, cssVar("--f-import"), 0.8);
+    for (const layer of PLAN) {
+      if (!times.some(t => t.plan.get(layer.name) > 0)) continue;
+      series.push(area(layer.name, shade(cssVar(layer.color), 0.2), times.map(t => meanOf(t, t.plan, layer.name, t.planned.size)), "up", 0.45));
+    }
+    flow(PLAN_IMPORTS, "plan", t => t.planned.size, cssVar("--f-import"), 0.45);
+    if (totals.has("Pumping")) series.push(area("Pumping", cssVar("--f-pumping"), times.map(t => t.quarters.size ? (t.series.get("Pumping") || 0) / span(t) : null), "down", 0.8));
+    if (times.some(t => t.plan.get(PLAN_CHARGING) < 0)) series.push(area(PLAN_CHARGING, cssVar("--f-pumping"), times.map(t => meanOf(t, t.plan, PLAN_CHARGING, t.planned.size)), "down", 0.45));
+    // The metered load of an interval that is partly planned would average only its metered part.
+    const lineOf = name => times.map(t => { const line = t.lines.get(name); return line && !(name === LOAD && t.planned.size) ? line.sum / line.n : null; });
+    const firstPlanned = times.findIndex(t => !t.quarters.size && t.planned.size);
+    if (times.some(t => t.lines.has(LOAD))) series.push({
+      name: LOAD, type: "line", symbol: "none", step: res === "day" ? false : "start", z: 6, lineStyle: { width: 2, color: cssVar("--load") }, itemStyle: { color: cssVar("--load") }, data: lineOf(LOAD)
     });
-    const prices = times.map(t => priceOver(t.ms, hourly ? 3600000 : 900000));
+    if (times.some(t => t.lines.has(LOAD_PLAN))) series.push({
+      name: LOAD_PLAN, type: "line", symbol: "none", step: res === "day" ? false : "start", z: 6, lineStyle: { width: 1.6, type: [5, 4], color: cssVar("--load") }, itemStyle: { color: cssVar("--load") },
+      data: lineOf(LOAD_PLAN),
+      markArea: firstPlanned < 0 ? undefined : {
+        silent: true, itemStyle: { color: cssVar("--hover"), opacity: 0.55 },
+        label: { color: cssVar("--muted"), fontSize: 11, position: "insideTop" },
+        data: [[{ name: "PSE day-ahead plan", xAxis: firstPlanned }, { xAxis: times.length - 1 }]]
+      }
+    });
+    const prices = times.map(t => priceOver(t.ms, resolutionMs()));
     const priced = prices.filter(v => v !== null);
     if (priced.length) series.push({
-      name: PRICE, type: "line", yAxisIndex: 1, step: "start", symbol: "none", z: 5,
+      name: PRICE, type: "line", yAxisIndex: 1, step: res === "day" ? false : "start", symbol: "none", z: 5,
       lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
     });
-    $("chart-sub").textContent = "Average MW in each interval, stacked; pumping drawn below zero" +
-      (rest ? "; “Other” is the rest of Poland's generation: PSE's system totals less the JWCD units, split by fuel with ENTSO-E" : "") + (priced.length
-      ? `; the line is ENTSO-E's day-ahead price for Poland, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)`
-      : "");
+    $("chart-sub").textContent = `Average MW per ${res === "day" ? "day" : res === "hour" ? "hour" : "quarter-hour"}, stacked; pumping and exports below zero` +
+      (rest ? "; “Other” is the rest of Poland's generation (PSE's totals less the JWCD units, split by fuel with ENTSO-E)" : "") +
+      (whole ? "; the solid line is load, the dashed one PSE's day-ahead forecast" : "") +
+      (priced.length ? `; pink: ENTSO-E's day-ahead price, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)` : "");
     const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
     const labelAt = ms => {
       const w = warsaw(ms);
+      if (res === "day") return (daysBetween(state.from, w.date) - 1) % every === 0;
       if (days === 1) return w.time.endsWith(":00") && Number(w.time.slice(0, 2)) % 3 === 0;
       return w.time === "00:00" && (daysBetween(state.from, w.date) - 1) % every === 0;
     };
-    const labelText = ms => { const w = warsaw(ms); return days === 1 ? w.time : fmtDay(w.date).replace(/ \d{4}$/, ""); };
+    const labelText = ms => { const w = warsaw(ms); return days === 1 && res !== "day" ? w.time : fmtDay(w.date).replace(/ \d{4}$/, ""); };
     chart = chart || echarts.init($("chart"), null, { renderer: "canvas" });
     const muted = cssVar("--tooltip-muted");
+    const row = (color, label, text, dashed) => `<div style="display:flex;gap:8px;align-items:center"><span class="swatch" style="background:${dashed ? "transparent" : color};${dashed ? `border:1px dashed ${color};box-sizing:border-box` : ""}"></span>${esc(label)}<b style="margin-left:auto;padding-left:14px">${text}</b></div>`;
     chart.setOption({
       animation: false,
-      grid: { left: 64, right: priced.length ? 58 : 20, top: state.group === "plant" ? 74 : 40, bottom: 34 },
+      grid: { left: 64, right: priced.length ? 58 : 20, top: 40 + (state.group === "plant" ? 34 : 0), bottom: 34 },
       legend: { type: "scroll", top: 6, left: 12, right: 12, icon: "rect", itemWidth: 12, itemHeight: 8, textStyle: { color: cssVar("--muted"), fontSize: 11.5 },
         pageTextStyle: { color: cssVar("--muted") }, pageIconColor: cssVar("--muted"), pageIconInactiveColor: cssVar("--grid") },
       tooltip: {
@@ -665,23 +823,36 @@
         axisPointer: { type: "line", lineStyle: { color: cssVar("--axis") } },
         formatter: params => {
           if (!params.length) return "";
-          const ms = times[params[0].dataIndex].ms, w = warsaw(ms), end = warsaw(ms + (hourly ? 3600000 : 900000));
-          const ambiguous = warsaw(ms - 3600000).time === w.time || warsaw(ms + 3600000).time === w.time;
-          const price = params.find(p => p.seriesName === PRICE);
-          const items = params.filter(p => p.seriesName !== PRICE && Math.abs(p.value) >= 0.5).sort((a, b) => b.value - a.value);
-          const gen = items.filter(p => p.seriesName !== "Pumping").reduce((sum, p) => sum + p.value, 0);
-          const shown = items.slice(0, 14), rest = items.slice(14).reduce((sum, p) => sum + p.value, 0);
-          return `<b>${fmtDay(w.date)}, ${w.time}–${end.time}${ambiguous ? " " + w.zone : ""}</b>` +
-            `<div style="color:${muted};margin:2px 0 6px">${hourly ? "hourly average" : "quarter-hour"}, MW</div>` +
-            shown.map(p => `<div style="display:flex;gap:8px;align-items:center"><span class="swatch" style="background:${p.color}"></span>${esc(p.seriesName)}<b style="margin-left:auto;padding-left:14px">${num(p.value)}</b></div>`).join("") +
-            (items.length > 14 ? `<div style="display:flex;color:${muted}">${items.length - 14} more<b style="margin-left:auto">${num(rest)}</b></div>` : "") +
-            `<div style="display:flex;border-top:1px solid ${cssVar("--tooltip-border")};margin-top:5px;padding-top:4px">Generation<b style="margin-left:auto;padding-left:14px">${num(gen)}</b></div>` +
-            (price && price.value != null ? `<div style="display:flex;gap:8px;align-items:center;margin-top:3px"><span class="swatch" style="background:${price.color}"></span>Day-ahead price<b style="margin-left:auto;padding-left:14px">€${num(price.value, 2)}/MWh</b></div>` : "");
+          const t = times[params[0].dataIndex], w = warsaw(t.ms);
+          const end = warsaw(t.ms + resolutionMs());
+          const ambiguous = warsaw(t.ms - 3600000).time === w.time || warsaw(t.ms + 3600000).time === w.time;
+          const head = res === "day" ? fmtDay(w.date) : `${fmtDay(w.date)}, ${w.time}–${end.time}${ambiguous ? " " + w.zone : ""}`;
+          // Merge the two halves of a net flow.
+          const merged = new Map();
+          for (const p of params) {
+            if (LINES.has(p.seriesName) || p.value == null) continue;
+            const item = merged.get(p.seriesName) || merged.set(p.seriesName, { name: p.seriesName, color: p.color, value: 0 }).get(p.seriesName);
+            item.value += p.value;
+          }
+          const items = [...merged.values()].filter(p => Math.abs(p.value) >= 0.5).sort((a, b) => b.value - a.value);
+          const generation = items.filter(p => p.value > 0 && p.name !== IMPORTS && p.name !== PLAN_IMPORTS).reduce((sum, p) => sum + p.value, 0);
+          const shown = items.slice(0, 16), more = items.slice(16).reduce((sum, p) => sum + p.value, 0);
+          const line = name => params.find(p => p.seriesName === name && p.value != null);
+          const load = line(LOAD), plan = line(LOAD_PLAN), price = line(PRICE);
+          return `<b>${head}</b>` +
+            `<div style="color:${muted};margin:2px 0 6px">${res === "day" ? "daily" : res === "hour" ? "hourly" : "quarter-hour"} average, MW${!t.quarters.size && t.planned.size ? " · PSE's day-ahead plan" : ""}</div>` +
+            shown.map(p => row(p.color, p.name, num(p.value))).join("") +
+            (items.length > 16 ? `<div style="display:flex;color:${muted}">${items.length - 16} more<b style="margin-left:auto">${num(more)}</b></div>` : "") +
+            `<div style="border-top:1px solid ${cssVar("--tooltip-border")};margin-top:5px;padding-top:4px">` +
+            row(cssVar("--text"), t.quarters.size ? "Generation" : "Planned generation", num(generation)) +
+            (load ? row(load.color, LOAD, num(load.value)) : "") +
+            (plan ? row(plan.color, LOAD_PLAN, num(plan.value), true) : "") +
+            (price ? row(price.color, "Day-ahead price", `€${num(price.value, 2)}/MWh`) : "") + "</div>";
         }
       },
       xAxis: {
         // A category axis, so the labels fall on Warsaw midnights (or every third hour of a single day), not on UTC ticks.
-        type: "category", boundaryGap: false, data: times.map(t => t.ms),
+        type: "category", boundaryGap: res === "day", data: times.map(t => t.ms),
         axisLine: { lineStyle: { color: cssVar("--axis") } }, axisTick: { show: false }, splitLine: { show: false },
         axisLabel: { color: cssVar("--axis-label"), fontSize: 11, interval: index => labelAt(times[index].ms), formatter: ms => labelText(Number(ms)) }
       },
@@ -695,6 +866,119 @@
       }],
       series
     }, { notMerge: true });
+  }
+
+  /* ---------------- calendar ---------------- */
+  // The Italian dashboard's calendar: quick ranges, two clicks for a range, month and year pickers.
+  const latestDay = () => addDays(todayWarsaw(), 1);
+  const monthName = key => new Date(`${key}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", month: "long", year: "numeric" });
+  function renderCalendar() {
+    const cal = state.calendar, latest = latestDay(), today = todayWarsaw();
+    const body = $("calendar-body");
+    const year = Number(cal.month.slice(0, 4));
+    if (cal.view === "years") {
+      const first = year - (year % 12);
+      body.innerHTML = `<div class="calendar-header"><div class="calendar-nav"><button type="button" data-cal="years-prev" ${first <= Number(FIRST_DAY.slice(0, 4)) ? "disabled" : ""}>‹</button></div>` +
+        `<button class="calendar-title" type="button" data-cal="days">${first}–${first + 11}</button><div class="calendar-nav"><button type="button" data-cal="years-next" ${first + 12 > Number(latest.slice(0, 4)) ? "disabled" : ""}>›</button></div></div>` +
+        `<div class="picker-grid">${Array.from({ length: 12 }, (_, i) => first + i).map(y => {
+          const off = y < Number(FIRST_DAY.slice(0, 4)) || y > Number(latest.slice(0, 4));
+          return `<button class="picker-btn${off ? " disabled" : ""}${y === year ? " current" : ""}" type="button" ${off ? "" : `data-year="${y}"`}>${y}</button>`;
+        }).join("")}</div>`;
+    } else if (cal.view === "months") {
+      body.innerHTML = `<div class="calendar-header"><div class="calendar-nav"><button type="button" data-cal="year-prev" ${year <= Number(FIRST_DAY.slice(0, 4)) ? "disabled" : ""}>‹</button></div>` +
+        `<button class="calendar-title" type="button" data-cal="years">${year}</button><div class="calendar-nav"><button type="button" data-cal="year-next" ${year >= Number(latest.slice(0, 4)) ? "disabled" : ""}>›</button></div></div>` +
+        `<div class="picker-grid">${Array.from({ length: 12 }, (_, i) => `${year}-${pad(i + 1)}`).map(m => {
+          const off = m < FIRST_DAY.slice(0, 7) || m > latest.slice(0, 7);
+          const label = new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", month: "short" });
+          return `<button class="picker-btn${off ? " disabled" : ""}${m === cal.month.slice(0, 7) ? " current" : ""}" type="button" ${off ? "" : `data-month="${m}-01"`}>${label}</button>`;
+        }).join("")}</div>`;
+    } else {
+      const first = cal.month, offset = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7;
+      const daysIn = new Date(Date.UTC(year, Number(first.slice(5, 7)), 0)).getUTCDate();
+      let cells = "<div></div>".repeat(offset);
+      for (let d = 1; d <= daysIn; d++) {
+        const key = `${first.slice(0, 8)}${pad(d)}`, off = key < FIRST_DAY || key > latest;
+        const classes = ["day"];
+        if (off) classes.push("disabled");
+        if (key === today) classes.push("today");
+        if (key > today && !off) classes.push("future");
+        if (cal.picking) { if (key === cal.picking) classes.push("selected"); }
+        else {
+          if (key >= state.from && key <= state.to) classes.push("range");
+          if (key === state.from) classes.push("range-start");
+          if (key === state.to) classes.push("range-end");
+        }
+        cells += `<button class="${classes.join(" ")}" type="button" ${off ? "disabled" : `data-day="${key}"`} title="${key > today ? "PSE's day-ahead plan only" : ""}">${d}</button>`;
+      }
+      body.innerHTML = `<div class="calendar-header"><div class="calendar-nav"><button type="button" data-cal="month-prev" ${first.slice(0, 7) <= FIRST_DAY.slice(0, 7) ? "disabled" : ""}>‹</button>` +
+        `<button type="button" data-cal="month-next" ${first.slice(0, 7) >= latest.slice(0, 7) ? "disabled" : ""}>›</button></div>` +
+        `<button class="calendar-title" type="button" data-cal="months">${monthName(first)}</button><div style="width:65px"></div></div>` +
+        `<div class="calendar-weekdays">${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => `<div class="weekday">${d}</div>`).join("")}</div>` +
+        `<div class="calendar-grid">${cells}</div>`;
+    }
+    $("selection-info").innerHTML = cal.picking
+      ? `<strong>${fmtDay(cal.picking)}</strong> → select end date`
+      : `<strong>${fmtDay(state.from)}</strong>${state.from === state.to ? "" : ` → <strong>${fmtDay(state.to)}</strong>`} · ${daysBetween(state.from, state.to)} day${state.from === state.to ? "" : "s"}`;
+  }
+  function openCalendar(open) {
+    $("calendar-dropdown").classList.toggle("open", open);
+    $("calendar-trigger").setAttribute("aria-expanded", String(open));
+    if (open) {
+      Object.assign(state.calendar, { month: `${state.to.slice(0, 7)}-01`, view: "days", picking: "" });
+      renderCalendar();
+    }
+  }
+  function shiftMonth(key, months) {
+    const date = new Date(`${key}T00:00:00Z`);
+    date.setUTCMonth(date.getUTCMonth() + months);
+    return date.toISOString().slice(0, 10);
+  }
+  function bindCalendar() {
+    $("calendar-trigger").addEventListener("click", event => { event.stopPropagation(); openCalendar(!$("calendar-dropdown").classList.contains("open")); });
+    $("calendar-dropdown").addEventListener("click", event => {
+      event.stopPropagation();
+      const cal = state.calendar, target = event.target.closest("button");
+      if (!target || target.disabled) return;
+      const action = target.dataset.cal;
+      if (action === "month-prev") cal.month = shiftMonth(cal.month, -1);
+      else if (action === "month-next") cal.month = shiftMonth(cal.month, 1);
+      else if (action === "year-prev") cal.month = shiftMonth(cal.month, -12);
+      else if (action === "year-next") cal.month = shiftMonth(cal.month, 12);
+      else if (action === "years-prev") cal.month = shiftMonth(cal.month, -144);
+      else if (action === "years-next") cal.month = shiftMonth(cal.month, 144);
+      else if (action) cal.view = action;
+      else if (target.dataset.year) { cal.month = `${target.dataset.year}-${cal.month.slice(5)}`; cal.view = "months"; }
+      else if (target.dataset.month) { cal.month = target.dataset.month; cal.view = "days"; }
+      else if (target.dataset.day) {
+        const day = target.dataset.day;
+        if (!cal.picking) cal.picking = day;
+        else {
+          const from = day < cal.picking ? day : cal.picking, to = day < cal.picking ? cal.picking : day;
+          cal.picking = "";
+          openCalendar(false);
+          setRange(from, to);
+          return;
+        }
+      } else if (target.dataset.range) {
+        const today = todayWarsaw(), yesterday = addDays(today, -1);
+        const ranges = { today: [today, today], tomorrow: [addDays(today, 1), addDays(today, 1)], yesterday: [yesterday, yesterday],
+          "3d": [addDays(yesterday, -2), yesterday], "7d": [addDays(yesterday, -6), yesterday], "30d": [addDays(yesterday, -29), yesterday] };
+        const [from, to] = ranges[target.dataset.range];
+        if (from === to) setGranularity("15m");
+        openCalendar(false);
+        setRange(from, to);
+        return;
+      }
+      if (cal.month < `${FIRST_DAY.slice(0, 7)}-01`) cal.month = `${FIRST_DAY.slice(0, 7)}-01`;
+      if (cal.month > `${latestDay().slice(0, 7)}-01`) cal.month = `${latestDay().slice(0, 7)}-01`;
+      renderCalendar();
+    });
+    document.addEventListener("click", () => openCalendar(false));
+    document.addEventListener("keydown", event => { if (event.key === "Escape") openCalendar(false); });
+  }
+  function setGranularity(v) {
+    state.resolution = v;
+    document.querySelectorAll("#granularity button").forEach(button => button.classList.toggle("active", button.dataset.v === v));
   }
 
   /* ---------------- table ---------------- */
@@ -803,19 +1087,15 @@
 
   /* ---------------- controls ---------------- */
   function setRange(from, to) {
-    const latest = todayWarsaw();
+    // Up to tomorrow: today and tomorrow come from PSE's day-ahead plan.
+    const latest = latestDay();
     from = from < FIRST_DAY ? FIRST_DAY : from > latest ? latest : from;
     to = to < from ? from : to > latest ? latest : to;
     if (daysBetween(from, to) > MAX_DAYS) from = addDays(to, -(MAX_DAYS - 1));
     state.from = from;
     state.to = to;
-    $("from").value = from;
-    $("to").value = to;
-    document.querySelectorAll("#presets button").forEach(button => {
-      const days = Number(button.dataset.days), yesterday = addDays(latest, -1);
-      button.classList.toggle("on", to === yesterday && from === addDays(yesterday, -(days - 1)));
-    });
-    if (daysBetween(from, to) > 3 && state.resolution === "15m") setSeg("resolution", state.resolution = "hour");
+    $("calendar-trigger-label").textContent = rangeText();
+    if (daysBetween(from, to) > 3 && state.resolution === "15m") setGranularity("hour");
     load();
   }
   function setSeg(id, v) {
@@ -833,17 +1113,14 @@
   function init() {
     try { const saved = localStorage.getItem("pg-theme"); if (saved) document.documentElement.dataset.theme = saved; } catch (error) { /* private mode */ }
     const latest = todayWarsaw();
-    for (const id of ["from", "to"]) { $(id).min = FIRST_DAY; $(id).max = latest; }
-    $("from").addEventListener("change", () => { if ($("from").value) setRange($("from").value, $("to").value < $("from").value ? $("from").value : $("to").value); });
-    $("to").addEventListener("change", () => { if ($("to").value) setRange($("from").value > $("to").value ? $("to").value : $("from").value, $("to").value); });
-    $("presets").addEventListener("click", event => {
+    bindCalendar();
+    setGranularity(state.resolution);
+    $("granularity").addEventListener("click", event => {
       const button = event.target.closest("button");
       if (!button) return;
-      const yesterday = addDays(todayWarsaw(), -1), days = Number(button.dataset.days);
-      if (days === 1) { state.resolution = "15m"; setSeg("resolution", "15m"); }
-      setRange(addDays(yesterday, -(days - 1)), yesterday);
+      setGranularity(button.dataset.v);
+      renderChart();
     });
-    bindSeg("resolution", v => { state.resolution = v; renderChart(); });
     bindSeg("group", v => { state.group = v; renderChart(); });
     bindSeg("scope", v => { state.scope = v; renderChart(); });
     bindSeg("view", v => { state.view = v; state.page = 0; renderTable(); });
