@@ -188,7 +188,7 @@
       <i>gen-jw</i> (metered output of JWCD units, average MW per quarter-hour) and <i>pdwkseub</i> (available capacity, declared non-usable capacity and grid limits, published for about half the units)
       (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
       Day-ahead price: <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E Transparency Platform</a> (Poland bidding zone, €/MWh; hourly until 30 Sep 2025, quarter-hourly since), fetched daily after the auction.
-      The “Other” layers are PSE's system balance (<i>his-wlk-cal</i>) less the JWCD units: total generation is <i>jg</i> + <i>jnwrb</i> (scheduled units plus units outside the balancing market), wind and solar are <i>wi</i> and <i>pv</i>. Other wind and Other solar subtract Baltic Power and Zwartowo; “Other thermal, hydro, biomass” is the rest less the JWCD thermal units as PSE nets them (<i>jgw1</i>) and the pumped-storage output (PSE gives no fuel split for it). PSE's totals are net of the plants' own use and the JWCD layers are gross meter readings, so the top of the stack sits above PSE's total generation by the JWCD plants' own use (about 0.7–1 GW).
+      The “Other” layers are PSE's system balance (<i>his-wlk-cal</i>) less the JWCD units: total generation is <i>jg</i> + <i>jnwrb</i> (scheduled units plus units outside the balancing market), wind and solar are <i>wi</i> and <i>pv</i>, and the top of the stack is PSE's total generation. Other wind and Other solar subtract Baltic Power and Zwartowo. PSE gives no fuel split for the rest, so it is split with <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E's</a> actual generation per type (A75, which PSE submits): each type less the JWCD units of that fuel, scaled to PSE's rest (“Other coal” is hard coal and lignite; “Other oil, coal gas, other” is oil, coal-derived gas, other renewable and other). Where ENTSO-E has not yet published a quarter-hour the rest stays one layer, “Other thermal, hydro, biomass”.
       Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
       Fuel, operator and place are this site's plant-level labels (from the <a href="https://gpi.tge.pl/pl/wykaz-jednostek" target="_blank" rel="noopener">TGE unit register</a> and operators' own pages), not the fuel burnt in a given quarter-hour, and can be wrong.
       Times are Warsaw time; on the October clock change the repeated hour is marked CEST and CET.
@@ -225,7 +225,7 @@
 
   const state = {
     from: "", to: "", rows: [], capacity: new Map(), capacityRows: 0, capacityDone: false, loading: false,
-    plants: {}, request: 0, controller: null, prices: new Map(), system: new Map(), scope: "all",
+    plants: {}, request: 0, controller: null, prices: new Map(), generation: new Map(), system: new Map(), scope: "all",
     resolution: "15m", group: "fuel", chartFuel: "", chartPlant: "",
     view: "units", mode: "", search: "", page: 0, sort: { units: ["net", -1], intervals: ["time", 1] }
   };
@@ -335,20 +335,19 @@
     try { history.replaceState(null, "", `#${state.from}${state.from === state.to ? "" : "_" + state.to}`); } catch (error) { /* file:// */ }
     setStatus(`Loading ${rangeText()} from PSE…`);
     renderAll();
-    loadPrices(state.from, state.to).then(() => { if (request === state.request && state.rows.length) renderChart(); });
+    Promise.all([loadPrices(state.from, state.to), loadGeneration(state.from, state.to)]).then(() => { if (request === state.request && state.rows.length) renderChart(); });
     const filter = `business_date ge '${state.from}' and business_date le '${state.to}'`;
     const capacity = fetchAll("pdwkseub", filter, controller.signal).then(rows => ({ rows }), error => ({ error }));
     state.system = new Map();
-    // PSE's system balance (net of plants' own use): total generation = jg (scheduled units) + jnwrb
-    // (units outside the balancing market); wi and pv are all wind and all solar; jgw1 is the JWCD thermal
-    // units, net (about 12% under their gross meters in gen-jw; pumped hydro, Baltic Power and Zwartowo
-    // are not in it).  Keyed like slot(): the start of the quarter-hour.
+    // PSE's system balance: total generation = jg (scheduled units) + jnwrb (units outside the balancing
+    // market); wi and pv are all wind (Baltic Power included) and all solar.  Keyed like slot(): the start
+    // of the quarter-hour.
     fetchAll("his-wlk-cal", filter, controller.signal).then(rows => {
       if (request !== state.request) return;
       for (const row of rows) {
         const end = endMs(row), jg = Number(row.jg), nwrb = Number(row.jnwrb);
         if (end === null || !Number.isFinite(jg) || !Number.isFinite(nwrb)) continue;
-        state.system.set(end - 900000, { total: jg + nwrb, wind: Number(row.wi) || 0, solar: Number(row.pv) || 0, jwcdThermal: Number(row.jgw1) || 0 });
+        state.system.set(end - 900000, { total: jg + nwrb, wind: Number(row.wi) || 0, solar: Number(row.pv) || 0 });
       }
       if (state.rows.length && !state.loading) renderChart();
     }, () => { /* the chart falls back to the JWCD units alone */ });
@@ -393,10 +392,39 @@
     renderTable();
   }
 
+  /* ---------------- the rest of the system ---------------- */
+  // data/generation/PL/<YYYY-MM>.json: ENTSO-E's generation per type (A75, from PSE), written by
+  // etl/generation.py.  Its total matches PSE's jg + jnwrb and it carries the JWCD units at their
+  // gross meter readings (its lignite is exactly the JWCD lignite), so each type less its JWCD units
+  // is the rest of that fuel.  PSE's balance sets the level; ENTSO-E only splits it.
+  const REST_WIND = "Other wind", REST_SOLAR = "Other solar", REST_OTHER = "Other thermal, hydro, biomass";
+  const REST = [
+    { name: "Other coal", codes: ["B05", "B02"], jwcd: ["Hard coal", "Hard coal + biomass", "Lignite"], color: "--f-coal" },
+    { name: "Other gas", codes: ["B04"], jwcd: ["Natural gas"], color: "--f-gas" },
+    { name: "Other biomass", codes: ["B01"], jwcd: [], color: "--f-cofiring" },
+    { name: "Other hydro", codes: ["B10", "B11", "B12"], jwcd: ["Hydro · pumped storage"], color: "--f-hydro" },
+    { name: "Other oil, coal gas, other", codes: ["B03", "B06", "B15", "B20"], jwcd: [], color: "--f-rest" }
+  ];
+  async function loadGeneration(from, to) {
+    const months = new Set();
+    for (let day = addDays(from, -1); day <= to; day = addDays(day, 1)) months.add(day.slice(0, 7));
+    await Promise.all([...months].filter(month => !state.generation.has(month)).map(month =>
+      fetch(`../data/generation/PL/${month}.json`).then(r => r.ok ? r.json() : null, () => null).catch(() => null)
+        .then(data => { if (data) state.generation.set(month, data); })));
+  }
+  // ENTSO-E MW of a group of types in the quarter-hour starting at ms; null where hard coal (always
+  // reported) is missing, i.e. not yet published.
+  function generationAt(codes, ms) {
+    const file = state.generation.get(new Date(ms).toISOString().slice(0, 7));
+    if (!file || !file.types.B05) return null;
+    const index = Math.floor((ms - file.start) / file.step);
+    if (index < 0 || index >= file.types.B05.length || file.types.B05[index] == null) return null;
+    return codes.reduce((sum, code) => sum + ((file.types[code] || [])[index] || 0), 0);
+  }
+
   /* ---------------- day-ahead prices ---------------- */
   // data/prices/PL/<YYYY-MM>.json (UTC months), written daily from ENTSO-E by etl/prices.py.
   const PRICE = "Day-ahead price";
-  const REST_WIND = "Other wind", REST_SOLAR = "Other solar", REST_OTHER = "Other thermal, hydro, biomass";
   const utcMonth = ms => new Date(ms).toISOString().slice(0, 7);
   async function loadPrices(from, to) {
     const months = new Set();
@@ -527,18 +555,18 @@
       const name = isPumping(row) ? "Pumping" : state.group === "plant" ? plant : fuel;
       bucket.series.set(name, (bucket.series.get(name) || 0) + (isPumping(row) ? -Math.abs(v) : v));
     }
-    // The rest of the system: PSE's totals less the JWCD units (all of them, whatever the filters).
+    // The rest of the system: PSE's totals less the JWCD units (all of them, whatever the filters),
+    // split by fuel with ENTSO-E where it has published the quarter-hour.
     const rest = state.scope === "all" && !state.chartFuel && !state.chartPlant && state.system.size > 0;
     if (rest) {
       const jwcd = new Map();
       for (const row of state.rows) {
         const v = value(row), s = slot(row);
         if (v === null || s.ms === null || isPumping(row)) continue;
+        const q = jwcd.get(s.ms) || jwcd.set(s.ms, { all: 0, fuels: new Map() }).get(s.ms);
         const fuel = fuelOf(row.power_plant);
-        const q = jwcd.get(s.ms) || jwcd.set(s.ms, { wind: 0, solar: 0, hydro: 0 }).get(s.ms);
-        if (fuel === "Offshore wind") q.wind += v;
-        if (fuel === "Solar PV") q.solar += v;
-        if (fuel === "Hydro · pumped storage") q.hydro += v;
+        q.all += v;
+        q.fuels.set(fuel, (q.fuels.get(fuel) || 0) + v);
       }
       for (const [ms, q] of jwcd) {
         const sys = state.system.get(ms);
@@ -546,10 +574,17 @@
         if (!sys || !bucket) continue;
         bucket.rest = bucket.rest || new Map();
         const add = (name, v) => bucket.rest.set(name, (bucket.rest.get(name) || 0) + v);
-        add(REST_WIND, Math.max(0, sys.wind - q.wind));
-        add(REST_SOLAR, Math.max(0, sys.solar - q.solar));
-        // Net against net: the JWCD thermal units as PSE counts them in its total (jgw1), not their gross meters.
-        add(REST_OTHER, Math.max(0, sys.total - sys.wind - sys.solar - sys.jwcdThermal - q.hydro));
+        const own = fuel => q.fuels.get(fuel) || 0;
+        add(REST_WIND, Math.max(0, sys.wind - own("Offshore wind")));
+        add(REST_SOLAR, Math.max(0, sys.solar - own("Solar PV")));
+        const thermal = Math.max(0, sys.total - sys.wind - sys.solar - (q.all - own("Offshore wind") - own("Solar PV")));
+        const parts = REST.map(group => {
+          const total = generationAt(group.codes, ms);
+          return total === null ? null : Math.max(0, total - group.jwcd.reduce((sum, fuel) => sum + own(fuel), 0));
+        });
+        const sum = parts.reduce((a, b) => a + (b || 0), 0);
+        if (parts.some(v => v === null) || sum <= 0) add(REST_OTHER, thermal);
+        else REST.forEach((group, i) => add(group.name, thermal * parts[i] / sum));
       }
     }
     const times = [...buckets.values()].sort((a, b) => a.ms - b.ms);
@@ -583,13 +618,18 @@
       emphasis: { focus: "series" },
       data: times.map(t => (t.series.get(name) || 0) / t.quarters.size)
     }));
-    if (rest) for (const [name, color] of [[REST_OTHER, "--f-rest"], [REST_WIND, "--f-wind"], [REST_SOLAR, "--f-solar"]]) series.push({
-      name, type: "line", stack: "gen", symbol: "none", sampling: "lttb",
-      lineStyle: { width: 0 }, itemStyle: { color: cssVar(color) },
-      areaStyle: { color: cssVar(color), opacity: name === REST_SOLAR ? 0.55 : 0.7 },
-      emphasis: { focus: "series" },
-      data: times.map(t => t.rest && t.rest.has(name) ? t.rest.get(name) / t.quarters.size : null)
-    });
+    // The rest is drawn in paler versions of the fuel colours, above the JWCD units.
+    const restLayers = [...REST.map(group => [group.name, shade(cssVar(group.color), 0.35)]),
+      [REST_OTHER, cssVar("--f-rest")], [REST_WIND, cssVar("--f-wind")], [REST_SOLAR, shade(cssVar("--f-solar"), 0.3)]];
+    if (rest) for (const [name, color] of restLayers) {
+      if (!times.some(t => t.rest && t.rest.get(name) > 0)) continue;
+      series.push({
+        name, type: "line", stack: "gen", symbol: "none", sampling: "lttb",
+        lineStyle: { width: 0 }, itemStyle: { color }, areaStyle: { color, opacity: 0.8 },
+        emphasis: { focus: "series" },
+        data: times.map(t => t.rest && t.rest.has(name) ? t.rest.get(name) / t.quarters.size : null)
+      });
+    }
     if (hasPumping) series.push({
       name: "Pumping", type: "line", stack: "pump", symbol: "none",
       lineStyle: { width: 0 }, areaStyle: { color: cssVar("--f-pumping"), opacity: 0.8 }, itemStyle: { color: cssVar("--f-pumping") },
@@ -602,7 +642,7 @@
       lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
     });
     $("chart-sub").textContent = "Average MW in each interval, stacked; pumping drawn below zero" +
-      (rest ? "; “Other” is the rest of Poland's generation: PSE's system totals less the JWCD units" : "") + (priced.length
+      (rest ? "; “Other” is the rest of Poland's generation: PSE's system totals less the JWCD units, split by fuel with ENTSO-E" : "") + (priced.length
       ? `; the line is ENTSO-E's day-ahead price for Poland, right axis (average €${num(priced.reduce((a, b) => a + b, 0) / priced.length, 2)}/MWh)`
       : "");
     const days = daysBetween(state.from, state.to), every = Math.ceil(days / 8);
