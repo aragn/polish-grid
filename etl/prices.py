@@ -30,12 +30,13 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
 STEP_MS = {"PT15M": 900000, "PT30M": 1800000, "PT60M": 3600000}
 
 
-def request(token, start, end):
-    """Day-ahead prices (A44) between two UTC datetimes; the XML root, or None for no data."""
-    params = {
-        "securityToken": token, "documentType": "A44", "in_Domain": AREA, "out_Domain": AREA,
-        "periodStart": start.strftime("%Y%m%d%H%M"), "periodEnd": end.strftime("%Y%m%d%H%M"),
-    }
+def request(token, start, end, query=None):
+    """
+    An ENTSO-E document between two UTC datetimes, by default the day-ahead
+    prices (A44); the XML root, or None for no data.
+    """
+    params = dict(query or {"documentType": "A44", "in_Domain": AREA, "out_Domain": AREA})
+    params.update({"securityToken": token, "periodStart": start.strftime("%Y%m%d%H%M"), "periodEnd": end.strftime("%Y%m%d%H%M")})
     wait = 10
     for attempt in range(6):
         try:

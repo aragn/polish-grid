@@ -1,11 +1,14 @@
-# Fetches Poland's day-ahead price from ENTSO-E after the day-ahead auction
-# (results about 12:45 Warsaw time) and commits data/prices/; the unit-output
-# page draws it over the generation chart.
-name: Update day-ahead prices
+# Fetches Poland's day-ahead price (after the auction, about 12:45 Warsaw time)
+# and actual generation per type from ENTSO-E, and commits data/prices/ and
+# data/generation/; the unit-output page draws the price over the generation
+# chart and splits the rest of the system by fuel.  The early run has the
+# previous day's generation ready by the time PSE publishes its meter data.
+name: Update ENTSO-E data
 
 on:
   schedule:
     - cron: "20 12 * * *"
+    - cron: "30 3 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -34,13 +37,15 @@ jobs:
         env:
           ENTSOE_API_KEY: ${{ secrets.ENTSOE_API_KEY }}
         run: |
-          if [ "${{ github.event.inputs.mode }}" = "backfill" ]; then python etl/prices.py --backfill; else python etl/prices.py; fi
+          if [ "${{ github.event.inputs.mode }}" = "backfill" ]; then flag=--backfill; else flag=; fi
+          python etl/prices.py $flag
+          python etl/generation.py $flag
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A data/prices
+          git add -A data/prices data/generation
           if git diff --cached --quiet; then echo "No changes."; exit 0; fi
-          git commit -m "Day-ahead prices: $(date -u +%Y-%m-%d)"
+          git commit -m "ENTSO-E prices and generation: $(date -u +%Y-%m-%d)"
           git pull --rebase
           git push
