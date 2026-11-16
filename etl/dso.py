@@ -43,7 +43,36 @@ WAYBACK = "https://web.archive.org/web/{stamp}id_/{url}"
 OPERATORS = {
     "tauron": {"name": "TAURON Dystrybucja S.A.", "short": "TAURON"},
     "enea": {"name": "ENEA Operator Sp. z o.o.", "short": "ENEA"},
+    "pge": {"name": "PGE Dystrybucja S.A.", "short": "PGE"},
+    "energa": {"name": "Energa-Operator S.A.", "short": "ENERGA"},
 }
+PGE = "https://pgedystrybucja.pl"
+ENERGA = "https://energa-operator.pl"
+
+
+# PGE's server sends its certificate without the intermediate (Certum DV TLS G2 R39 CA): browsers fetch it
+# themselves, Python does not.  The intermediate, downloaded from the address in PGE's certificate, is kept in
+# etl/certs/ and added to certifi's roots for that host; verification stays on.
+INTERMEDIATES = {"pgedystrybucja.pl": os.path.join(HERE, "certs", "certum_dv_tls_g2_r39_ca.pem")}
+_BUNDLES = {}
+
+
+def verify_for(url):
+    host = url.split("/")[2]
+    if host not in INTERMEDIATES:
+        return True
+    if host not in _BUNDLES:
+        import certifi
+        import tempfile
+        path = os.path.join(tempfile.gettempdir(), f"ca_bundle_{host}.pem")
+        with open(path, "w", encoding="ascii") as handle:
+            handle.write(open(certifi.where(), encoding="ascii").read() + "\n" + open(INTERMEDIATES[host], encoding="ascii").read())
+        _BUNDLES[host] = path
+    return _BUNDLES[host]
+
+
+def fetch(url, timeout=60):
+    return requests.get(url, headers=UA, timeout=timeout, verify=verify_for(url))
 
 
 def tauron_targets(backfill):
@@ -74,6 +103,24 @@ def enea_targets(backfill):
     return targets
 
 
+def pge_targets(backfill):
+    """PGE links its newest list from one page (eZ Publish 'content/download' URL; older versions are not served)."""
+    page = fetch(PGE + "/przylaczenia/procedury-przylaczeniowe/informacja-o-podmiotach-ubiegajacych-sie-o-przylaczenie-do-sieci-powyzej-1kv").text
+    links = re.findall(r'href="(/content/download/[^"]*podmiotach[^"]*)"', page)
+    if not links:
+        sys.exit("PGE's page links no list of applicants: check the page and etl/dso.py")
+    return [("pge", "new", PGE + links[0].replace("&amp;", "&"), None)]
+
+
+def energa_targets(backfill):
+    """ENERGA links its newest list ('..._pusop_wnioski_i_odmowy_eop.pdf' on its media CDN) from one page."""
+    page = fetch(ENERGA + "/przylaczenie-do-sieci/informacje-o-stanie-przylaczen").text
+    links = re.findall(r'href="(https://[^"]*pusop_wnioski[^"]*\.pdf)"', page)
+    if not links:
+        sys.exit("ENERGA's page links no 'pusop_wnioski' file: check the page and etl/dso.py")
+    return [("energa", "new", links[0], None)]
+
+
 def storage_targets():
     page = requests.get(ENEA + "/przylaczenie-do-sieci/magazyny-energii-elektrycznej", headers=UA, timeout=60).text
     enea = re.findall(r'href="(/media/\d+/rejestr-magazynow[^"]*)"', page)
@@ -86,7 +133,7 @@ def storage_targets():
 def download(url):
     for attempt in range(4):
         try:
-            response = requests.get(url, headers=UA, timeout=180)
+            response = fetch(url, timeout=180)
             if response.status_code == 404:
                 return None, None
             response.raise_for_status()
@@ -105,6 +152,9 @@ def is_pdf(content):
 
 def parse_file(job):
     operator, layout, path = job
+    if layout == "new" and operator == "energa":
+        # ENERGA's PDF: rows packed into shared cells, overlapping and partly outside the detected tables.
+        return job, dso_parse.parse_new(path, by_chars=True)
     parser = {"new": dso_parse.parse_new, "old": dso_parse.parse_old_tauron, "oldenea": dso_parse.parse_old_enea}[layout]
     return job, parser(path)
 
@@ -121,7 +171,7 @@ def run(backfill=False, workers=6):
     known = {entry["md5"]: entry for entry in sources["lists"]}
 
     jobs, fetched = [], []
-    for operator, layout, url, original in tauron_targets(backfill) + enea_targets(backfill):
+    for operator, layout, url, original in tauron_targets(backfill) + enea_targets(backfill) + pge_targets(backfill) + energa_targets(backfill):
         content, modified = download(url)
         time.sleep(1)
         if not content or not is_pdf(content):
@@ -131,7 +181,7 @@ def run(backfill=False, workers=6):
             continue
         folder = os.path.join(ARCHIVE, operator)
         os.makedirs(folder, exist_ok=True)
-        name = re.sub(r"[^\w.-]+", "_", (original or url).rsplit("/", 1)[-1]).replace(".ashx", "")
+        name = re.sub(r"[^\w.-]+", "_", (original or url).split("?")[0].rsplit("/", 1)[-1]).replace(".ashx", "")[:80]
         path = os.path.join(folder, f"{md5[:8]}_{name}" + ("" if name.endswith(".pdf") else ".pdf"))
         open(path, "wb").write(content)
         jobs.append((operator, layout, path))

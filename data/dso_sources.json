@@ -34,6 +34,28 @@
    "rows": 6350
   },
   {
+   "operator": "energa",
+   "layout": "new",
+   "url": "https://cdn-netpr.pl/file/mediakit/3091326/c2/2026_09_30_pusop_wnioski_i_odmowy_eop.pdf",
+   "via": null,
+   "published": "Mon, 02 Nov 2026 07:37:36 GMT",
+   "md5": "d50387a0f88629e35cdfb22b09c9be18",
+   "file": "archive/energa/d50387a0_2026_09_30_pusop_wnioski_i_odmowy_eop.pdf",
+   "asof": "2026-09-30",
+   "rows": 4340
+  },
+  {
+   "operator": "pge",
+   "layout": "new",
+   "url": "https://pgedystrybucja.pl/content/download/ad8ac0a3be62a7c27739c7f4d5d26e17/file/informacja-o-podmiotach-ubiegajacych-sie-o-przylaczenie-do-sieci-o-napieciu-powyzej-1kv_sta-na-30.09.2026-r-pdf?inLanguage=pol-PL&version=4&contentId=34529",
+   "via": null,
+   "published": null,
+   "md5": "83021111afd368b2780e7c42ca46de76",
+   "file": "archive/pge/83021111_informacja-o-podmiotach-ubiegajacych-sie-o-przylaczenie-do-sieci-o-napieciu-powy.pdf",
+   "asof": "2026-09-30",
+   "rows": 8730
+  },
+  {
    "operator": "tauron",
    "layout": "old",
    "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2021.ashx",
