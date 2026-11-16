@@ -19,6 +19,7 @@ list with their agreement in force long after they start (Kozienice 11,
 passed almost always means a plant already in service.
 """
 
+import bisect
 import collections
 import datetime
 import json
@@ -30,6 +31,8 @@ import unicodedata
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from stations import Stations, fold  # noqa: E402
+import dso_build  # noqa: E402
+import running  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 SNAPSHOTS = os.path.join(ROOT, "data", "snapshots")
@@ -42,12 +45,12 @@ TECHNOLOGIES = [
 ]
 PHASES = [
     ("application", "Application"), ("study", "Under study"), ("conditions", "Conditions issued"),
-    ("agreement", "Agreement signed"), ("operating", "Past connection date"),
+    ("agreement", "Agreement signed"), ("operating", "Past connection date"), ("operational", "Operational"),
     ("refused", "Refused"), ("withdrawn", "Withdrawn or lapsed"),
 ]
 STATUS_PHASE = {
     "verification": "application", "incomplete": "application", "study": "study", "conditions": "conditions",
-    "agreement": "agreement", "connected": "operating", "refused": "refused", "withdrawn": "withdrawn",
+    "agreement": "agreement", "connected": "operational", "refused": "refused", "withdrawn": "withdrawn",
     "expired": "withdrawn", "terminated": "withdrawn",
 }
 CODES = r"MFW|FW|PV|MEE|EJ|ESP|JBM|JW|BGP|BG|SG|JS|JG|EW|OGW|ODB|OZE|KJW|MIX|OSDn|OSD|SD"
@@ -267,6 +270,8 @@ def describe(rows, latest_asof, stations):
         # finished connecting; before, the conditions or the agreement were dropped.
         if phase in ("refused", "withdrawn"):
             left = {"asof": next_asof(last["asof"]), "reason": status}
+        elif phase == "operational":
+            left = {"asof": next_asof(last["asof"]), "reason": "connected"}
         elif last["agreement"] and last["deadline"] and last["deadline"] <= next_asof(last["asof"]):
             phase, left = "operating", {"asof": next_asof(last["asof"]), "reason": "after_connection_date"}
         else:
@@ -293,6 +298,8 @@ def describe(rows, latest_asof, stations):
             mark(row["status"], row["expired"] or row["terminated"], row["asof"])
     if phase == "operating":
         mark("connected", latest("deadline"), left["asof"] if left else last["asof"])
+    if phase == "operational":
+        mark("connected", None, next((row["asof"] for row in rows if row["status"] == "connected"), last["asof"]))
     if left and left["reason"] == "removed":
         mark("removed", None, left["asof"])
 
@@ -426,19 +433,59 @@ def early_stage_matches(projects, stations):
 
 # ------------------------------------------------------------- history
 
-def history(projects, application_lists):
-    """MW and counts by phase and technology at every month end."""
-    months = sorted(ASOFS)
+def month_of(asof):
+    """A list's date -> index into ASOFS (PSE's month ends).  'Stan na 03.01.2022' is the end of December."""
+    year, month, day = map(int, asof.split("-"))
+    if day <= 5:
+        year, month = (year - 1, 12) if month == 1 else (year, month - 1)
+    keys = [value[:7] for value in ASOFS]
+    return max(0, bisect.bisect_right(keys, f"{year:04d}-{month:02d}") - 1)
+
+
+def runs_of(timeline, left):
+    """Listed rows -> [first month, last month, phase, MW] runs.  A row stands until the next list of its
+    operator (PSE's are monthly; TAURON's and ENEA's quarterly or rarer), the last one until the project left."""
+    phase_index = {key: index for index, (key, _) in enumerate(PHASES)}
+    entries = sorted((month_of(e["asof"]), phase_index[e["phase"]], round(e["mw"] or 0, 1)) for e in timeline)
+    end_last = month_of(left["asof"]) - 1 if left else len(ASOFS) - 1
+    runs = []
+    for i, (month, phase, mw) in enumerate(entries):
+        end = max(month, entries[i + 1][0] - 1 if i + 1 < len(entries) else end_last)
+        if runs and runs[-1][1] >= month:
+            runs[-1][1] = month - 1
+            if runs[-1][1] < runs[-1][0]:
+                runs.pop()
+        if runs and runs[-1][1] == month - 1 and runs[-1][2] == phase and runs[-1][3] == mw:
+            runs[-1][1] = end
+        else:
+            runs.append([month, end, phase, mw])
+    return runs
+
+
+def slim(project):
+    """A distribution project as the page needs it: TAURON's and ENEA's lists are long."""
+    keep = {key: value for key, value in project.items() if value not in (None, "", [], {}) or key in ("lat", "lon", "phase", "runs", "stations")}
+    return keep
+
+
+def history(projects, dso_projects, application_lists):
+    """MW and counts by phase and technology at every month end, PSE's in "cells", each DSO's in "grids"."""
     out = []
-    for asof in months:
+    for index, asof in enumerate(ASOFS):
         cells = collections.defaultdict(lambda: [0, 0.0])
-        for project in projects:
-            phase = project_phase_at(project, asof)
-            if phase:
-                cell = cells[f"{project['technology']}|{phase}"]
-                cell[0] += 1
-                cell[1] += project_mw_at(project, asof) or 0
-        out.append({"asof": asof, "cells": {key: [count, round(mw, 1)] for key, (count, mw) in cells.items()}})
+        grids = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0.0]))
+        for project in projects + dso_projects:
+            for first, last, phase, mw in project["runs"]:
+                if first <= index <= last:
+                    target = cells if project["grid"] == "pse" else grids[project["grid"]]
+                    cell = target[f"{project['technology']}|{PHASES[phase][0]}"]
+                    cell[0] += 1
+                    cell[1] += mw or 0
+                    break
+        entry = {"asof": asof, "cells": {key: [count, round(mw, 1)] for key, (count, mw) in cells.items()}}
+        if grids:
+            entry["grids"] = {grid: {key: [count, round(mw, 1)] for key, (count, mw) in values.items()} for grid, values in grids.items()}
+        out.append(entry)
     for asof, doc, rows in application_lists:
         # The application lists are sometimes dated a day earlier (30 Aug vs 31 Aug): same month, same point.
         entry = next((item for item in out if item["asof"][:7] == asof[:7]), None)
@@ -509,23 +556,20 @@ def main():
     early_stage_matches(projects, stations)
 
     application_lists = [(snapshot["asof"], doc, snapshot["rows"]) for doc in ("weryfikacja", "kompletne") for snapshot in load(doc)]
-    monthly = history(projects, application_lists)
+    for project in projects:
+        project["grid"] = "pse"
+    # The distribution operators' lists, and the registers of running units for every project.
+    dso_projects, dso_sources, dso_report = dso_build.projects(technology, STATUS_PHASE)
+    running_found = running.apply(projects + dso_projects, None)
     refusals, refusals_asof = refusals_by_quarter() or ([], None)
 
     projects.sort(key=lambda item: (item["phase"] in ("withdrawn", "refused"), -(item["mw"] or 0)))
-    phase_index = {key: index for index, (key, _) in enumerate(PHASES)}
-    month_index = {asof: index for index, asof in enumerate(ASOFS)}
-    for number, project in enumerate(projects, start=1):
+    dso_projects.sort(key=lambda item: (item["phase"] in ("withdrawn", "refused"), -(item["mw"] or 0)))
+    for number, project in enumerate(projects + dso_projects, start=1):
         project["id"] = number
         # The map's month slider: [first month, last month, phase, MW] runs, months as indexes into "months".
-        runs = []
-        for entry in project.pop("_timeline"):
-            index, phase, mw = month_index[entry["asof"]], phase_index[entry["phase"]], round(entry["mw"] or 0, 1)
-            if runs and runs[-1][1] == index - 1 and runs[-1][2] == phase and runs[-1][3] == mw:
-                runs[-1][1] = index
-            else:
-                runs.append([index, index, phase, mw])
-        project["runs"] = runs
+        project["runs"] = runs_of(project.pop("_timeline"), project.get("left"))
+    monthly = history(projects, dso_projects, application_lists)
     sources = [{"asof": asof, "doc": doc, "rows": len(rows), "url": source["url"], "published": source.get("published")}
                for asof, doc, rows, source in snapshots]
     used = {name for project in projects for name in project["stations"]}
@@ -538,10 +582,19 @@ def main():
         "sources": sources, "projects": projects,
     }
     json.dump(queue, open(os.path.join(OUT, "queue.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+    # The distribution operators' projects: a file of their own, loaded after PSE's.
+    dso = {"updated": today(), "months": ASOFS,
+           "operators": {key: {"name": value["name"], "asof": max((s["asof"] for s in dso_sources if s["doc"] == key), default=None)}
+                         for key, value in dso_build.OPERATORS.items()},
+           "sources": dso_sources, "report": dso_report, "projects": [slim(project) for project in dso_projects]}
+    json.dump(dso, open(os.path.join(OUT, "queue_dso.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     json.dump({"updated": today(), "monthly": monthly, "refusals": refusals, "refusals_asof": refusals_asof},
               open(os.path.join(OUT, "history.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     counts = collections.Counter(project["phase"] for project in projects)
     print(f"{len(projects)} projects from {len(snapshots)} monthly lists ({ASOFS[0]} to {latest_asof}); phases {dict(counts)}")
+    print(f"Distribution operators: {json.dumps(dso_report, ensure_ascii=False)}")
+    print(f"Running units matched: {len(running_found)} " +
+          json.dumps(collections.Counter(p['running']['source'] for p in running_found), ensure_ascii=False))
     if unknown:
         print("Connection points of listed projects not in etl/stations.json:", unknown)
     return queue

@@ -1,0 +1,802 @@
+{
+"listed_first": [
+"Bełchatów",
+"Chorzów",
+"Dolna Odra",
+"Dychów H1",
+"Dychów H2",
+"Dychów H3",
+"EC Rzeszów",
+"EC Siekierki",
+"EC Stalowa Wola",
+"EC Wrotków",
+"EC Włocławek",
+"EC Łódź-4",
+"EC Żerań 2",
+"ESP Żydowo H1",
+"ESP Żydowo H2",
+"ESP Żydowo H3",
+"FW Banie",
+"FW Biały Bór",
+"FW Dębsk",
+"FW Jasna",
+"FW Margonin",
+"Gorzów 2 BGP (TG10,TG11,TG12)",
+"Gryfino",
+"Jaworzno 2 JWCD",
+"Jaworzno 3",
+"Karolin 2",
+"Katowice",
+"Kozienice 1",
+"Kozienice 2",
+"Kraków Łęg",
+"Nowa Sarzyna BGP (GT1, GT2, ST3)",
+"Opole",
+"Ostrołęka B",
+"PV Jeziórko 1",
+"PV Miłkowice",
+"Porąbka Żar",
+"Połaniec",
+"Połaniec 2-Pasywna",
+"Połaniec B2",
+"Pątnów 1",
+"Pątnów 2",
+"Płock",
+"Rybnik",
+"Siersza",
+"Skawina",
+"Solina H1",
+"Solina H2",
+"Solina H3",
+"Solina H4",
+"Turów",
+"Wrocław",
+"Zielona Góra",
+"Zwartowo",
+"Łagisza",
+"Łaziska 3",
+"Żarnowiec"
+],
+"sampled": [
+"2024-06-15",
+"2024-07-15",
+"2024-08-15",
+"2024-09-15",
+"2024-10-15",
+"2024-11-15",
+"2024-12-15",
+"2025-01-15",
+"2025-02-15",
+"2025-03-15",
+"2025-04-15",
+"2025-05-15",
+"2025-06-15",
+"2025-07-15",
+"2025-08-15",
+"2025-09-15",
+"2025-10-15",
+"2025-11-15",
+"2025-12-15",
+"2026-01-15",
+"2026-02-15",
+"2026-03-15",
+"2026-04-15",
+"2026-05-15",
+"2026-06-15",
+"2026-07-15",
+"2026-08-15",
+"2026-09-15",
+"2026-10-15",
+"2026-11-15"
+],
+"units": {
+"BAN 2-01": {
+"first_output": "2024-06-15",
+"plant": "FW Banie"
+},
+"BAN_2-01": {
+"first_output": "2024-11-15",
+"plant": "FW Banie"
+},
+"BBR_1-01": {
+"first_output": "2024-06-15",
+"plant": "FW Biały Bór"
+},
+"BEL 2-02": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 2-03": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 2-04": {
+"first_output": "2024-10-15",
+"plant": "Bełchatów"
+},
+"BEL 2-05": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-06": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-07": {
+"first_output": "2024-07-15",
+"plant": "Bełchatów"
+},
+"BEL 4-08": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-09": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-10": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-11": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BEL 4-12": {
+"first_output": "2024-07-15",
+"plant": "Bełchatów"
+},
+"BEL 4-14": {
+"first_output": "2024-06-15",
+"plant": "Bełchatów"
+},
+"BPR_4P01": {
+"first_output": "2026-07-15",
+"plant": "MFW Baltic Power"
+},
+"CHZ21-01": {
+"first_output": "2024-06-15",
+"plant": "Chorzów"
+},
+"CHZ21-02": {
+"first_output": "2024-08-15",
+"plant": "Chorzów"
+},
+"CHZ21S01": {
+"first_output": "2025-09-15",
+"plant": "Chorzów"
+},
+"CHZ21S02": {
+"first_output": "2025-07-15",
+"plant": "Chorzów"
+},
+"CZN_1S01": {
+"first_output": "2024-10-15",
+"plant": "EC Czechnica-2"
+},
+"DCHA1-01": {
+"first_output": "2024-06-15",
+"plant": "Dychów H1"
+},
+"DCHA1-03": {
+"first_output": "2024-06-15",
+"plant": "Dychów H3"
+},
+"DEB_1P01": {
+"first_output": "2024-06-15",
+"plant": "FW Dębsk"
+},
+"DOD 2-05": {
+"first_output": "2024-07-15",
+"plant": "Dolna Odra"
+},
+"DOD 4-07": {
+"first_output": "2024-08-15",
+"plant": "Dolna Odra"
+},
+"DOD 4-08": {
+"first_output": "2024-07-15",
+"plant": "Dolna Odra"
+},
+"DOD_2-06": {
+"first_output": "2024-06-15",
+"plant": "Dolna Odra"
+},
+"EGF_4S09": {
+"first_output": "2024-07-15",
+"plant": "Gryfino"
+},
+"EGF_4S10": {
+"first_output": "2024-07-15",
+"plant": "Gryfino"
+},
+"ENS_1S01": {
+"first_output": "2024-07-15",
+"plant": "Nowa Sarzyna BGP (GT1, GT2, ST3)"
+},
+"GOR21S01": {
+"first_output": "2024-06-15",
+"plant": "Gorzów 2 BGP (TG10,TG11,TG12)"
+},
+"JSN_1-01": {
+"first_output": "2024-06-15",
+"plant": "FW Jasna"
+},
+"JW2_4-07": {
+"first_output": "2024-08-15",
+"plant": "Jaworzno 2 JWCD"
+},
+"JW2_4S07": {
+"first_output": "2026-02-15",
+"plant": "Jaworzno 2 JWCD"
+},
+"JW3 1-03": {
+"first_output": "2024-09-15",
+"plant": "Jaworzno 3"
+},
+"JW3 2-01": {
+"first_output": "2024-07-15",
+"plant": "Jaworzno 3"
+},
+"JW3 2-02": {
+"first_output": "2024-06-15",
+"plant": "Jaworzno 3"
+},
+"JW3 2-04": {
+"first_output": "2024-06-15",
+"plant": "Jaworzno 3"
+},
+"JW3 2-05": {
+"first_output": "2025-01-15",
+"plant": "Jaworzno 3"
+},
+"JW3 2-06": {
+"first_output": "2024-06-15",
+"plant": "Jaworzno 3"
+},
+"JW3_1S03": {
+"first_output": "2026-07-15",
+"plant": "Jaworzno 3"
+},
+"JW3_2S01": {
+"first_output": "2026-04-15",
+"plant": "Jaworzno 3"
+},
+"JW3_2S02": {
+"first_output": "2026-06-15",
+"plant": "Jaworzno 3"
+},
+"JW3_2S04": {
+"first_output": "2026-03-15",
+"plant": "Jaworzno 3"
+},
+"JW3_2S05": {
+"first_output": "2026-02-15",
+"plant": "Jaworzno 3"
+},
+"JW3_2S06": {
+"first_output": "2026-08-15",
+"plant": "Jaworzno 3"
+},
+"KAR 1-03": {
+"first_output": "2024-07-15",
+"plant": "Karolin 2"
+},
+"KAR_1-02": {
+"first_output": "2024-10-15",
+"plant": "Karolin 2"
+},
+"KAR_1S02": {
+"first_output": "2026-01-15",
+"plant": "Karolin 2"
+},
+"KAR_1S03": {
+"first_output": "2026-01-15",
+"plant": "Karolin 2"
+},
+"KAT 1-01": {
+"first_output": "2024-10-15",
+"plant": "Katowice"
+},
+"KAT_1S01": {
+"first_output": "2026-03-15",
+"plant": "Katowice"
+},
+"KLE 1-01": {
+"first_output": "2024-11-15",
+"plant": "Kraków Łęg"
+},
+"KLE 1-02": {
+"first_output": "2024-06-15",
+"plant": "Kraków Łęg"
+},
+"KLE 1-03": {
+"first_output": "2024-10-15",
+"plant": "Kraków Łęg"
+},
+"KLE 1-04": {
+"first_output": "2024-12-15",
+"plant": "Kraków Łęg"
+},
+"KOZ11-02": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 1"
+},
+"KOZ11-06": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 1"
+},
+"KOZ11S02": {
+"first_output": "2025-05-15",
+"plant": "Kozienice 1"
+},
+"KOZ11S06": {
+"first_output": "2025-05-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-01": {
+"first_output": "2024-08-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-03": {
+"first_output": "2024-09-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-04": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-05": {
+"first_output": "2025-03-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-07": {
+"first_output": "2024-07-15",
+"plant": "Kozienice 1"
+},
+"KOZ12-08": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S01": {
+"first_output": "2025-07-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S03": {
+"first_output": "2025-08-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S04": {
+"first_output": "2025-08-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S05": {
+"first_output": "2025-05-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S07": {
+"first_output": "2025-05-15",
+"plant": "Kozienice 1"
+},
+"KOZ12S08": {
+"first_output": "2025-06-15",
+"plant": "Kozienice 1"
+},
+"KOZ24-09": {
+"first_output": "2024-08-15",
+"plant": "Kozienice 2"
+},
+"KOZ24-10": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 2"
+},
+"KOZ24-11": {
+"first_output": "2024-06-15",
+"plant": "Kozienice 2"
+},
+"KOZ24S09": {
+"first_output": "2025-07-15",
+"plant": "Kozienice 2"
+},
+"KOZ24S10": {
+"first_output": "2025-06-15",
+"plant": "Kozienice 2"
+},
+"KOZ24S11": {
+"first_output": "2025-05-15",
+"plant": "Kozienice 2"
+},
+"LD4 1-03": {
+"first_output": "2024-06-15",
+"plant": "EC Łódź-4"
+},
+"LEC 1-01": {
+"first_output": "2024-11-15",
+"plant": "EC Wrotków"
+},
+"LEC_1-01": {
+"first_output": "2026-04-15",
+"plant": "EC Wrotków"
+},
+"LEC_1S01": {
+"first_output": "2026-10-15",
+"plant": "EC Wrotków"
+},
+"LGA 4-10": {
+"first_output": "2024-07-15",
+"plant": "Łagisza"
+},
+"LGA_4S10": {
+"first_output": "2026-03-15",
+"plant": "Łagisza"
+},
+"LZA31-09": {
+"first_output": "2024-06-15",
+"plant": "Łaziska 3"
+},
+"LZA31-10": {
+"first_output": "2024-10-15",
+"plant": "Łaziska 3"
+},
+"LZA31S09": {
+"first_output": "2026-04-15",
+"plant": "Łaziska 3"
+},
+"LZA31S10": {
+"first_output": "2026-04-15",
+"plant": "Łaziska 3"
+},
+"LZA32-11": {
+"first_output": "2024-07-15",
+"plant": "Łaziska 3"
+},
+"LZA32-12": {
+"first_output": "2024-07-15",
+"plant": "Łaziska 3"
+},
+"LZA32S11": {
+"first_output": "2026-02-15",
+"plant": "Łaziska 3"
+},
+"LZA32S12": {
+"first_output": "2026-05-15",
+"plant": "Łaziska 3"
+},
+"MAR 1-01": {
+"first_output": "2024-06-15",
+"plant": "FW Margonin"
+},
+"OPL 1-01": {
+"first_output": "2024-07-15",
+"plant": "Opole"
+},
+"OPL 1-02": {
+"first_output": "2024-06-15",
+"plant": "Opole"
+},
+"OPL 4-03": {
+"first_output": "2024-06-15",
+"plant": "Opole"
+},
+"OPL 4-04": {
+"first_output": "2024-07-15",
+"plant": "Opole"
+},
+"OPL 4-05": {
+"first_output": "2024-06-15",
+"plant": "Opole"
+},
+"OPL 4-06": {
+"first_output": "2024-06-15",
+"plant": "Opole"
+},
+"OSB 1-03": {
+"first_output": "2025-04-15",
+"plant": "Ostrołęka B"
+},
+"OSB 2-01": {
+"first_output": "2024-07-15",
+"plant": "Ostrołęka B"
+},
+"OSB 2-02": {
+"first_output": "2024-06-15",
+"plant": "Ostrołęka B"
+},
+"OSB_1S03": {
+"first_output": "2025-07-15",
+"plant": "Ostrołęka B"
+},
+"OSB_2S01": {
+"first_output": "2025-09-15",
+"plant": "Ostrołęka B"
+},
+"OSB_2S02": {
+"first_output": "2025-05-15",
+"plant": "Ostrołęka B"
+},
+"PAT11-01": {
+"first_output": "2024-10-15",
+"plant": "Pątnów 1"
+},
+"PAT12-02": {
+"first_output": "2024-08-15",
+"plant": "Pątnów 1"
+},
+"PAT12-05": {
+"first_output": "2024-09-15",
+"plant": "Pątnów 1"
+},
+"PAT24-09": {
+"first_output": "2024-06-15",
+"plant": "Pątnów 2"
+},
+"PAT24S09": {
+"first_output": "2025-10-15",
+"plant": "Pątnów 2"
+},
+"PLO 4-01": {
+"first_output": "2024-06-15",
+"plant": "Płock"
+},
+"PLO_4S01": {
+"first_output": "2025-06-15",
+"plant": "Płock"
+},
+"POL 2-02": {
+"first_output": "2024-06-15",
+"plant": "Połaniec B2"
+},
+"POL 2-03": {
+"first_output": "2024-06-15",
+"plant": "Połaniec"
+},
+"POL 2-04": {
+"first_output": "2024-06-15",
+"plant": "Połaniec"
+},
+"POL 4-05": {
+"first_output": "2024-07-15",
+"plant": "Połaniec"
+},
+"POL 4-06": {
+"first_output": "2024-06-15",
+"plant": "Połaniec"
+},
+"POL 4-07": {
+"first_output": "2024-06-15",
+"plant": "Połaniec"
+},
+"POL24-09": {
+"first_output": "2024-06-15",
+"plant": "Połaniec 2-Pasywna"
+},
+"POL24S09": {
+"first_output": "2025-01-15",
+"plant": "Połaniec 2-Pasywna"
+},
+"POL_2-02": {
+"first_output": "2024-06-15",
+"plant": "Połaniec"
+},
+"POL_2S02": {
+"first_output": "2025-01-15",
+"plant": "Połaniec"
+},
+"POL_2S03": {
+"first_output": "2025-01-15",
+"plant": "Połaniec"
+},
+"POL_2S04": {
+"first_output": "2025-02-15",
+"plant": "Połaniec"
+},
+"POL_4S05": {
+"first_output": "2025-01-15",
+"plant": "Połaniec"
+},
+"POL_4S06": {
+"first_output": "2025-01-15",
+"plant": "Połaniec"
+},
+"POL_4S07": {
+"first_output": "2025-03-15",
+"plant": "Połaniec"
+},
+"PTW_1-01": {
+"first_output": "2024-08-15",
+"plant": "FW Potęgowo Wschód (Bięcino)"
+},
+"PTZ_1-01": {
+"first_output": "2024-08-15",
+"plant": "FW Potęgowo Zachód (Sulechówko)"
+},
+"PZR 2-01": {
+"first_output": "2024-12-15",
+"plant": "Porąbka Żar"
+},
+"PZR 2-02": {
+"first_output": "2025-01-15",
+"plant": "Porąbka Żar"
+},
+"PZR 2-03": {
+"first_output": "2024-12-15",
+"plant": "Porąbka Żar"
+},
+"REC 1-01": {
+"first_output": "2024-12-15",
+"plant": "EC Rzeszów"
+},
+"RYB 2-05": {
+"first_output": "2024-07-15",
+"plant": "Rybnik"
+},
+"RYB 2-06": {
+"first_output": "2024-06-15",
+"plant": "Rybnik"
+},
+"RYB 4-07": {
+"first_output": "2024-06-15",
+"plant": "Rybnik"
+},
+"RYB 4-08": {
+"first_output": "2024-07-15",
+"plant": "Rybnik"
+},
+"SIA 1-01": {
+"first_output": "2024-07-15",
+"plant": "Siersza"
+},
+"SIA 1-02": {
+"first_output": "2024-07-15",
+"plant": "Siersza"
+},
+"SIA_1S01": {
+"first_output": "2026-02-15",
+"plant": "Siersza"
+},
+"SIA_1S02": {
+"first_output": "2026-02-15",
+"plant": "Siersza"
+},
+"SNA11S03": {
+"first_output": "2025-07-15",
+"plant": "Skawina"
+},
+"SNA22-05": {
+"first_output": "2024-06-15",
+"plant": "Skawina"
+},
+"SNA22-06": {
+"first_output": "2024-07-15",
+"plant": "Skawina"
+},
+"SNA22S05": {
+"first_output": "2025-10-15",
+"plant": "Skawina"
+},
+"SNA22S06": {
+"first_output": "2025-12-15",
+"plant": "Skawina"
+},
+"SOL 1-01": {
+"first_output": "2024-06-15",
+"plant": "Solina H1"
+},
+"SOL 1-02": {
+"first_output": "2024-06-15",
+"plant": "Solina H2"
+},
+"STW42-12": {
+"first_output": "2024-06-15",
+"plant": "EC Stalowa Wola"
+},
+"STW42S12": {
+"first_output": "2025-10-15",
+"plant": "EC Stalowa Wola"
+},
+"TUR 1-01": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 2-02": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 2-03": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 2-04": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 2-05": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 2-06": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"TUR 4-11": {
+"first_output": "2024-06-15",
+"plant": "Turów"
+},
+"VMI_1P01": {
+"first_output": "2024-06-15",
+"plant": "PV Miłkowice"
+},
+"WLC_2-01": {
+"first_output": "2024-06-15",
+"plant": "EC Włocławek"
+},
+"WLC_2S01": {
+"first_output": "2025-07-15",
+"plant": "EC Włocławek"
+},
+"WROB1-02": {
+"first_output": "2024-12-15",
+"plant": "Wrocław"
+},
+"WROB1-03": {
+"first_output": "2024-06-15",
+"plant": "Wrocław"
+},
+"WSIB1-07": {
+"first_output": "2024-06-15",
+"plant": "EC Siekierki"
+},
+"WSIB1-08": {
+"first_output": "2024-06-15",
+"plant": "EC Siekierki"
+},
+"WSIB1-09": {
+"first_output": "2024-12-15",
+"plant": "EC Siekierki"
+},
+"WSIB1-10": {
+"first_output": "2024-07-15",
+"plant": "EC Siekierki"
+},
+"WZE22-20": {
+"first_output": "2024-08-15",
+"plant": "EC Żerań 2"
+},
+"WZE22S20": {
+"first_output": "2025-11-15",
+"plant": "EC Żerań 2"
+},
+"ZGR22S01": {
+"first_output": "2024-06-15",
+"plant": "Zielona Góra"
+},
+"ZRN_4-01": {
+"first_output": "2024-06-15",
+"plant": "Żarnowiec"
+},
+"ZRN_4-02": {
+"first_output": "2024-06-15",
+"plant": "Żarnowiec"
+},
+"ZRN_4-03": {
+"first_output": "2024-06-15",
+"plant": "Żarnowiec"
+},
+"ZRN_4-04": {
+"first_output": "2024-06-15",
+"plant": "Żarnowiec"
+},
+"ZWA_1P03": {
+"first_output": "2024-06-15",
+"plant": "Zwartowo"
+},
+"ZYD_1-02": {
+"first_output": "2024-06-15",
+"plant": "ESP Żydowo H2"
+},
+"ZYD_1-03": {
+"first_output": "2024-06-15",
+"plant": "ESP Żydowo H3"
+}
+}
+}

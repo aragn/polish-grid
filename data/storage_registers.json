@@ -1,0 +1,616 @@
+{
+"registers": [
+{
+"operator": "tauron",
+"url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/rejestr-magazynow-energii/rejestr-magazynow-energii.ashx",
+"published": "Thu, 15 Oct 2026 08:47:20 GMT",
+"rows": [
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "PGE Energia Odnawialna S.A.",
+"mw": 0.55,
+"mwh": 0.75,
+"place": "BBW50792 Międzybrodzie Żywieckie ST Góra Żar pole 6",
+"address": [
+"Górska",
+"Międzybrodzie Żywieckie",
+"Porąbka",
+"Bielski",
+"Śląskie"
+],
+"started": "2021-06-01",
+"registered": "2021-07-15"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON Ekoenergia Sp. z o.o.",
+"mw": 0.5,
+"mwh": 0.5,
+"place": "Elektrownia Wodna Lubachów",
+"address": [
+"Lubachów",
+"Świdnica",
+"Świdnicki",
+"Dolnośląskie"
+],
+"started": "2021-03-31",
+"registered": "2022-05-27"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON Inwestycje Sp. z o.o.",
+"mw": 0.2,
+"mwh": 0.25,
+"place": "Pole nr 9 rozdzielnicy nN stacji nr B406",
+"address": [
+"Kamienna",
+"Bytom",
+"Bytom",
+"Bytom",
+"Śląskie"
+],
+"started": "2022-05-09",
+"registered": "2022-05-27"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON Polska Energia S.A.",
+"mw": 0.15,
+"mwh": 0.15,
+"place": "Złącze kablowe - 1PP",
+"address": [
+"Wojska Polskiego",
+"Jaworzno",
+"Jaworzno",
+"Jaworzno",
+"Śląskie"
+],
+"started": "2023-10-20",
+"registered": "2023-10-18"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Solar Technics Sp. z o.o.",
+"mw": 2.032,
+"mwh": 4.064,
+"place": "Linia napowietrzna SN 20kV LGL259",
+"address": [
+"Piotrówek",
+"Kunice",
+"Legnica",
+"Dolnośląskie"
+],
+"started": "2025-08-19",
+"registered": "2025-10-27"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON Ekoenergia Sp. z o.o.",
+"mw": 4.41,
+"mwh": 17.556,
+"place": "ST krp33900 Rybitwy",
+"address": [
+"Łutnia",
+"Kraków",
+"Kraków",
+"Kraków",
+"Małopolskie"
+],
+"started": "2025-11-07",
+"registered": "2025-11-13"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON Ekoenergia Sp. z o.o.",
+"mw": 4.41,
+"mwh": 17.556,
+"place": "ST krp3695 Dąbie",
+"address": [
+"Stoczniowców",
+"Kraków",
+"Kraków",
+"Kraków",
+"Małopolskie"
+],
+"started": "2025-11-25",
+"registered": "2025-11-27"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TRANSGÓR S.A.",
+"mw": 0.3,
+"mwh": 1.398,
+"place": "ST nr BDT6TRNG Transgór",
+"address": [
+"Piłsudzkiego",
+"Trzebinia",
+"Trzebinia",
+"Trzebinia",
+"Małopolskie"
+],
+"started": "2026-03-02",
+"registered": "2026-05-11"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "NEPTUNUS MANUFACTURING Sp. z o.o",
+"mw": 0.1,
+"mwh": 0.224,
+"place": "kontener ul Wołowska 2",
+"address": [
+"Wołowska",
+"Wrocław",
+"Wrocław",
+"Wrocław",
+"Dolnośląskie"
+],
+"started": "2026-05-07",
+"registered": "2026-05-25"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "ME Stary Grodków Sp. z o.o.",
+"mw": 60.192,
+"mwh": 120.36,
+"place": "GPZ Grodków",
+"address": [
+"Stary Grodków",
+"Stary Grodków",
+"Skoroszyce",
+"Nyski",
+"Opolskie"
+],
+"started": "2026-05-13",
+"registered": "08.06.206"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "TAURON BME9 Sp. z o.o.",
+"mw": 7.5,
+"mwh": 30.096,
+"place": "Zaciski prądowe na wyjściu kabla z pola 20 rozdzielni 15kV SE 110/15 GPZ Kuźnia Raciborska",
+"address": [
+"Staszica",
+"Kuźnia Raciborska",
+"Kuźnia Raciborska",
+"Raciborski",
+"Śląskie"
+],
+"started": "2026-06-26",
+"registered": "2026-06-11"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "ARS Handlowo-Wytwórcza S.C. Włodzimierz Piotrowski, Anna Piotrowska",
+"mw": 0.096,
+"mwh": 0.193,
+"place": "Falownik hybrydowy",
+"address": [
+"Jurajska",
+"Modlnica",
+"Wielka Wieś",
+"Kraków",
+"Małopolskie"
+],
+"started": "2026-06-27",
+"registered": "2026-06-09"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Miejskie Centrum Kultury w Kamieńcu Ząbkowickim",
+"mw": 0.2,
+"mwh": 0.129,
+"place": "zaciski prądowe głowicy kablowej w polu nr 21 rozdzielnicy 20 kV w stacji 110/20 kV R-Kamieniec Ząbkowicki, w kierunku stacji Przyłączanego Podmiotu (głowica kablowa własności Wytwórcy)",
+"address": [
+"Kamieniec Ząbkowicki",
+"Kamieniec Ząbkowicki",
+"Ząbkowicki",
+"Dolnośląskie"
+],
+"started": "2026-08-18",
+"registered": "2026-06-19"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "FF Park PV sp. z o.o.",
+"mw": 10.0,
+"mwh": 20.064,
+"place": "Pole liniowe 110 kV nr 9 w rozdzielni 110 kV w stacji elektroenergetycznej 110/20/6 kV Kalinówka",
+"address": [
+"Proszówek",
+"Grębocice",
+"Polkowice",
+"Dolnośląskie"
+],
+"started": "2026-07-09",
+"registered": "2026-06-26"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "ZPUE S.A.",
+"mw": 0.1,
+"mwh": 0.323,
+"place": "złącze ZPUE Pszczyna",
+"address": [
+"Górnośląska",
+"Pszczyna",
+"Pszczyna",
+"Pszczyński",
+"Śląskie"
+],
+"started": "2026-07-23",
+"registered": "2026-06-26"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Regionalne Centrum Gospodarki Wodno-Ściekowej S.A.",
+"mw": 0.324,
+"mwh": 0.645,
+"place": "Zaciski prądowe na łączniku ŁGLMML1119 na słupie GLM6951 w kierunku instalacji Odbiorcy",
+"address": [
+"Żorska",
+"Tychy",
+"Tychy",
+"Tychy",
+"Śląskie"
+],
+"started": "2026-07-31",
+"registered": "2026-07-10"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "ŚLĄSKIE CENTRUM LOGISTYKI S.A.",
+"mw": 1.0,
+"mwh": 2.12,
+"place": "GŁOWICE KABLA ZASILAJĄCEGO 6KV W STACJI NR G190",
+"address": [
+"Portowa",
+"Gliwice",
+"Gliwice",
+"Gliwicki",
+"Śląskie"
+],
+"started": "2026-09-15",
+"registered": "2026-07-10"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Elektrownia PV 130 Sp. z o.o.",
+"mw": 5.04,
+"mwh": 10.03,
+"place": "Zaciski prądowe w miejscu przyłączenia linii kablowej 15 kV zasilającej stację rozdzielczo-pomiarową Wnioskodawcy nr CZZ35264 w złączu kablowym ZK-SN nr CZZ30612",
+"address": [
+"Herby",
+"Herby",
+"Lubliniecki",
+"Śląskie"
+],
+"started": "2026-07-28",
+"registered": "2026-07-10"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "BESS CM2 SP. Z O.O.",
+"mw": 9.823,
+"mwh": 19.6,
+"place": "GPZ ARGENTYNA, rozdzielnia 15kV, pole nr 14",
+"address": [
+"Polska",
+"Zawiercie",
+"Zawiercie",
+"Zawierciański",
+"Śląskie"
+],
+"started": null,
+"registered": "2026-09-03"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Renegia 4 Sp. z o.o.",
+"mw": 2.037,
+"mwh": 4.074,
+"place": "ZKSN nr OPC20985",
+"address": [
+"Północna",
+"Opole",
+"Opole",
+"Opole",
+"Opolskie"
+],
+"started": "2026-09-24",
+"registered": "2026-09-09"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "SAMODZIELNY PUBLICZNY ZESPÓŁ OPIEKI ZDROWOTNEJ W MYSZKOWIE",
+"mw": 0.063,
+"mwh": 0.123,
+"place": "Zaciski izolatorów przepustowych po stronie nN transformatora 15/0,4 kV TR-3 zainstalowanego w stacji transformatorowej CZW20009A ?Myszków Szpital ST-2?",
+"address": [
+"Aleja Wolności",
+"Myszków",
+"Myszków",
+"Myszkowski",
+"Śląskie"
+],
+"started": null,
+"registered": "2026-09-04"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "SAMODZIELNY PUBLICZNY ZESPÓŁ OPIEKI ZDROWOTNEJ W MYSZKOWIE",
+"mw": 0.185,
+"mwh": 0.368,
+"place": "Zaciski izolatorów przepustowych po stronie nN transformatora 15/0,4 kV TR-3 zainstalowanego w stacji transformatorowej CZW20009A ?Myszków Szpital ST-2?",
+"address": [
+"Aleja Wolności",
+"Myszków",
+"Myszków",
+"Myszkowski",
+"Śląskie"
+],
+"started": null,
+"registered": "2026-09-04"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Gmina Lewin Kłodzki",
+"mw": 0.125,
+"mwh": 0.233,
+"place": "Złącze kablowe podłączone do stacji transformatorowej WBK 10280 MDE: 0000094341331",
+"address": [
+"Lewin Kłodzki",
+"Lewin Kłodzki",
+"Kłodzki",
+"Dolnośląskie"
+],
+"started": null,
+"registered": "2026-09-28"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "Zakład Lecznictwa Ambulatoryjnego w Sosnowcu",
+"mw": 0.083,
+"mwh": 0.184,
+"place": "ZK nN BDJ122705",
+"address": [
+"Wawel",
+"Sosnowiec",
+"Sosnowiec",
+"Sosnowiec",
+"Śląskie"
+],
+"started": null,
+"registered": "2026-09-28"
+},
+{
+"operator": "TAURON Dystrybucja S.A.",
+"owner": "JAK SZKŁO ŻOGAŁA",
+"mw": 1.001,
+"mwh": 2.002,
+"place": "UL.BRZOZOWA 62 43-230 GOCZAŁKOWICE ZDRÓJ",
+"address": [
+"Brzozowa",
+"Goczałkowice-Zdrój",
+"Goczałkowice-Zdrój",
+"Pszczyński",
+"Śląskie"
+],
+"started": null,
+"registered": "2026-09-15"
+}
+]
+},
+{
+"operator": "enea",
+"url": "https://www.operator.enea.pl/media/5298/rejestr-magazynow-energiieop09112026xlsx.xlsx",
+"published": null,
+"rows": [
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "Instytut Chemii Bioorganicznej PAN",
+"mw": 0.09,
+"mwh": 0.533,
+"place": "instalacja zalicznikowa",
+"address": [
+"Lotnicza",
+"Kąkolewo",
+"Grodzisk Wielkopolski",
+"grodzisk",
+"wielkopolskie"
+],
+"started": "2024-07-18",
+"registered": "2024-07-23"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "NGEN 1 sp. z o.o.",
+"mw": 9.636,
+"mwh": 19.272,
+"place": "ZKP-SN Łozienica 6 nr 782892 GPZ Łozienica",
+"address": [
+"Łozienica",
+"Goleniów",
+"goleniewski",
+"zachodniopomorskie"
+],
+"started": "2026-02-10",
+"registered": "2026-03-24"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "NOVOL SPÓŁKA Z O.O.",
+"mw": 0.1,
+"mwh": 0.233,
+"place": "instalacja zalicznikowa",
+"address": [
+"Żabikowska",
+"Poznań",
+"Komorniki",
+"poznański",
+"wielkopolskie"
+],
+"started": "2001-05-15",
+"registered": "2026-06-05"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "SOBEX SP. Z O.O.",
+"mw": 0.216,
+"mwh": 0.86,
+"place": "instalacja zalicznikowa",
+"address": [
+"Poznańska",
+"Trzebicz",
+"Drezdenko",
+"strzelecko-drezdenecki",
+"lubuskie"
+],
+"started": "2007-09-04",
+"registered": "2026-07-09"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "KOLEJE WIELKOPOLSKIE SP. Z O.O.",
+"mw": 0.108,
+"mwh": 0.215,
+"place": "instalacja zalicznikowa",
+"address": [
+"Leśna",
+"Wągrowiec",
+"Wągrowiec",
+"wągrowiecki",
+"wielkopolskie"
+],
+"started": "2010-02-22",
+"registered": "2026-07-09"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "PGE ENERGIA ODNAWIALNA S.A.",
+"mw": 87.975,
+"mwh": 212.0,
+"place": "rozdzielnia 110 kV",
+"address": [
+"Dychów",
+"Bobrowice",
+"krośnieński",
+"lubuskie"
+],
+"started": "2001-09-21",
+"registered": "2026-07-22"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "Miejskie Zakłady Komunikacyjne sp. z o. o.",
+"mw": 1.2,
+"mwh": 4.18,
+"place": "instalacja zalicznikowa",
+"address": [
+"Inowrocławska",
+"Bydgoszcze",
+"Bydgoszcz",
+"bydgoski",
+"kujawsko-pomorskie"
+],
+"started": "2002-05-10",
+"registered": "2026-07-30"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "WB Energy sp. z o.o.",
+"mw": 3.084,
+"mwh": null,
+"place": "Rozdzielnia SN-15 kV w stacji transformatorowej 110 kV/SN Bytnica",
+"address": [
+"Struga",
+"Bytnica",
+"krośnieński",
+"lubuskie"
+],
+"started": "2026-08-01",
+"registered": "2026-08-13"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "NOVOL SPÓŁKA Z O.O.",
+"mw": 0.1,
+"mwh": 0.233,
+"place": "instalacja zalicznikowa",
+"address": [
+"Poznańska",
+"Strykowo",
+"Strykowo",
+"poznański",
+"wielkopolskie"
+],
+"started": "2001-05-15",
+"registered": "2026-09-11"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "ELEKTROWNIA PV 99 SP. Z O. O.",
+"mw": 5.011,
+"mwh": 5.015,
+"place": "instalacja zalicznikowa",
+"address": [
+"Gutowo Wielkie",
+"Września",
+"wrzesiński",
+"wielkopolskie"
+],
+"started": "2022-05-23",
+"registered": "2026-09-17"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "KLIPPAN SAFETY POLSKA SP. Z O.O.",
+"mw": 0.108,
+"mwh": 0.107,
+"place": "instalacja zalicznikowa",
+"address": [
+"Metalowa",
+"Stargard",
+"Stargard",
+"stargardzki",
+"zachodniopomorskie"
+],
+"started": null,
+"registered": "2026-10-21"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "\"METGALEX\" JANIAK SPÓŁKA JAWNA",
+"mw": 0.138,
+"mwh": 0.258,
+"place": "instalacja zalicznikowa",
+"address": [
+"Akacjowa",
+"Września",
+"Września",
+"wrzesiński",
+"wielkopolskie"
+],
+"started": "2026-10-01",
+"registered": "2026-11-04"
+},
+{
+"operator": "ENEA Operator Sp. z o.o.",
+"owner": "FIRMA HANDLOWA \"WINDMILL\" RADOSŁAW GÓRKA",
+"mw": 2.508,
+"mwh": 5.016,
+"place": "instalacja zalicznikowa",
+"address": [
+"Graniczna",
+"Jeziorki",
+"Kaczory",
+"pilski",
+"wielkopolskie"
+],
+"started": "2008-04-18",
+"registered": "2026-11-09"
+}
+]
+}
+]
+}

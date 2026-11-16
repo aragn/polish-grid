@@ -17,7 +17,7 @@
       --line-400:#4a5260; --line-220:#323843; --station:#7d8691;
       --t-solar:#c98500; --t-wind:#199e70; --t-offshore:#3987e5; --t-storage:#9085e9; --t-hybrid:#d55181;
       --t-gas:#d95926; --t-other:#8c949e; --t-distribution:#008300; --t-demand:#e66767;
-      --p-1:#1c5cab; --p-2:#2a78d6; --p-3:#5598e7; --p-4:#86b6ef; --p-5:#b7d3f6; --p-exit:#5f656d;
+      --p-1:#1c5cab; --p-2:#2a78d6; --p-3:#5598e7; --p-4:#86b6ef; --p-5:#b7d3f6; --p-exit:#5f656d; --op:#3fb950;
       --done:#5ecb8a; --current:#5b9cff; --exit:#e66767;
       --shadow:rgba(0,0,0,.55);
     }
@@ -32,7 +32,7 @@
         --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
         --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
         --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
-        --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6;
+        --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37;
         --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
       }
     }
@@ -46,7 +46,7 @@
       --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
       --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
       --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
-      --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6;
+      --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37;
       --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
     }
 
@@ -64,7 +64,7 @@
     main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
     .intro h1 { font-size:22px; margin:0 0 4px; font-weight:650; }
     .intro p { margin:0; color:var(--muted); line-height:1.5; max-width:980px; }
-    .tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; margin:16px 0; }
+    .tiles { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px; margin:16px 0; }
     .tile { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:12px 14px; }
     .tile .k { color:var(--muted); font-size:12px; }
     .tile .v { font-size:22px; font-weight:650; margin-top:4px; }
@@ -75,7 +75,7 @@
     .panel-sub { color:var(--muted); font-size:12.5px; }
     .note { color:var(--muted); font-size:12px; line-height:1.5; padding:0 16px 14px; }
 
-    .map-layout { display:grid; grid-template-columns:minmax(0, 1fr) 470px; gap:0; border-top:1px solid var(--border); }
+    .map-layout { display:grid; grid-template-columns:minmax(0, 1fr) 640px; gap:0; border-top:1px solid var(--border); }
     .map-wrap { position:relative; min-height:640px; border-right:1px solid var(--border); }
     #map { position:absolute; inset:0; }
     .map-back { position:absolute; top:12px; left:12px; display:none; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; z-index:2; }
@@ -93,7 +93,7 @@
     .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
     .matrix-wrap { overflow-x:auto; }
     table.matrix { border-collapse:separate; border-spacing:2px; width:100%; font-size:12px; }
-    .matrix th { font-weight:600; color:var(--muted); font-size:11px; padding:4px 3px; cursor:pointer; user-select:none; text-align:center; vertical-align:bottom; line-height:1.2; }
+    .matrix th { font-weight:600; color:var(--muted); font-size:11px; padding:4px 2px; cursor:pointer; user-select:none; text-align:center; vertical-align:bottom; line-height:1.2; }
     .matrix th:first-child { text-align:left; cursor:default; }
     .matrix td { padding:5px 4px; border-radius:5px; cursor:pointer; user-select:none; text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .matrix td.tech { text-align:left; color:var(--text); background:none; white-space:nowrap; }
@@ -242,6 +242,15 @@
         </div>
         <aside class="map-side">
           <div class="box">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <h3 style="margin:0">Grid</h3>
+              <div class="seg" id="grids" style="margin-left:auto">
+                <button type="button" data-grid="pse" class="on" title="PSE, the transmission system operator (220-400 kV stations)">PSE</button><button type="button" data-grid="tauron" class="on" title="TAURON Dystrybucja, the distribution operator of southern Poland">TAURON</button><button type="button" data-grid="enea" class="on" title="ENEA Operator, the distribution operator of western Poland">ENEA</button>
+              </div>
+            </div>
+            <div class="count" id="grid-note"></div>
+          </div>
+          <div class="box">
             <h3>Month</h3>
             <div class="month"><button class="play" type="button" id="play" aria-label="Play the months">▶</button>
               <input type="range" id="month" min="0" max="0" value="0" aria-label="Month of PSE's list"><b id="month-label"></b></div>
@@ -256,6 +265,7 @@
             <div class="presets" id="presets">
               <button type="button" data-preset="active">Active queue</button>
               <button type="button" data-preset="past">Past connection date</button>
+              <button type="button" data-preset="operational">Operational</button>
               <button type="button" data-preset="exited">Refused, withdrawn, dropped</button>
               <button type="button" data-preset="all">Everything</button>
             </div>
@@ -383,14 +393,15 @@
     { key: "study", short: "Under study", label: "Under study", fade: 0.45, help: "Complete; PSE's technical and economic analysis" },
     { key: "conditions", short: "Conditions", label: "Conditions issued", fade: 0.22, help: "Connection conditions issued, no agreement yet" },
     { key: "agreement", short: "Agreement", label: "Agreement signed", fade: 0, help: "Connection agreement in force, connection date ahead" },
-    { key: "operating", short: "Past date", label: "Past connection date", fade: 0, ring: true, help: "Agreement whose connection date has passed: most such plants are running, but PSE does not confirm it" },
+    { key: "operating", short: "Past date", label: "Past connection date", fade: 0, ring: true, help: "Agreement whose connection date has passed: most such plants are running, but the list does not confirm it" },
+    { key: "operational", short: "Operational", label: "Operational", fade: 0, op: true, help: "Confirmed running: the operator lists it as connected or gives the date energy delivery started, or a register of running units has it (the DSOs' storage registers, PSE's metered unit output)" },
     { key: "refused", short: "Refused", label: "Refused", exit: true, help: "PSE refused conditions (no technical/economic conditions)" },
     { key: "withdrawn", short: "Withdrawn", label: "Withdrawn or lapsed", exit: true, help: "Application withdrawn, conditions expired, agreement ended, or dropped from the list" }
   ];
   const PHASE = Object.fromEntries(PHASES.map(phase => [phase.key, phase]));
   const STATUS_LABEL = {
     verification: "Awaiting verification", incomplete: "Incomplete application", study: "Under study",
-    conditions: "Conditions issued", agreement: "Agreement in force", connected: "Connected",
+    conditions: "Conditions issued", agreement: "Agreement in force", connected: "Connected (obiekt przyłączony)",
     refused: "Refused", withdrawn: "Application withdrawn", expired: "Conditions expired", terminated: "Agreement ended"
   };
   const TYPE_LABEL = {
@@ -404,8 +415,12 @@
 
   const state = {
     month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
-    search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true
+    search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true,
+    grids: new Set(["pse", "tauron", "enea"]), dsoLoading: true
   };
+  const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA" };
+  const gridOf = project => project.grid || "pse";
+  const gridOn = project => state.grids.has(gridOf(project));
   let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart;
   const monthIndex = {};
 
@@ -455,7 +470,7 @@
   const hiddenCell = (tech, phase) => state.hidden.has(tech) || state.hidden.has(phase) || state.hidden.has(`${tech}|${phase}`);
   function matchesSearch(project) {
     if (!state.search) return true;
-    const text = [project.name, project.applicant, project.station, project.stations.join(" "), project.region, project.type, project.pse_id, techRow(project).label].join(" ").toLowerCase();
+    const text = [project.name, project.applicant, project.station, project.stations.join(" "), project.region, project.type, project.pse_id, techRow(project).label, GRID_SHORT[gridOf(project)]].join(" ").toLowerCase();
     return state.search.toLowerCase().split(/\s+/).every(word => text.includes(word));
   }
   /* Everything the filters let through this month: [{project, phase, mw}]. */
@@ -463,7 +478,7 @@
     const out = [];
     for (const project of queue.projects) {
       const now = at(project, state.month);
-      if (!now) continue;
+      if (!now || !gridOn(project)) continue;
       if (hiddenCell(techRow(project).key, now.phase)) continue;
       if (state.region && project.region !== state.region) continue;
       if (!matchesSearch(project)) continue;
@@ -483,6 +498,40 @@
     placeProjects();
     setup();
     renderAll(true);
+    loadDso(get);
+  }
+
+  /* TAURON's and ENEA's lists: a larger file, drawn when it arrives. */
+  async function loadDso(get) {
+    try {
+      const dso = await get("data/queue_dso.json");
+      for (const p of dso.projects) {
+        p.changes ||= []; p.milestones ||= {}; p.cod ||= []; p.installed ||= {}; p.stations ||= [];
+        p.name ||= ""; p.applicant ||= ""; p.type ||= ""; p.station ||= ""; p.status ||= "";
+      }
+      queue.projects.push(...dso.projects);
+      queue.dso = dso;
+      placeProjects();
+    } catch (error) {
+      console.error(error);
+      queue.dsoError = error.message;
+    }
+    state.dsoLoading = false;
+    renderIntro();
+    renderMapNote();
+    renderGridNote();
+    renderAll(true);
+  }
+
+  function renderGridNote() {
+    const counts = {};
+    for (const p of queue.projects) counts[gridOf(p)] = (counts[gridOf(p)] || 0) + 1;
+    const asof = key => queue.dso && queue.dso.operators[key] ? `, list of ${fmtDate(queue.dso.operators[key].asof)}` : "";
+    document.getElementById("grid-note").innerHTML = state.dsoLoading ? "Loading TAURON's and ENEA's lists…"
+      : queue.dsoError ? `TAURON and ENEA could not be loaded: ${esc(queue.dsoError)}`
+      : `<b>PSE</b> ${(counts.pse || 0).toLocaleString("en")} projects (220–400 kV stations) · <b>TAURON</b> ${(counts.tauron || 0).toLocaleString("en")}${asof("tauron")} · ` +
+        `<b>ENEA</b> ${(counts.enea || 0).toLocaleString("en")}${asof("enea")} (110 kV and medium voltage)`;
+    document.querySelectorAll("#grids button").forEach(b => b.classList.toggle("on", state.grids.has(b.dataset.grid)));
   }
 
   /* Projects of one station share its point: lay them out on a small sunflower around it, biggest in the middle. */
@@ -509,24 +558,36 @@
     const published = latest && latest.published ? new Date(latest.published).toISOString().slice(0, 10) : null;
     document.getElementById("intro-text").innerHTML =
       `Every project that has asked PSE, Poland's transmission system operator, to connect to its 110–400 kV grid at a PSE substation, ` +
-      `from PSE's lists under Art. 7(8l) of the Energy Law. Latest list: status <b>${fmtDate(queue.asof)}</b>` +
+      `and, below them, the distribution operators TAURON Dystrybucja and ENEA Operator (110 kV and medium voltage)${state.dsoLoading ? " (loading…)" : ""}, ` +
+      `from the operators' lists under Art. 7(8l) of the Energy Law. PSE's latest list: status <b>${fmtDate(queue.asof)}</b>` +
       `${published ? ` (published ${fmtDate(published)})` : ""}; history: ${queue.months.length} monthly lists since ${fmtMonth(queue.months[0])}. ` +
       `Data updated ${fmtDate(queue.updated)}.`;
     const latestMonth = queue.months.length - 1;
     const sum = keys => {
       let count = 0, mw = 0;
       for (const project of queue.projects) {
+        if (!gridOn(project)) continue;
         const now = at(project, latestMonth);
         if (now && !now.left && keys.includes(now.phase)) { count += 1; mw += now.mw || 0; }
       }
       return { count, mw };
     };
+    const sumEver = keys => {
+      let count = 0, mw = 0;
+      for (const project of queue.projects) {
+        if (!gridOn(project)) continue;
+        const now = at(project, latestMonth);
+        if (now && keys.includes(now.phase)) { count += 1; mw += now.mw || 0; }
+      }
+      return { count, mw };
+    };
     const tiles = [
-      ["In PSE's latest list", sum(["application", "study", "conditions", "agreement", "operating", "refused", "withdrawn"]), "projects"],
+      ["In the latest lists", sum(["application", "study", "conditions", "agreement", "operating", "refused", "withdrawn"]), "projects"],
       ["Under study", sum(["application", "study"]), "applications"],
       ["Conditions issued", sum(["conditions"]), "no agreement yet"],
       ["Agreement signed", sum(["agreement"]), "connection date ahead"],
-      ["Past connection date", sum(["operating"]), "agreement still open"]
+      ["Past connection date", sum(["operating"]), "agreement still open"],
+      ["Operational", sumEver(["operational"]), "confirmed running"]
     ];
     document.getElementById("tiles").innerHTML = tiles.map(([label, value, unit]) =>
       `<div class="tile"><div class="k">${label}</div><div class="v">${fmtGw(value.mw)}</div><div class="s">${value.count.toLocaleString("en")} ${unit}</div></div>`).join("");
@@ -560,7 +621,7 @@
         symbolSize: dotSize(item.mw),
         itemStyle: {
           color: dotColor(row, item.phase), opacity: phase.exit ? 0.75 : 0.95,
-          borderColor: phase.ring ? cssVar("--text") : cssVar("--panel"), borderWidth: phase.ring ? 1.4 : 0.6
+          borderColor: phase.op ? cssVar("--op") : phase.ring ? cssVar("--text") : cssVar("--panel"), borderWidth: phase.op ? 1.8 : phase.ring ? 1.4 : 0.6
         }
       };
     });
@@ -609,6 +670,7 @@
               `<div style="color:${cssVar("--tooltip-muted")};margin-bottom:6px">${esc(p.applicant || "Applicant not published")}</div>` +
               tooltipRow(cssVar(row.color), row.label, fmtMw(item.mw)) +
               tooltipRow("transparent", PHASE[item.phase].label, item.left ? `left ${fmtMonth(p.left.asof)}` : STATUS_LABEL[p.status] || "") +
+              tooltipRow("transparent", "Grid", p.operator || GRID_SHORT[gridOf(p)]) +
               tooltipRow("transparent", "Station", p.stations.join(", ") || p.station) +
               tooltipRow("transparent", "Conditions", fmtDate(p.conditions)) +
               tooltipRow("transparent", "Connection date", fmtDate(p.deadline)) +
@@ -648,7 +710,7 @@
     const cells = {};
     for (const project of queue.projects) {
       const now = at(project, state.month);
-      if (!now || (state.region && project.region !== state.region) || !matchesSearch(project)) continue;
+      if (!now || !gridOn(project) || (state.region && project.region !== state.region) || !matchesSearch(project)) continue;
       const key = `${techRow(project).key}|${now.phase}`;
       const cell = cells[key] ||= { count: 0, mw: 0 };
       cell.count += 1; cell.mw += now.mw || 0;
@@ -667,7 +729,7 @@
         }
         const color = dotColor(row, phase.key);
         html += `<td class="cell${hiddenCell(row.key, phase.key) ? " off" : ""}" data-key="${key}" title="${esc(`${row.label} · ${phase.label}: ${cell ? `${cell.count} projects, ${fmtGw(cell.mw)}` : "none"}`)}">` +
-          `${cell ? `<i style="background:${color};${phase.ring ? `box-shadow:0 0 0 1.5px ${cssVar("--text")}` : ""}"></i>` : ""}${show(cell)}</td>`;
+          `${cell ? `<i style="background:${color};${phase.op ? `box-shadow:0 0 0 1.5px ${cssVar("--op")}` : phase.ring ? `box-shadow:0 0 0 1.5px ${cssVar("--text")}` : ""}"></i>` : ""}${show(cell)}</td>`;
       }
       html += "</tr>";
     }
@@ -679,7 +741,8 @@
     document.getElementById("sizes").innerHTML = [10, 100, 500, 1000].map(mw => {
       const size = dotSize(mw);
       return `<div><i style="width:${size}px;height:${size}px"></i>${mw.toLocaleString("en")} MW</div>`;
-    }).join("") + `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.5px var(--text)"></i>past connection date</div>`;
+    }).join("") + `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.5px var(--text)"></i>past connection date</div>` +
+      `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.8px var(--op)"></i>operational</div>`;
   }
 
   function renderMapNote() {
@@ -691,7 +754,13 @@
       `showed only generators; storage, distribution and demand projects were in a separate list that PSE did not keep, so they enter the map in July 2025, ` +
       `with their real conditions dates. Applications under study appear from July 2026, when PSE started listing them by name; the counts before that ` +
       `(from April 2024) are in the chart below. "Past connection date": PSE keeps plants listed with their agreement in force long after they start ` +
-      `(Kozienice 11, Jaworzno 910 MW), and some never got built, so it means likely, not confirmed, in service.`;
+      `(Kozienice 11, Jaworzno 910 MW), and some never got built, so it means likely, not confirmed, in service. ` +
+      `"Operational" means confirmed: the operator lists the plant as connected ("obiekt przyłączony"), or gives the date it may sign a distribution contract or started delivering energy, ` +
+      `or a register of running units has it: TAURON's and ENEA's storage registers, or PSE's metered output of centrally dispatched units (a unit that first produced after the project's agreement, at a station of its name). ` +
+      `TAURON and ENEA: their lists under the same article, at 110 kV and medium voltage. Since autumn 2026 both use PSE's layout (object id, station, status and every date); ` +
+      `earlier lists (TAURON quarterly since end 2021, ENEA two lists of 2025–2026) covered generators only, with a gmina or village instead of a station, and are linked into the new ones ` +
+      `by conditions date, size and kind. TAURON names its stations by code (WZA4); the code's station comes from TAURON's lists of available capacity. A station is placed at the OpenStreetMap substation of its name ` +
+      `in the operator's voivodeships, otherwise at the town or village of that name; older rows at their gmina.`;
   }
 
   /* ---------------- table ---------------- */
@@ -704,13 +773,15 @@
     changed: (a, b) => lastChange(b.project).localeCompare(lastChange(a.project)),
     name: (a, b) => projectTitle(a.project).localeCompare(projectTitle(b.project))
   };
+  const kvText = kv => !kv ? "" : /kv/i.test(kv) ? kv : /^\d/.test(kv) ? `${kv} kV` : kv === "SN" ? "medium voltage" : kv === "NN" ? "low voltage" : kv;
   const lastChange = project => project.changes.length ? project.changes[project.changes.length - 1].asof : project.first_seen;
 
   function phaseBadge(item) {
     const phase = PHASE[item.phase], row = techRow(item.project);
     const color = phase.exit ? cssVar("--p-exit") : dotColor(row, item.phase);
     const status = item.project.status;
-    const detail = item.left ? (item.project.left.reason === "after_connection_date" ? "left the list after it" : "dropped from the list")
+    const reasons = { after_connection_date: "left the list after it", connected: "connected, then left the list", not_in_new_list: "not found in the operator's new-layout list" };
+    const detail = item.left ? (reasons[item.project.left.reason] || "dropped from the list")
       : ["verification", "incomplete", "expired", "terminated", "withdrawn"].includes(status) && state.month === queue.months.length - 1 ? STATUS_LABEL[status] : "";
     return `<span class="phase" style="border-color:${color}">${esc(phase.label)}</span>${detail ? `<div class="sub">${esc(detail)}</div>` : ""}`;
   }
@@ -723,8 +794,8 @@
     const mw = items.reduce((sum, item) => sum + (item.mw || 0), 0);
     document.getElementById("table-title").textContent = `Showing ${pageItems.length} of ${items.length.toLocaleString("en")} projects (${fmtGw(mw)})`;
     document.getElementById("table-sub").textContent = state.month === queue.months.length - 1
-      ? `PSE's list of ${fmtMonth(queue.asof)}; click a project for its milestones and history`
-      : `Phase as in PSE's list of ${fmtMonth(queue.months[state.month])}; other columns as last listed`;
+      ? `The operators' latest lists (PSE ${fmtMonth(queue.asof)}); click a project for its milestones and history`
+      : `Phase as in the lists of ${fmtMonth(queue.months[state.month])} (TAURON's and ENEA's: the latest before it); other columns as last listed`;
     const head = `<thead><tr><th>Project</th><th>Technology</th><th class="num">MW in / out</th><th>Station</th><th>Phase</th><th>Conditions</th><th>Agreement</th><th>Connection date</th></tr></thead>`;
     const body = pageItems.map(item => {
       const p = item.project, row = techRow(p);
@@ -732,7 +803,7 @@
         `<td><div class="name">${esc(projectTitle(p))}</div><div class="sub">${esc(p.applicant || "applicant not published")}</div></td>` +
         `<td><span class="chip"><i style="background:${cssVar(row.color)}"></i>${esc(row.label)}</span><div class="sub">${esc(p.type)}</div></td>` +
         `<td class="num">${p.mw_in != null ? Math.round(p.mw_in * 10) / 10 : "—"} / ${p.mw_out != null ? Math.round(p.mw_out * 10) / 10 : "—"}</td>` +
-        `<td>${esc(p.stations.join(", ") || p.station || "—")}<div class="sub">${esc(p.region || "")}${p.kv ? ` · ${esc(p.kv)} kV` : ""}</div></td>` +
+        `<td>${esc(p.stations.join(", ") || p.station || "—")}<div class="sub">${esc([GRID_SHORT[gridOf(p)], p.region, kvText(p.kv)].filter(Boolean).join(" · "))}</div></td>` +
         `<td>${phaseBadge(item)}</td>` +
         `<td class="date">${fmtDate(p.conditions)}</td><td class="date">${fmtDate(p.agreement)}</td><td class="date">${fmtDate(p.deadline)}</td></tr>`;
     }).join("");
@@ -743,10 +814,12 @@
 
   function downloadCsv() {
     const items = shown().sort(SORTS[state.sort]);
-    const columns = [["id", p => p.id], ["name", p => p.name], ["applicant", p => p.applicant], ["pse_id", p => p.pse_id], ["technology", p => techRow(p).label],
+    const columns = [["id", p => p.id], ["grid", p => GRID_SHORT[gridOf(p)]], ["name", p => p.name], ["applicant", p => p.applicant], ["pse_id", p => p.pse_id], ["technology", p => techRow(p).label],
       ["pse_type", p => p.type], ["mw_in", p => p.mw_in], ["mw_out", p => p.mw_out], ["station", p => p.stations.join("; ") || p.station], ["voivodeship", p => p.region],
       ["kv", p => p.kv], ["status", p => STATUS_LABEL[p.status] || p.status], ["applied", p => p.applied], ["complete", p => p.milestones.complete?.date],
-      ["conditions", p => p.conditions], ["agreement", p => p.agreement], ["connection_date", p => p.deadline], ["first_listed", p => p.first_seen], ["last_listed", p => p.last_seen],
+      ["conditions", p => p.conditions], ["agreement", p => p.agreement], ["connection_date", p => p.deadline],
+      ["phase", p => PHASE[p.phase]?.label], ["operational_since", p => p.connected || p.running?.since || p.milestones.connected?.date], ["running_evidence", p => p.running ? `${p.running.source}: ${p.running.unit}` : ""],
+      ["first_listed", p => p.first_seen], ["last_listed", p => p.last_seen],
       ["lat", p => p.lat], ["lon", p => p.lon]];
     const csv = [columns.map(([name]) => name).join(","), ...items.map(item => columns.map(([, value]) => {
       const text = String(value(item.project) ?? "");
@@ -754,7 +827,7 @@
     }).join(","))].join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    link.download = `pse-queue-${queue.months[state.month]}.csv`;
+    link.download = `poland-queue-${queue.months[state.month]}.csv`;
     link.click();
   }
 
@@ -764,19 +837,28 @@
     const visibleTech = TECH.filter(row => !state.hidden.has(row.key));
     const memberOf = Object.fromEntries(TECH.flatMap(row => row.members.map(member => [member, row.key])));
     const series = [];
-    const stackPhases = ["application", "study", "conditions", "agreement", "operating"];
-    const colors = { application: "--p-5", study: "--p-4", conditions: "--p-3", agreement: "--p-2", operating: "--p-1" };
+    const stackPhases = ["application", "study", "conditions", "agreement", "operating", "operational"];
+    const colors = { application: "--p-5", study: "--p-4", conditions: "--p-3", agreement: "--p-2", operating: "--p-1", operational: "--op" };
+    // PSE's cells and, for the operators switched on, TAURON's and ENEA's.
+    const cellsOf = entry => {
+      const out = {};
+      const add = cells => { for (const [key, [n, value]] of Object.entries(cells || {})) { const cell = out[key] ||= [0, 0]; cell[0] += n; cell[1] += value; } };
+      if (state.grids.has("pse")) add(entry.cells);
+      for (const grid of ["tauron", "enea"]) if (state.grids.has(grid) && entry.grids) add(entry.grids[grid]);
+      return out;
+    };
     for (const phase of stackPhases) {
       if (state.hidden.has(phase)) continue;
       const data = history.monthly.map(entry => {
         let mw = 0, any = false;
-        const source = phase === "application" || phase === "study" ? (entry.lists && entry.lists[phase]) || null : entry.cells;
+        const cells = cellsOf(entry);
+        const source = phase === "application" || phase === "study" ? (state.grids.has("pse") && entry.lists && entry.lists[phase]) || null : cells;
         if (phase === "application" || phase === "study") {
           // Before July 2026 these come from PSE's application lists; since, from the main list.
           if (source) { for (const [tech, [, value]] of Object.entries(source)) { const key = memberOf[tech] || "other"; if (visibleTech.some(row => row.key === key) && !state.hidden.has(`${key}|${phase}`)) { mw += value; any = true; } } }
-          else for (const [key, [, value]] of Object.entries(entry.cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
+          else for (const [key, [, value]] of Object.entries(cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
         } else {
-          for (const [key, [, value]] of Object.entries(entry.cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
+          for (const [key, [, value]] of Object.entries(cells)) { const [tech, ph] = key.split("|"); const row = memberOf[tech] || "other"; if (ph === phase && visibleTech.some(r => r.key === row) && !state.hidden.has(`${row}|${phase}`)) { mw += value; any = true; } }
         }
         return [entry.asof, any ? Math.round(mw) / 1000 : 0];
       });
@@ -801,7 +883,8 @@
       series
     }, true);
     document.getElementById("history-sub").innerHTML =
-      `Conditions and agreements from PSE's main list (generators only until June 2025; storage, distribution and demand added from July 2025, hence the jump). ` +
+      `Conditions and agreements from PSE's main list (generators only until June 2025; storage, distribution and demand added from July 2025, hence the jump)` +
+      `${state.grids.has("tauron") || state.grids.has("enea") ? "; TAURON's and ENEA's from their lists, each held until their next list (the jumps in autumn 2026 are their first full lists, with demand and every voltage)" : ""}. ` +
       `Applications and those under study from PSE's application lists from April 2024. Refusals since 2023: ` +
       `${refusalSummary()}.`;
   }
@@ -848,8 +931,10 @@
 
   /* ---------------- detail ---------------- */
 
-  function sourceFor(asof) {
-    return queue.sources.filter(source => source.asof === asof).pop();
+  function sourceFor(asof, project) {
+    const grid = project ? gridOf(project) : "pse";
+    const sources = grid === "pse" ? queue.sources : (queue.dso?.sources || []).filter(source => source.doc === grid);
+    return sources.filter(source => source.asof === asof).pop();
   }
 
   function openDetail(project) {
@@ -879,13 +964,16 @@
 
   function renderSteps(p) {
     const m = p.milestones;
-    const order = { application: 0, study: 1, conditions: 2, agreement: 3, operating: 4 };
+    const order = { application: 0, study: 1, conditions: 2, agreement: 3, operating: 4, operational: 5 };
+    const since = p.connected || p.running?.since || m.connected?.date;
     const steps = [
-      { label: "Application filed", date: p.applied, how: p.applied ? "PSE's date" : m.received ? `listed awaiting verification, ${fmtMonth(m.received.seen)}` : "" },
+      { label: "Application filed", date: p.applied, how: p.applied ? `${GRID_SHORT[gridOf(p)]}'s date` : m.received ? `listed awaiting verification, ${fmtMonth(m.received.seen)}` : "" },
       { label: "Application complete", date: m.complete?.date, how: m.complete?.date ? (m.complete.matched ? "matched in PSE's list of complete applications" : "") : m.complete ? `under study in ${fmtMonth(m.complete.seen)}` : "" },
       { label: "Conditions issued", date: p.conditions, how: "" },
       { label: "Agreement signed", date: p.agreement, how: "" },
-      { label: "Connection date", date: p.deadline, how: p.deadline ? (p.deadline < queue.asof ? "passed" : "in the agreement") : "" }
+      { label: "Connection date", date: p.deadline, how: p.deadline ? (p.deadline < queue.asof ? "passed" : "in the agreement") : "" },
+      { label: "Operational", date: p.phase === "operational" ? since : null,
+        how: p.phase !== "operational" ? "" : p.running ? `${p.running.source}: ${p.running.unit}${p.running.mw ? `, ${fmtMw(p.running.mw)}` : ""}` : p.status === "connected" ? "the operator lists it as connected" : "the operator's list gives the date" }
     ];
     let reached;
     let exit = null;
@@ -898,14 +986,14 @@
     } else reached = order[p.phase] ?? 2;
     const html = steps.map((step, index) => {
       if (exit && index > reached) return "";
-      let cls = index < reached ? "done" : index === reached ? (p.phase === "operating" && index === 4 ? "done" : "current") : "";
+      let cls = index < reached ? "done" : index === reached ? ((p.phase === "operating" && index === 4) || (p.phase === "operational" && index === 5) ? "done" : "current") : "";
       if (exit && index === reached) cls = "done";
       const when = step.date ? fmtDate(step.date) : cls === "done" ? "date not published" : "";
       return `<div class="step ${cls}"><div class="dot">${cls === "done" ? "✓" : ""}</div><div class="lbl">${esc(step.label)}</div>` +
         `<div class="when">${esc(when)}</div><div class="how">${esc(step.how)}</div></div>`;
     }).join("") + (exit ? `<div class="step exit"><div class="dot">×</div><div class="lbl">${esc(exit.label)}</div><div class="when">${esc(exit.date ? fmtDate(exit.date) : exit.how)}</div><div class="how">${esc(exit.date ? exit.how : "")}</div></div>` : "");
     document.getElementById("d-steps").innerHTML = html;
-    document.getElementById("d-steps-sub").textContent = `The path every project follows; the current step is highlighted. Dates are PSE's; ` +
+    document.getElementById("d-steps-sub").textContent = `The path every project follows; the current step is highlighted. Dates are the operator's; ` +
       `"date not published" means PSE's lists never gave it (applications before 2024, or before the project entered the lists in ${fmtMonth(p.first_seen)}).`;
   }
 
@@ -944,33 +1032,34 @@
 
   function renderChanges(p) {
     const changes = [...p.changes].reverse();
-    document.getElementById("d-changes-title").textContent = `Changes between monthly lists (${changes.length})`;
-    document.getElementById("d-changes-sub").textContent = `First listed ${fmtMonth(p.first_seen)} · listed in ${p.months_listed} monthly lists` +
+    document.getElementById("d-changes-title").textContent = `Changes between ${gridOf(p) === "pse" ? "monthly " : ""}lists (${changes.length})`;
+    document.getElementById("d-changes-sub").textContent = `First listed ${fmtMonth(p.first_seen)} · listed in ${p.months_listed} ${gridOf(p) === "pse" ? "monthly " : `of ${GRID_SHORT[gridOf(p)]}'s `}lists` +
       (p.left ? ` · not in the list of ${fmtMonth(p.left.asof)}` : "");
     document.getElementById("d-changes").innerHTML = changes.length
       ? `<table class="changes"><tr><th>List of</th><th>Change</th></tr>${changes.map(change => `<tr><td style="white-space:nowrap">${fmtMonth(change.asof)}</td><td>${change.diffs.map(diff =>
         `<div><b>${esc(diff.label)}</b>: <span class="from">${esc(changeValue(diff, diff.from))}</span> → ${esc(changeValue(diff, diff.to))}</div>`).join("")}</td></tr>`).join("")}</table>`
-      : `<div style="color:var(--muted)">Nothing changed in PSE's lists since ${fmtMonth(p.first_seen)}.</div>`;
+      : `<div style="color:var(--muted)">Nothing changed in the lists since ${fmtMonth(p.first_seen)}.</div>`;
   }
 
   function renderFacts(p) {
     const codes = (p.type.match(/MFW|FW|PV|MEE|EJ|ESP|JBM|JW|BGP|BG|SG|JS|JG|EW|OGW|ODB|OSDn|OSD|SD|MIX|OZE|KJW/g) || []);
     const installed = Object.entries(p.installed || {}).map(([key, value]) => `${{ pv: "PV", wind: "wind", storage_out: "storage discharge", storage_in: "storage charge", load: "load", other: typeName(p.type).toLowerCase() }[key] || key} ${fmtMw(value)}`).join(", ");
     const stations = p.stations.map(name => { const s = queue.stations[name] || {}; return esc(`${name}${s.code ? ` (${s.code})` : ""}${s.kv ? `, ${s.kv} kV station` : ""}${s.planned ? ` – planned; ${s.note || ""}` : ""}`); }).join("<br>");
-    const first = sourceFor(p.first_seen), last = sourceFor(p.last_seen);
+    const first = sourceFor(p.first_seen, p), last = sourceFor(p.last_seen, p);
     const facts = [
-      ["Project name", p.name || "Not published (PSE named projects only from July 2026)"],
+      ["Project name", p.name || (gridOf(p) === "pse" ? "Not published (PSE named projects only from July 2026)" : "Not published by the operator")],
       ["Applicant", [p.applicant || "Not published", p.seat].filter(Boolean).join(", ")],
-      ["Grid operator", p.operator],
-      ["PSE application id", p.pse_id],
-      ["Connection point", `${stations || esc(p.station)}${p.station && !p.stations.includes(p.station) ? `<br><span style="color:var(--muted-2)">PSE wrote: ${esc(p.station.split("\n").join("; "))}</span>` : ""}`, true],
-      ["Voltage", p.kv ? `${p.kv} kV` : ""],
+      ["Connects to", `${p.operator || "PSE S.A."} – ${gridOf(p) === "pse" ? "transmission grid" : "distribution grid"}`],
+      [gridOf(p) === "pse" ? "PSE application id" : `${GRID_SHORT[gridOf(p)]} object id`, p.pse_id],
+      ["Running", p.running ? `${p.running.source}: ${p.running.unit}${p.running.place ? ` (${p.running.place})` : ""}${p.running.mw ? `, ${fmtMw(p.running.mw)}` : ""}${p.running.mwh ? ` / ${p.running.mwh.toLocaleString("en")} MWh` : ""}${p.running.since ? `, since ${fmtDate(p.running.since)}` : ""}` : ""],
+      ["Connection point", `${stations || esc(p.station)}${p.station && !p.stations.includes(p.station) ? `<br><span style="color:var(--muted-2)">${esc(GRID_SHORT[gridOf(p)])} wrote: ${esc(p.station.split("\n").join("; "))}</span>` : ""}${gridOf(p) !== "pse" && p.placed === "place" ? `<br><span style="color:var(--muted-2)">placed at the town or village of that name</span>` : ""}`, true],
+      ["Voltage", kvText(p.kv)],
       ["Voivodeship", p.region],
       ["Installation", `${p.type}${codes.length ? ` (${codes.map(code => TYPE_LABEL[code] || code).join(", ")})` : ""}${p.change_request ? " · change of conditions requested" : ""}`],
       ["Installed capacity", installed],
       ["Connection capacity", `${fmtMw(p.mw_in)} injected · ${fmtMw(p.mw_out)} withdrawn`],
       ["Advance paid", p.advance ? fmtDate(p.advance) : ""],
-      ["PSE's lists", `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtMonth(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtMonth(p.last_seen)}</a>`, true]
+      [`${GRID_SHORT[gridOf(p)]}'s lists`, `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtDate(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtDate(p.last_seen)}</a>`, true]
     ].filter(([, value]) => value);
     document.getElementById("d-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
   }
@@ -1038,12 +1127,23 @@
       renderSide(shown());
     });
     const presets = {
-      active: ["refused", "withdrawn"],
+      active: ["refused", "withdrawn", "operational"],
       past: PHASES.filter(phase => phase.key !== "operating").map(phase => phase.key),
+      operational: PHASES.filter(phase => phase.key !== "operational").map(phase => phase.key),
       exited: PHASES.filter(phase => !phase.exit).map(phase => phase.key),
       all: []
     };
     const applyPreset = name => { state.hidden = new Set(presets[name]); state.page = 0; state.month = queue.months.length - 1; renderAll(false); };
+    document.getElementById("grids").addEventListener("click", event => {
+      const button = event.target.closest("button[data-grid]");
+      if (!button) return;
+      const grid = button.dataset.grid;
+      if (state.grids.has(grid) && state.grids.size > 1) state.grids.delete(grid); else state.grids.add(grid);
+      state.page = 0;
+      renderGridNote();
+      renderIntro();
+      renderAll(false);
+    });
     document.getElementById("presets").addEventListener("click", event => { const b = event.target.closest("button"); if (b) applyPreset(b.dataset.preset); });
     document.getElementById("show-past").addEventListener("click", () => { applyPreset("past"); state.sort = "deadline"; document.getElementById("sort").value = "deadline"; renderAll(false); document.getElementById("table-panel").scrollIntoView({ behavior: "smooth" }); });
     document.getElementById("map-back").addEventListener("click", () => { state.region = null; state.page = 0; renderAll(true); });
@@ -1086,12 +1186,16 @@
     renderIntro();
     renderSizes();
     renderMapNote();
+    renderGridNote();
     document.getElementById("map-sub").textContent = `${queue.projects.length.toLocaleString("en")} projects listed by PSE at some point since ${fmtMonth(queue.months[0])}; the slider replays the monthly lists`;
     document.getElementById("footer").innerHTML =
       `Data: <a href="https://www.pse.pl/obszary-dzialalnosci/krajowy-system-elektroenergetyczny/wykaz-obiektow-planowanych-do-przylaczenia" target="_blank" rel="noopener">PSE S.A., wykaz obiektów planowanych do przyłączenia</a> ` +
       `(every monthly version since 2020, read from PSE's document archive; earlier versions, 2017–2020, are scans not yet read). ` +
       `Substations and lines: © OpenStreetMap contributors (ODbL). Voivodeships: GUGiK PRG via polska-geojson (MIT). ` +
-      `Project names, ids and statuses are PSE's; the technology groups, phases, positions and the linking of projects across months are this site's, and can be wrong. ` +
+      `Distribution: <a href="https://www.tauron-dystrybucja.pl/przylaczenie-do-sieci/dostepne-moce/podmioty-ubiegajace-sie" target="_blank" rel="noopener">TAURON Dystrybucja</a> and ` +
+      `<a href="https://www.operator.enea.pl/przylaczenie-do-sieci/informacje-o-przylaczeniach" target="_blank" rel="noopener">ENEA Operator</a> lists under art. 7 ust. 8l and their registers of energy storage; ` +
+      `running units also from <a href="https://api.raporty.pse.pl/" target="_blank" rel="noopener">PSE's metered unit output</a>. ` +
+      `Project names, ids and statuses are the operators'; the technology groups, phases, positions and the linking of projects across months are this site's, and can be wrong. ` +
       `<a href="https://github.com/aragn/polish-grid" target="_blank" rel="noopener">Code and data on GitHub</a>.`;
   }
 

@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 .DS_Store
+# The DSOs' storage registers carry contact phones and e-mails: only the parsed, trimmed rows are kept.
+archive/*/rejestr-magazynow-energii.xlsx
