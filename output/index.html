@@ -14,7 +14,7 @@
       --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
       --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
       --f-lignite:#a37a52; --f-coal:#7f8994; --f-cofiring:#9aa84a; --f-biomass:#4f9d4a; --f-gas:#d95926; --f-hydro:#9085e9;
-      --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9; --f-wind:#199e70; --f-rest:#8a7f6e;
+      --f-offshore:#3987e5; --f-solar:#c98500; --f-other:#5f656d; --f-pumping:#6d62c9; --f-battery:#e6dd3b; --f-wind:#199e70; --f-rest:#8a7f6e;
       --error:#e66767; --price:#ff6fae; --load:#f1f3f5; --f-import:#4fb3c8; --shadow:rgba(0,0,0,.55);
       --range:#252b32; --selected-bg:#e8eaed; --selected-text:#0b0d10;
     }
@@ -26,7 +26,7 @@
         --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
         --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
         --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-biomass:#3d8a37; --f-gas:#eb6834; --f-hydro:#6250d6;
-        --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
+        --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-battery:#a89c00; --f-wind:#1baf7a; --f-rest:#a39882;
         --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
       --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
       }
@@ -38,7 +38,7 @@
       --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
       --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
       --f-lignite:#8b6243; --f-coal:#5d6670; --f-cofiring:#78851f; --f-biomass:#3d8a37; --f-gas:#eb6834; --f-hydro:#6250d6;
-      --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-wind:#1baf7a; --f-rest:#a39882;
+      --f-offshore:#2a78d6; --f-solar:#eda100; --f-other:#b2b0a6; --f-pumping:#8c80e6; --f-battery:#a89c00; --f-wind:#1baf7a; --f-rest:#a39882;
       --error:#d03b3b; --price:#c2185b; --load:#0b0b0b; --f-import:#1b8aa0; --shadow:rgba(16,24,40,.14);
       --range:#e6e5df; --selected-bg:#14171a; --selected-text:#ffffff;
     }
@@ -253,6 +253,7 @@
       (<a href="https://api.raporty.pse.pl/EndpointsMap.pdf" target="_blank" rel="noopener">field map</a>).
       Day-ahead price: <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E Transparency Platform</a> (Poland bidding zone, €/MWh; hourly until 30 Sep 2025, quarter-hourly since), fetched daily after the auction.
       The “Other” layers are PSE's system balance (<i>his-wlk-cal</i>) less the JWCD units: total generation is <i>jg</i> + <i>jnwrb</i> (scheduled units plus units outside the balancing market), wind and solar are <i>wi</i> and <i>pv</i>, and the top of the stack is PSE's total generation. Other wind and Other solar subtract Baltic Power and Zwartowo. PSE gives no fuel split for the rest, so it is split with <a href="https://transparency.entsoe.eu/" target="_blank" rel="noopener">ENTSO-E's</a> actual generation per type (A75, which PSE submits): each type less the JWCD units of that fuel, scaled to PSE's rest (“Other coal” is hard coal and lignite; “Other oil, coal gas, other” is oil, coal-derived gas, other renewable and other). Where ENTSO-E has not yet published a quarter-hour the rest stays one layer, “Other thermal, hydro, biomass”.
+      Batteries are not in PSE's balance (its <i>jg</i> + <i>jnwrb</i> leave out their output and <i>jgm</i> their charging, and none is a JWCD unit), so “Battery storage” and “Battery charging” are ENTSO-E's actual generation and consumption of energy storage (A75, type B25), drawn on top of PSE's totals; ENTSO-E reports them only since autumn 2026 and leaves some quarter-hours out.
       Load is PSE's system demand (<i>his-wlk-cal</i>, <i>demand</i>); “Net imports (physical)” is the metered net cross-border exchange (<i>swm_p</i> + <i>swm_np</i>), drawn above generation when Poland imports and below zero when it exports.
       The dashed line and the paler “Plan” layers are PSE's day-ahead coordination plan (PKD, <i>pdgopkd</i>, published about 15:40 the day before): the load forecast, and the planned supply of scheduled units, other units, wind, solar, net exchange and storage charging. The planned layers fill only quarter-hours without meter data (today and tomorrow); the planned supply can exceed the load in sunny, windy hours, where PSE plans a surplus.
       Energy is MW × 0.25 h per quarter-hour; pumping is counted separately and subtracted for the net. Capacity is available + non-usable + grid limit, the most over the dates shown.
@@ -287,6 +288,7 @@
     { key: "Other thermal, hydro, biomass", color: "--f-rest" },
     { key: "Hydro", color: "--f-hydro" },
     { key: "Hydro · pumped storage", color: "--f-hydro" },
+    { key: "Battery storage", color: "--f-battery" },
     { key: "Offshore wind", color: "--f-offshore" },
     { key: "Onshore wind", color: "--f-wind" },
     { key: "Solar PV", color: "--f-solar" },
@@ -517,6 +519,10 @@
   // gross meter readings (its lignite is exactly the JWCD lignite), so each type less its JWCD units
   // is the rest of that fuel.  PSE's balance sets the level; ENTSO-E only splits it.
   const REST_WIND = "Other wind", REST_SOLAR = "Other solar", REST_OTHER = "Other thermal, hydro, biomass";
+  // Batteries are outside PSE's balance: jg + jnwrb leave out their output and jgm their charging (its
+  // generation less load misses by just the battery flow), and no battery is a JWCD unit.  So they come
+  // straight from ENTSO-E, generation B25 and its consumption (B25c), on top of PSE's totals.
+  const BATTERY = "Battery storage", BATTERY_CHARGING = "Battery charging";
   const REST = [
     { name: "Other coal", codes: ["B05", "B02"], jwcd: ["Hard coal", "Hard coal + biomass", "Lignite"], color: "--f-coal" },
     { name: "Other gas", codes: ["B04"], jwcd: ["Natural gas"], color: "--f-gas" },
@@ -731,6 +737,9 @@
         const sum = parts.reduce((a, b) => a + (b || 0), 0);
         if (parts.some(v => v === null) || sum <= 0) add(REST_OTHER, thermal);
         else REST.forEach((group, i) => add(group.name, thermal * parts[i] / sum));
+        const battery = generationAt(["B25"], ms), charging = generationAt(["B25c"], ms);
+        if (battery > 0) add(BATTERY, battery);
+        if (charging > 0) add(BATTERY_CHARGING, -charging);
         add(IMPORTS, sys.exchange);
       }
     }
@@ -762,7 +771,7 @@
     if (rest && state.group === "fuel") {
       const into = { "Other coal": "Hard coal", "Other gas": "Natural gas", "Other biomass": "Biomass", "Other hydro": "Hydro",
         "Other oil, coal gas, other": "Oil, coal gas, other", [REST_WIND]: "Onshore wind", [REST_SOLAR]: "Solar PV",
-        [REST_OTHER]: "Other thermal, hydro, biomass", "Hydro · pumped storage": "Hydro" };
+        [REST_OTHER]: "Other thermal, hydro, biomass", "Hydro · pumped storage": "Hydro", [BATTERY]: BATTERY };
       for (const t of times) {
         for (const map of [t.rest, t.series]) for (const [name, v] of [...map]) {
           const fuel = into[name];
@@ -799,7 +808,7 @@
     const series = names.map(name => area(name, colors.get(name), times.map(t => t.quarters.size ? (t.series.get(name) || 0) / span(t) : null), "up", 0.92));
     // The rest is drawn in paler versions of the fuel colours, above the JWCD units.
     const restLayers = [...REST.map(group => [group.name, shade(cssVar(group.color), 0.35)]),
-      [REST_OTHER, cssVar("--f-rest")], [REST_WIND, cssVar("--f-wind")], [REST_SOLAR, shade(cssVar("--f-solar"), 0.3)]];
+      [REST_OTHER, cssVar("--f-rest")], [REST_WIND, cssVar("--f-wind")], [REST_SOLAR, shade(cssVar("--f-solar"), 0.3)], [BATTERY, cssVar("--f-battery")]];
     for (const [name, color] of restLayers) {
       if (!times.some(t => t.rest.get(name) > 0)) continue;
       series.push(area(name, color, times.map(t => meanOf(t, t.rest, name, t.quarters.size)), "up", 0.8));
@@ -818,6 +827,7 @@
     }
     flow(PLAN_IMPORTS, "plan", t => t.planned.size, cssVar("--f-import"), 0.45);
     if (totals.has("Pumping")) series.push(area("Pumping", cssVar("--f-pumping"), times.map(t => t.quarters.size ? (t.series.get("Pumping") || 0) / span(t) : null), "down", 0.8));
+    if (times.some(t => t.rest.get(BATTERY_CHARGING) < 0)) series.push(area(BATTERY_CHARGING, cssVar("--f-battery"), times.map(t => meanOf(t, t.rest, BATTERY_CHARGING, t.quarters.size)), "down", 0.85));
     if (times.some(t => t.plan.get(PLAN_CHARGING) < 0)) series.push(area(PLAN_CHARGING, cssVar("--f-pumping"), times.map(t => meanOf(t, t.plan, PLAN_CHARGING, t.planned.size)), "down", 0.45));
     // The metered load of an interval that is partly planned would average only its metered part.
     const lineOf = name => times.map(t => { const line = t.lines.get(name); return line && !(name === LOAD && t.planned.size) ? line.sum / line.n : null; });
@@ -840,7 +850,7 @@
       name: PRICE, type: "line", yAxisIndex: 1, step: res === "day" ? false : "start", symbol: "none", z: 5,
       lineStyle: { width: 1.4, color: cssVar("--price") }, itemStyle: { color: cssVar("--price") }, data: prices
     });
-    $("chart-sub").textContent = `Average MW per ${res === "day" ? "day" : res === "hour" ? "hour" : "quarter-hour"}, stacked; pumping and exports below zero` +
+    $("chart-sub").textContent = `Average MW per ${res === "day" ? "day" : res === "hour" ? "hour" : "quarter-hour"}, stacked; pumping, battery charging and exports below zero` +
       (rest ? state.group === "fuel"
         ? "; each fuel is all of Poland's generation of it: the JWCD units plus the rest of the system (PSE's totals less the JWCD units, split by fuel with ENTSO-E)"
         : "; “Other” is the rest of Poland's generation (PSE's totals less the JWCD units, split by fuel with ENTSO-E)" : "") +

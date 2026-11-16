@@ -13,8 +13,10 @@ data/generation/PL/<YYYY-MM>.json holds {"start": UTC ms of the first point,
 "step": ms between points, "types": {"B04": [MW or null, ...], ...}} with
 ENTSO-E's production-type codes (B01 biomass, B02 lignite, B03 coal-derived
 gas, B04 gas, B05 hard coal, B06 oil, B10-B12 hydro, B15 other renewable,
-B16 solar, B18-B19 wind, B20 other, B25 storage).  Only generation is kept,
-not the consumption series of pumped storage.
+B16 solar, B18-B19 wind, B20 other, B25 storage).  The consumption series of
+storage (pumped hydro charging, battery charging) are kept under the type code
+plus "c", as positive MW: "B10c", "B25c".  The page draws batteries from B25
+and B25c, since PSE's own balance leaves them out.
 """
 
 import argparse
@@ -36,13 +38,16 @@ def parse(root):
     for series in root.iter():
         if not series.tag.endswith("}TimeSeries"):
             continue
-        # Generation comes with inBiddingZone; pumped-storage consumption with outBiddingZone.
-        if series.find("{*}inBiddingZone_Domain.mRID") is None:
+        # Generation comes with inBiddingZone; storage consumption with outBiddingZone, kept as "<type>c".
+        consumption = series.find("{*}inBiddingZone_Domain.mRID") is None
+        if consumption and series.find("{*}outBiddingZone_Domain.mRID") is None:
             continue
         psr = series.find("{*}MktPSRType")
         kind = child_text(psr, "psrType") if psr is not None else None
         if not kind:
             continue
+        if consumption:
+            kind += "c"
         points = out.setdefault(kind, {})
         for period in series.findall("{*}Period"):
             interval = period.find("{*}timeInterval")
