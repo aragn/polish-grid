@@ -33,6 +33,8 @@ SNAPSHOTS = os.path.join(ROOT, "data", "snapshots")
 OPERATORS = {
     "tauron": {"name": "TAURON Dystrybucja S.A.", "regions": ["Dolnośląskie", "Opolskie", "Śląskie", "Małopolskie", "Podkarpackie", "Łódzkie", "Świętokrzyskie"]},
     "enea": {"name": "ENEA Operator Sp. z o.o.", "regions": ["Zachodniopomorskie", "Lubuskie", "Wielkopolskie", "Kujawsko-pomorskie", "Dolnośląskie", "Pomorskie"]},
+    "pge": {"name": "PGE Dystrybucja S.A.", "regions": ["Lubelskie", "Podlaskie", "Mazowieckie", "Łódzkie", "Podkarpackie", "Świętokrzyskie", "Warmińsko-mazurskie"]},
+    "energa": {"name": "Energa-Operator S.A.", "regions": ["Pomorskie", "Zachodniopomorskie", "Warmińsko-mazurskie", "Kujawsko-pomorskie", "Mazowieckie", "Wielkopolskie", "Łódzkie"]},
 }
 NOISE = r"\b(gpz|rpz|rs|st|se|sto|stacja|elektroenergetyczna|transformatorowa|rozdzielnia|rozdzielcza|glowny|punkt|zasilajacy|zasilania|abonencka|kv|wn|sn|nn)\b"
 
@@ -43,8 +45,23 @@ def clean_name(text):
     return re.sub(r"\s+", " ", re.sub(NOISE, " ", text)).strip()
 
 
+# PGE describes the point in words: "istniejąca linia 15kV Rajgrodzka zasilana ze stacji 110/15kV Augustów",
+# "GPZ 110/15 kV Krasnystaw Rońsko", "pole SN w planowanej stacji WN/SN Kosewko", "linia SN relacji: "Bielnik - Drzewicz"".
+VOLTAGE = r"(?:(?:WN|SN|NN|nN)\s*/\s*(?:WN|SN|NN|nN)|\d{2,3}\s*/\s*\d{1,3}\s*kV|\d{2,3}\s*kV)"
+UPPER = "A-ZĄĆĘŁŃÓŚŹŻ"
+STOP = r"(?=\s+(?:[sS]ek|[pP]ol[ea]|[lL]ini|[zZ]asil|[rR]ozdz|[sS]zyn|nr\b|w\s|i\s)|\s+[-–]\s|[,;/()\"„”.]|$)"
+AFTER_STATION = re.compile(rf"\b(?:GPZ|RPZ|SE|[sS]tacj[aiy])\s+(?:{VOLTAGE}\s+)?(?:[A-Z]{{2,4}}\s*[-–]\s*)?([{UPPER}][^,;/()\"„”\n]*?){STOP}")
+RELATION = re.compile(rf"\brelacji\s*:?\s*[\"„]?\s*([{UPPER}][^-–\"„”,;]*?)\s*[-–]")
+
+
 def station_name(text):
-    """ENEA's 'Oborniki pole nr 14 / L-Oborniki-Żydowo', 'GPZ Łużycka (24)', 'Nagradowice, GPZ' -> 'Oborniki', ..."""
+    """ENEA's 'Oborniki pole nr 14 / L-Oborniki-Żydowo', 'GPZ Łużycka (24)', 'Nagradowice, GPZ' -> 'Oborniki', ...;
+    PGE's and ENERGA's 'GPZ Szczecinek Leśna', '... zasilana ze stacji 110/15kV Augustów' -> the station after
+    GPZ or stacja; a line 'relacji A - B' -> A (placed at its first end)."""
+    for pattern in (AFTER_STATION, RELATION):
+        named = pattern.search(text or "")
+        if named and not re.match(r"(?i)\s*(?:relacji|w linii|pod nazw)", named.group(1)):
+            return re.sub(r"\s+", " ", named.group(1)).strip()
     text = (text or "").split("/")[0]
     text = re.sub(r"\(.*?\)", " ", text)
     text = re.split(r"(?i)\b(?:pole|pola|sekcja|sekc\.|szyna|linia|zalicznikowo|nr|rozdz\w*|ZK|złącze)\b|\bL-", text)[0]
@@ -118,9 +135,14 @@ class Places:
                     (lat, lon, _), region = found[0]
                     result = (lat, lon, region, "place")
                 elif len(key[0].split()) >= 2:
-                    # Last resort: the town the station is named after ("Poznań Rataje" -> Poznań).
-                    found = self._pick(self.places.get(key[0].split()[0], []), regions)
-                    found = [f for f in found if f[0][2] in ("city", "town")]
+                    # Last resort: the town the station is named after, longest name first
+                    # ("Biała Podlaska Sitnicka" -> Biała Podlaska, "Poznań Rataje" -> Poznań).
+                    words = key[0].split()
+                    found = []
+                    for n in range(len(words) - 1, 0, -1):
+                        found = [f for f in self._pick(self.places.get(" ".join(words[:n]), []), regions) if f[0][2] in ("city", "town")]
+                        if found:
+                            break
                     if found:
                         (lat, lon, _), region = found[0]
                         result = (lat, lon, region, "place")

@@ -182,7 +182,7 @@ def apply(projects, month_index):
     """Mark matched projects operational from the month their unit started."""
     registers = []
     if os.path.exists(REGISTERS):
-        names = {"tauron": "TAURON Dystrybucja", "enea": "ENEA Operator"}
+        names = {"tauron": "TAURON Dystrybucja", "enea": "ENEA Operator", "pge": "PGE Dystrybucja", "energa": "Energa-Operator"}
         for register in json.load(open(REGISTERS, encoding="utf-8"))["registers"]:
             register["operator_name"] = names.get(register["operator"], register["operator"])
             registers.append(register)

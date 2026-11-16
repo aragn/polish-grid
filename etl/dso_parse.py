@@ -24,6 +24,7 @@ pdfplumber reads the tables; where two rows share one table row (no rule
 between them) the words are split by their height on the page.
 """
 
+import bisect
 import datetime
 import os
 import re
@@ -46,27 +47,85 @@ def asof_from_text(text):
 def table_rows(page):
     """Every table row on the page as a list of cell strings, rows merged into one cell split apart."""
     out = []
-    words = None
     for table in page.find_tables():
         for row, extracted in zip(table.rows, table.extract()):
-            if not extracted or "\n" not in (extracted[0] or "") or not re.fullmatch(r"\d+(\n\d+)+", (extracted[0] or "").strip()):
+            if not extracted or "\n" not in (extracted[0] or "") or not re.fullmatch(r"\d+\.?(\n\d+\.?)+", (extracted[0] or "").strip()):
                 out.append(extracted)
                 continue
-            if words is None:
-                words = page.extract_words(keep_blank_chars=False, use_text_flow=False)
-            top, bottom = row.bbox[1] - 1, row.bbox[3] + 1
-            band = [w for w in words if w["top"] >= top and w["bottom"] <= bottom]
-            texts = []
+            # Several L.p. numbers in one cell (ENERGA puts dozens of rows in one): one sub-row per number,
+            # from its line's height to the next one's.  Cells are read by cropping, as pdfplumber's text
+            # extraction copes with the character spacing that splits ENERGA's words letter by letter.
+            first = row.cells[0]
+            lines = page.crop(first).extract_text_lines()
+            tops = [line["top"] for line in lines if re.fullmatch(r"\d+\.?", line["text"].strip())]
+            if len(tops) <= 1:
+                out.append(extracted)
+                continue
+            bounds = [row.bbox[1] - 1] + [t - 1 for t in tops[1:]] + [row.bbox[3] + 1]
+            # Each cell's text lines, whole, go to the sub-row whose band holds the line's middle
+            # (slicing a cell by height cuts lines that sit a little off the L.p. lines).
+            columns = []
             for bbox in row.cells:
-                texts.append(None if bbox is None else [w for w in band if w["x0"] >= bbox[0] - 1 and w["x1"] <= bbox[2] + 1])
-            numbers = sorted({round(w["top"], 1) for w in texts[0] or [] if re.fullmatch(r"\d+", w["text"])})
-            # Several L.p. numbers in one cell: one sub-row per number, from its height to the next one's.
-            bounds = numbers[1:] + [float("inf")]
-            for k, top in enumerate(numbers):
-                lo = top - 2 if k else -float("inf")
-                hi = bounds[k] - 2
-                out.append([None if t is None else join_words([w for w in t if lo <= w["top"] < hi]) for t in texts])
+                if bbox is None:
+                    columns.append(None)
+                    continue
+                parts = [[] for _ in tops]
+                for line in page.crop(bbox).extract_text_lines():
+                    middle = (line["top"] + line["bottom"]) / 2
+                    k = max(0, min(len(tops) - 1, next((i for i in range(len(tops)) if bounds[i] <= middle < bounds[i + 1]), len(tops) - 1)))
+                    parts[k].append(line["text"])
+                columns.append(parts)
+            for k in range(len(tops)):
+                out.append([None if parts is None else " ".join(parts[k]) for parts in columns])
     return out
+
+
+def char_rows(page, min_columns=27):
+    """Rows from the characters themselves, for lists whose tables pdfplumber only half finds (ENERGA's:
+    dozens of rows share one ruled cell, row numbers overlap by a fraction of a point, part of each page
+    sits outside any detected table).  Column edges come from the table's widest row; each row starts at
+    the height of its number ("158.") in the first column; every character goes to the row and column
+    its middle falls in."""
+    tables = page.find_tables()
+    rows = [row for table in tables for row in table.rows]
+    if not rows:
+        return []
+    widest = max(rows, key=lambda row: sum(cell is not None for cell in row.cells))
+    edges = [(cell[0], cell[2]) for cell in widest.cells if cell is not None]
+    if len(edges) < min_columns:
+        return []
+    chars = list(page.chars)   # spaces kept: the words' only separators at ENERGA's 1-point letter widths
+    middle_x = lambda c: (c["x0"] + c["x1"]) / 2
+    middle_y = lambda c: (c["top"] + c["bottom"]) / 2
+    first = [c for c in chars if edges[0][0] - 1 <= middle_x(c) <= edges[0][1] + 1]
+    by_top = {}
+    for c in first:
+        by_top.setdefault(round(c["top"], 1), []).append(c)
+    anchors = sorted(top for top, group in by_top.items()
+                     if re.fullmatch(r"\d+\.?", "".join(c["text"] for c in sorted(group, key=lambda c: c["x0"]))))
+    if not anchors:
+        return []
+    bounds = [a - 1 for a in anchors] + [max(c["bottom"] for c in chars) + 1]
+    cells = [[[] for _ in edges] for _ in anchors]
+    for c in chars:
+        y, x = middle_y(c), middle_x(c)
+        if y < bounds[0]:
+            continue
+        k = bisect.bisect_right(bounds, y) - 1
+        if k >= len(anchors):
+            continue
+        for j, (x0, x1) in enumerate(edges):
+            if x0 - 0.5 <= x <= x1 + 0.5:
+                cells[k][j].append(c)
+                break
+    def text(cell):
+        # Reading order: lines (tops within half a point) top to bottom, characters left to right.
+        lines = {}
+        for c in cell:
+            lines.setdefault(round(c["top"] * 2) / 2, []).append(c)
+        joined = " ".join("".join(c["text"] for c in sorted(line, key=lambda c: c["x0"])) for _, line in sorted(lines.items()))
+        return re.sub(r"\s+", " ", joined).strip()
+    return [[text(cell) for cell in row] for row in cells]
 
 
 def join_words(words):
@@ -93,17 +152,18 @@ def mw(value):
 NEW_FIELDS = ["lp", "id", "operator", "applicant", "station", "kv", "multi", "type", "mw_in", "mw_out",
               "pv", "wind", "storage_out", "storage_in", "load", "other", "status", "applied", "advance",
               "conditions", "refused", "refusal_reason", "expired", "agreement", "delivery", "terminated", "lapsed", "remarks"]
-HIDDEN_APPLICANT = ("informacja niejawna", "osoba prawna", "osoba fizyczna", "nie podlega")
+HIDDEN_APPLICANT = ("informacja niejawna", "osoba prawna", "osoba fizyczna", "nie podlega", "urząd/instytucja", "rolnik")
 
 
-def parse_new(path):
+def parse_new(path, by_chars=False):
+    """by_chars: read rows from character positions (char_rows) instead of pdfplumber's table cells."""
     rows, asof, seen = [], None, set()
     with pdfplumber.open(path) as pdf:
         for page in pdf.pages:
             if asof is None:
                 asof = asof_from_text(page.extract_text() or "")
-            for cells in table_rows(page):
-                if len(cells) < 27 or not re.fullmatch(r"\d+", clean(cells[0])):
+            for cells in (char_rows(page) if by_chars else table_rows(page)):
+                if len(cells) < 27 or not re.fullmatch(r"\d+\.?", clean(cells[0])):   # ENERGA writes "158."
                     continue
                 raw = dict(zip(NEW_FIELDS, [clean(c) for c in cells]))
                 status = art7_status(raw["status"])

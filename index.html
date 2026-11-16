@@ -245,7 +245,7 @@
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <h3 style="margin:0">Grid</h3>
               <div class="seg" id="grids" style="margin-left:auto">
-                <button type="button" data-grid="pse" class="on" title="PSE, the transmission system operator (220-400 kV stations)">PSE</button><button type="button" data-grid="tauron" class="on" title="TAURON Dystrybucja, the distribution operator of southern Poland">TAURON</button><button type="button" data-grid="enea" class="on" title="ENEA Operator, the distribution operator of western Poland">ENEA</button>
+                <button type="button" data-grid="pse" class="on" title="PSE, the transmission system operator (220-400 kV stations)">PSE</button><button type="button" data-grid="tauron" class="on" title="TAURON Dystrybucja, the distribution operator of southern Poland">TAURON</button><button type="button" data-grid="enea" class="on" title="ENEA Operator, the distribution operator of western Poland">ENEA</button><button type="button" data-grid="pge" class="on" title="PGE Dystrybucja, the distribution operator of eastern and central Poland">PGE</button><button type="button" data-grid="energa" class="on" title="Energa-Operator, the distribution operator of northern Poland">ENERGA</button>
               </div>
             </div>
             <div class="count" id="grid-note"></div>
@@ -416,9 +416,10 @@
   const state = {
     month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
     search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true,
-    grids: new Set(["pse", "tauron", "enea"]), dsoLoading: true
+    grids: new Set(["pse", "tauron", "enea", "pge", "energa"]), dsoLoading: true
   };
-  const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA" };
+  const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA", pge: "PGE", energa: "ENERGA" };
+  const DSO_GRIDS = ["tauron", "enea", "pge", "energa"];
   const gridOf = project => project.grid || "pse";
   const gridOn = project => state.grids.has(gridOf(project));
   let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart;
@@ -501,7 +502,7 @@
     loadDso(get);
   }
 
-  /* TAURON's and ENEA's lists: a larger file, drawn when it arrives. */
+  /* The distribution operators' lists: a larger file, drawn when it arrives. */
   async function loadDso(get) {
     try {
       const dso = await get("data/queue_dso.json");
@@ -527,10 +528,11 @@
     const counts = {};
     for (const p of queue.projects) counts[gridOf(p)] = (counts[gridOf(p)] || 0) + 1;
     const asof = key => queue.dso && queue.dso.operators[key] ? `, list of ${fmtDate(queue.dso.operators[key].asof)}` : "";
-    document.getElementById("grid-note").innerHTML = state.dsoLoading ? "Loading TAURON's and ENEA's lists…"
-      : queue.dsoError ? `TAURON and ENEA could not be loaded: ${esc(queue.dsoError)}`
-      : `<b>PSE</b> ${(counts.pse || 0).toLocaleString("en")} projects (220–400 kV stations) · <b>TAURON</b> ${(counts.tauron || 0).toLocaleString("en")}${asof("tauron")} · ` +
-        `<b>ENEA</b> ${(counts.enea || 0).toLocaleString("en")}${asof("enea")} (110 kV and medium voltage)`;
+    document.getElementById("grid-note").innerHTML = state.dsoLoading ? "Loading the distribution operators' lists…"
+      : queue.dsoError ? `The distribution operators' lists could not be loaded: ${esc(queue.dsoError)}`
+      : `<b>PSE</b> ${(counts.pse || 0).toLocaleString("en")} projects (220–400 kV stations) · ` +
+        DSO_GRIDS.map(key => `<b>${GRID_SHORT[key]}</b> ${(counts[key] || 0).toLocaleString("en")}${asof(key)}`).join(" · ") +
+        ` (distribution: 110 kV and medium voltage; Stoen, Warsaw's operator, not yet)`;
     document.querySelectorAll("#grids button").forEach(b => b.classList.toggle("on", state.grids.has(b.dataset.grid)));
   }
 
@@ -558,7 +560,7 @@
     const published = latest && latest.published ? new Date(latest.published).toISOString().slice(0, 10) : null;
     document.getElementById("intro-text").innerHTML =
       `Every project that has asked PSE, Poland's transmission system operator, to connect to its 110–400 kV grid at a PSE substation, ` +
-      `and, below them, the distribution operators TAURON Dystrybucja and ENEA Operator (110 kV and medium voltage)${state.dsoLoading ? " (loading…)" : ""}, ` +
+      `and, below them, the distribution operators TAURON Dystrybucja, ENEA Operator, PGE Dystrybucja and Energa-Operator (110 kV and medium voltage)${state.dsoLoading ? " (loading…)" : ""}, ` +
       `from the operators' lists under Art. 7(8l) of the Energy Law. PSE's latest list: status <b>${fmtDate(queue.asof)}</b>` +
       `${published ? ` (published ${fmtDate(published)})` : ""}; history: ${queue.months.length} monthly lists since ${fmtMonth(queue.months[0])}. ` +
       `Data updated ${fmtDate(queue.updated)}.`;
@@ -757,7 +759,7 @@
       `(Kozienice 11, Jaworzno 910 MW), and some never got built, so it means likely, not confirmed, in service. ` +
       `"Operational" means confirmed: the operator lists the plant as connected ("obiekt przyłączony"), or gives the date it may sign a distribution contract or started delivering energy, ` +
       `or a register of running units has it: TAURON's and ENEA's storage registers, or PSE's metered output of centrally dispatched units (a unit that first produced after the project's agreement, at a station of its name). ` +
-      `TAURON and ENEA: their lists under the same article, at 110 kV and medium voltage. Since autumn 2026 both use PSE's layout (object id, station, status and every date); ` +
+      `TAURON, ENEA, PGE and ENERGA: their lists under the same article, at 110 kV and medium voltage. Since autumn 2026 all use PSE's layout (object id, station, status and every date); PGE's and ENERGA's history starts with their list of 30 Sep 2026 (their sites serve only the newest). ` +
       `earlier lists (TAURON quarterly since end 2021, ENEA two lists of 2025–2026) covered generators only, with a gmina or village instead of a station, and are linked into the new ones ` +
       `by conditions date, size and kind. TAURON names its stations by code (WZA4); the code's station comes from TAURON's lists of available capacity. A station is placed at the OpenStreetMap substation of its name ` +
       `in the operator's voivodeships, otherwise at the town or village of that name; older rows at their gmina.`;
@@ -795,7 +797,7 @@
     document.getElementById("table-title").textContent = `Showing ${pageItems.length} of ${items.length.toLocaleString("en")} projects (${fmtGw(mw)})`;
     document.getElementById("table-sub").textContent = state.month === queue.months.length - 1
       ? `The operators' latest lists (PSE ${fmtMonth(queue.asof)}); click a project for its milestones and history`
-      : `Phase as in the lists of ${fmtMonth(queue.months[state.month])} (TAURON's and ENEA's: the latest before it); other columns as last listed`;
+      : `Phase as in the lists of ${fmtMonth(queue.months[state.month])} (the distribution operators': the latest before it); other columns as last listed`;
     const head = `<thead><tr><th>Project</th><th>Technology</th><th class="num">MW in / out</th><th>Station</th><th>Phase</th><th>Conditions</th><th>Agreement</th><th>Connection date</th></tr></thead>`;
     const body = pageItems.map(item => {
       const p = item.project, row = techRow(p);
@@ -839,12 +841,12 @@
     const series = [];
     const stackPhases = ["application", "study", "conditions", "agreement", "operating", "operational"];
     const colors = { application: "--p-5", study: "--p-4", conditions: "--p-3", agreement: "--p-2", operating: "--p-1", operational: "--op" };
-    // PSE's cells and, for the operators switched on, TAURON's and ENEA's.
+    // PSE's cells and, for the operators switched on, the distribution operators'.
     const cellsOf = entry => {
       const out = {};
       const add = cells => { for (const [key, [n, value]] of Object.entries(cells || {})) { const cell = out[key] ||= [0, 0]; cell[0] += n; cell[1] += value; } };
       if (state.grids.has("pse")) add(entry.cells);
-      for (const grid of ["tauron", "enea"]) if (state.grids.has(grid) && entry.grids) add(entry.grids[grid]);
+      for (const grid of DSO_GRIDS) if (state.grids.has(grid) && entry.grids) add(entry.grids[grid]);
       return out;
     };
     for (const phase of stackPhases) {
@@ -884,7 +886,7 @@
     }, true);
     document.getElementById("history-sub").innerHTML =
       `Conditions and agreements from PSE's main list (generators only until June 2025; storage, distribution and demand added from July 2025, hence the jump)` +
-      `${state.grids.has("tauron") || state.grids.has("enea") ? "; TAURON's and ENEA's from their lists, each held until their next list (the jumps in autumn 2026 are their first full lists, with demand and every voltage)" : ""}. ` +
+      `${DSO_GRIDS.some(grid => state.grids.has(grid)) ? "; the distribution operators' from their lists, each held until their next list (the jumps in autumn 2026 are their first full lists, with demand and every voltage; PGE and ENERGA start there)" : ""}. ` +
       `Applications and those under study from PSE's application lists from April 2024. Refusals since 2023: ` +
       `${refusalSummary()}.`;
   }
@@ -1193,7 +1195,9 @@
       `(every monthly version since 2020, read from PSE's document archive; earlier versions, 2017–2020, are scans not yet read). ` +
       `Substations and lines: © OpenStreetMap contributors (ODbL). Voivodeships: GUGiK PRG via polska-geojson (MIT). ` +
       `Distribution: <a href="https://www.tauron-dystrybucja.pl/przylaczenie-do-sieci/dostepne-moce/podmioty-ubiegajace-sie" target="_blank" rel="noopener">TAURON Dystrybucja</a> and ` +
-      `<a href="https://www.operator.enea.pl/przylaczenie-do-sieci/informacje-o-przylaczeniach" target="_blank" rel="noopener">ENEA Operator</a> lists under art. 7 ust. 8l and their registers of energy storage; ` +
+      `<a href="https://www.operator.enea.pl/przylaczenie-do-sieci/informacje-o-przylaczeniach" target="_blank" rel="noopener">ENEA Operator</a> (lists under art. 7 ust. 8l and registers of energy storage), ` +
+      `<a href="https://pgedystrybucja.pl/przylaczenia/procedury-przylaczeniowe/informacja-o-podmiotach-ubiegajacych-sie-o-przylaczenie-do-sieci-powyzej-1kv" target="_blank" rel="noopener">PGE Dystrybucja</a> and ` +
+      `<a href="https://energa-operator.pl/przylaczenie-do-sieci/informacje-o-stanie-przylaczen" target="_blank" rel="noopener">Energa-Operator</a> (lists); ` +
       `running units also from <a href="https://api.raporty.pse.pl/" target="_blank" rel="noopener">PSE's metered unit output</a>. ` +
       `Project names, ids and statuses are the operators'; the technology groups, phases, positions and the linking of projects across months are this site's, and can be wrong. ` +
       `<a href="https://github.com/aragn/polish-grid" target="_blank" rel="noopener">Code and data on GitHub</a>.`;
