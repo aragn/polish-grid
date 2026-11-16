@@ -1,5 +1,5 @@
 """
-Look for PSE's new connection-queue files and rebuild the data when there is one.
+Look for new connection-queue files (PSE, TAURON, ENEA) and rebuild the data when there is one.
 
     python etl/update.py              # daily: the monthly file(s) linked on PSE's page now
     python etl/update.py --backfill   # also every version of the old fixed-name files (about
@@ -18,7 +18,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import build  # noqa: E402
+import dso  # noqa: E402
 import pse  # noqa: E402
+import running  # noqa: E402
 
 
 def main():
@@ -42,8 +44,11 @@ def main():
             for entry in entries:
                 print(f"{title}.{ext} v{entry['version']}: {entry.get('asof') or '-'}, {entry.get('rows', 0)} rows {entry.get('skipped', '')}")
         pse.save_sources(sources)
-        if not new:
-            print("Nothing new from PSE.")
+        # TAURON's and ENEA's lists and storage registers, and PSE's unit output once a month.
+        dso_changed = dso.run(backfill=args.backfill)
+        jwcd_changed = running.fetch_jwcd()
+        if not new and not dso_changed and not jwcd_changed:
+            print("Nothing new from PSE, TAURON or ENEA.")
             return
     build.main()
 

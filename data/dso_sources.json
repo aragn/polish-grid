@@ -1,0 +1,159 @@
+{
+ "lists": [
+  {
+   "operator": "enea",
+   "layout": "oldenea",
+   "url": "https://www.operator.enea.pl/media/2734/zestawieniepodmiotow30092025r-werdo-podpisusig-003-sigpdf.pdf",
+   "via": "https://web.archive.org/web/20260101130305id_/https://www.operator.enea.pl/media/2734/zestawieniepodmiotow30092025r-werdo-podpisusig-003-sigpdf.pdf",
+   "published": null,
+   "md5": "10b987988deaadafcded4764354e7685",
+   "file": "archive/enea/10b98798_zestawieniepodmiotow30092025r-werdo-podpisusig-003-sigpdf.pdf",
+   "asof": "2025-09-30",
+   "rows": 2045
+  },
+  {
+   "operator": "enea",
+   "layout": "oldenea",
+   "url": "https://www.operator.enea.pl/media/3460/przylaczenie-do-sieci/zestawieniepodmiotow30062026rpdf.pdf",
+   "via": "https://web.archive.org/web/20260719062032id_/https://www.operator.enea.pl/media/3460/przylaczenie-do-sieci/zestawieniepodmiotow30062026rpdf.pdf",
+   "published": null,
+   "md5": "25bfc821ff957da6eca91e01a0c0dc5d",
+   "file": "archive/enea/25bfc821_zestawieniepodmiotow30062026rpdf.pdf",
+   "asof": "2026-06-30",
+   "rows": 1593
+  },
+  {
+   "operator": "enea",
+   "layout": "new",
+   "url": "https://www.operator.enea.pl/media/5290/wspolny-wykaz-30092026pdf.pdf",
+   "via": null,
+   "published": null,
+   "md5": "3cbdfb0e348ed108a85c4b82c856a250",
+   "file": "archive/enea/3cbdfb0e_wspolny-wykaz-30092026pdf.pdf",
+   "asof": "2026-09-30",
+   "rows": 6350
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2021.ashx",
+   "via": "https://web.archive.org/web/20220517015210id_/https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2021.ashx",
+   "published": null,
+   "md5": "fe52653ab635aa6f30a407dab5112cc5",
+   "file": "archive/tauron/fe52653a_informacja-iv-kw-2021.pdf",
+   "asof": "2022-01-03",
+   "rows": 982
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ikw-2022.ashx",
+   "via": "https://web.archive.org/web/20221207152505id_/https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ikw-2022.ashx",
+   "published": null,
+   "md5": "a92ae93df18e83feec2a1c3c90925951",
+   "file": "archive/tauron/a92ae93d_informacja-ikw-2022.pdf",
+   "asof": "2022-04-05",
+   "rows": 982
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ii-kw-2023.ashx",
+   "via": "https://web.archive.org/web/20240405152207id_/https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ii-kw-2023.ashx",
+   "published": null,
+   "md5": "1fc2a587da9bec3047c2cfc52307cf3d",
+   "file": "archive/tauron/1fc2a587_informacja-ii-kw-2023.pdf",
+   "asof": "2023-06-30",
+   "rows": 2426
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ii-kw-2024.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:24 GMT",
+   "md5": "7b86c81e9d5fe205c2132c1af430124d",
+   "file": "archive/tauron/7b86c81e_informacja-ii-kw-2024.pdf",
+   "asof": "2024-06-30",
+   "rows": 2599
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iii-kw-2024.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:24 GMT",
+   "md5": "db7280341344ce614d59ad5833ceae8c",
+   "file": "archive/tauron/db728034_informacja-iii-kw-2024.pdf",
+   "asof": "2024-09-30",
+   "rows": 2739
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2024.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:24 GMT",
+   "md5": "9a50c03f3044fd807049c59c46074262",
+   "file": "archive/tauron/9a50c03f_informacja-iv-kw-2024.pdf",
+   "asof": "2024-12-31",
+   "rows": 2968
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-ii-kw-2025.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:24 GMT",
+   "md5": "edf9a1ccd16d997a5f927b54e2bbfb23",
+   "file": "archive/tauron/edf9a1cc_informacja-ii-kw-2025.pdf",
+   "asof": "2025-06-30",
+   "rows": 2791
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iii-kw-2025.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:23 GMT",
+   "md5": "590deabd203060ffee0dcf9722f0e308",
+   "file": "archive/tauron/590deabd_informacja-iii-kw-2025.pdf",
+   "asof": "2025-09-30",
+   "rows": 2705
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2025.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:23 GMT",
+   "md5": "236d7d9b3fb7473215fa22de925ea5b3",
+   "file": "archive/tauron/236d7d9b_informacja-iv-kw-2025.pdf",
+   "asof": "2025-12-31",
+   "rows": 2712
+  },
+  {
+   "operator": "tauron",
+   "layout": "old",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-i-kw-2026.ashx",
+   "via": null,
+   "published": "Wed, 01 Jul 2026 08:28:22 GMT",
+   "md5": "e31dbb003fecad03d5ebf32eab7a8c21",
+   "file": "archive/tauron/e31dbb00_informacja-i-kw-2026.pdf",
+   "asof": "2026-03-31",
+   "rows": 2636
+  },
+  {
+   "operator": "tauron",
+   "layout": "new",
+   "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-o-przylaczanych-obiektach-i-wydanych-odmowach.ashx",
+   "via": null,
+   "published": "Thu, 22 Oct 2026 09:57:27 GMT",
+   "md5": "ef0bae9841da3d3a683e7349642ac4bd",
+   "file": "archive/tauron/ef0bae98_informacja-o-przylaczanych-obiektach-i-wydanych-odmowach.pdf",
+   "asof": "2026-09-30",
+   "rows": 9819
+  }
+ ],
+ "registers": []
+}

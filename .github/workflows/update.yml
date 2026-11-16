@@ -1,7 +1,7 @@
-# Checks PSE's page every morning for a new monthly connection-queue file;
+# Checks PSE's, TAURON's and ENEA's pages every morning for a new connection-queue file;
 # when there is one, archives it, rebuilds data/ and commits. GitHub Pages
 # (deploying from main) then republishes the site.
-name: Update PSE queue
+name: Update connection queues
 
 on:
   schedule:
@@ -43,5 +43,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A data archive
           if git diff --cached --quiet; then echo "No changes."; exit 0; fi
-          git commit -m "PSE queue: $(python -c "import json; print(json.load(open('data/queue.json'))['asof'])") list"
+          git commit -m "Connection queues: PSE $(python -c "import json; print(json.load(open('data/queue.json'))['asof'])") list"
           git push
