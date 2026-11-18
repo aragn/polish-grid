@@ -18,6 +18,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import build  # noqa: E402
+import capacity_market  # noqa: E402
 import dso  # noqa: E402
 import pse  # noqa: E402
 import running  # noqa: E402
@@ -47,8 +48,9 @@ def main():
         # TAURON's and ENEA's lists and storage registers, and PSE's unit output once a month.
         dso_changed = dso.run(backfill=args.backfill)
         jwcd_changed = running.fetch_jwcd()
-        if not new and not dso_changed and not jwcd_changed:
-            print("Nothing new from PSE, TAURON or ENEA.")
+        cm_changed = capacity_market.main()   # URE's capacity-market results: only new notices are read
+        if not new and not dso_changed and not jwcd_changed and not cm_changed:
+            print("Nothing new from PSE, the distribution operators, the unit output or the capacity market.")
             return
     build.main()
 
