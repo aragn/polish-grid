@@ -678,8 +678,9 @@
         emphasis: { scale: 1.5, itemStyle: { borderColor: cssVar("--text"), borderWidth: 1.5 } }
       },
       {
-        // PSE's switchyards with no free connection bays: hollow squares above the projects.
-        id: "saturation", type: "scatter", coordinateSystem: "geo", z: 4, symbol: "rect", symbolSize: 13,
+        // PSE's switchyards with no free connection bays: hollow squares under the projects (a hollow symbol
+        // still catches clicks over its whole area, so above the dots it would block them).
+        id: "saturation", type: "scatter", coordinateSystem: "geo", z: 2.5, symbol: "rect", symbolSize: 13,
         data: state.saturation ? saturation.stations.filter(s => s.lat != null && s.now).map(s => ({
           name: s.name, value: [s.lon, s.lat], sat: s,
           itemStyle: { color: "transparent", borderWidth: 2.4, borderType: s.section === "full" ? "solid" : "dashed",
