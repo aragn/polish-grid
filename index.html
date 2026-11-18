@@ -199,7 +199,7 @@
     .sat-pane .go { margin-left:auto; color:var(--accent); font-size:18px; display:inline; }
     .d-back { flex:none; align-self:center; }
     .d-sat { display:grid; grid-template-columns:minmax(0, 1fr) 320px; gap:16px; padding:16px 20px 20px; }
-    .sat-main { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; aspect-ratio:1 / 1; max-height:calc(100vh - 190px); margin:0 auto; width:100%; }
+    .sat-main { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; aspect-ratio:1 / 1; width:min(100%, calc(100vh - 220px)); min-width:min(100%, 320px); margin:0 auto; }
     .sat-main img { width:100%; height:100%; object-fit:contain; display:block; image-rendering:auto; }
     .sat-pin { position:absolute; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px; border:2px solid #ff3b30; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.6); pointer-events:none; }
     .sat-scale { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.6); color:#fff; font-size:11.5px; padding:3px 7px; border-radius:5px; }
