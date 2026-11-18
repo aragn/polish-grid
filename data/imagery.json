@@ -1,5 +1,6 @@
 {
  "updated": "2026-11-18",
+ "checked": "2026-11-18",
  "sites": [
   {
    "key": "mee-dziegielewo",
@@ -583,11 +584,6 @@
      "year": 2020,
      "file": "ortho_2020.jpg",
      "md5": "6511752f6f37c3d28f8253152c0d7257"
-    },
-    {
-     "year": 2023,
-     "file": "ortho_2023.jpg",
-     "md5": "0ee453cbf8ed18ee31a5c060058b51de"
     },
     {
      "year": 2024,
@@ -2367,11 +2363,6 @@
      "md5": "04ff40cc1bcf5f7b3e36f996d2b94b42"
     },
     {
-     "year": 2025,
-     "file": "ortho_2025.jpg",
-     "md5": "92fc657dc3673f4e747fb1eed57ca147"
-    },
-    {
      "year": 2026,
      "file": "ortho_2026_current.jpg",
      "md5": "d8d201609ee485377b271efbf990306b",
@@ -2606,8 +2597,8 @@
    "ortho_checked": "2026-11-18",
    "ortho": [
     {
-     "year": 2021,
-     "file": "ortho_2021.jpg",
+     "year": 2020,
+     "file": "ortho_2020.jpg",
      "md5": "2cbd3c61e541327106e3242dd420e2fa"
     },
     {
@@ -4387,6 +4378,11 @@
      "md5": "20f1e8d5d99d9c12defbb88b90688c24"
     },
     {
+     "year": 2022,
+     "file": "ortho_2022.jpg",
+     "md5": "8ec754c3f5a89c5a472565304232b118"
+    },
+    {
      "year": 2023,
      "file": "ortho_2023.jpg",
      "md5": "de832456cc365329e68576eae0b6f27d"
@@ -5066,6 +5062,524 @@
      "file": "s2_2026-10-03.jpg",
      "item": "S2A_33UWS_20261003_0_L2A",
      "scene_cloud": 0.1
+    }
+   ]
+  },
+  {
+   "key": "stary-grodkow",
+   "match": {
+    "grid": "tauron",
+    "station": "GDK3",
+    "mw": 50
+   },
+   "label": "Stary Grodków BESS, 50 MW",
+   "lat": 50.666751,
+   "lon": 17.387126,
+   "half_m": 250,
+   "s2_half_m": 500,
+   "parcels": [
+    "160709_2.0010.526/2"
+   ],
+   "outline": {
+    "160709_2.0010.526/2": [
+     [
+      [
+       17.388217,
+       50.667009
+      ],
+      [
+       17.38829,
+       50.666341
+      ],
+      [
+       17.388309,
+       50.666161
+      ],
+      [
+       17.38694,
+       50.66613
+      ],
+      [
+       17.386866,
+       50.666807
+      ],
+      [
+       17.385943,
+       50.666966
+      ],
+      [
+       17.386116,
+       50.667371
+      ],
+      [
+       17.388217,
+       50.667009
+      ]
+     ]
+    ]
+   },
+   "location": {
+    "short": "GUNB building permit",
+    "text": "Building permit ST-OP-NY/WNIOSEK/3307/2024 (ME Stary Grodków: PV farm of up to 12 MW with energy storage and SN/WN substation, decision of 18 Sep 2024) gives parcels 293/6 and 293/8, obręb Stary Grodków (gmina Skoroszyce), since renumbered. The battery containers visible on the images stand on today's parcel 526/2 (GUGiK's parcel service)",
+    "url": "https://wyszukiwarka.gunb.gov.pl/"
+   },
+   "note": "Status on 20 Oct 2026: running. Matched by station code and size: TAURON's list gives no names.",
+   "ortho_checked": "2026-11-18",
+   "ortho": [
+    {
+     "year": 2020,
+     "file": "ortho_2020.jpg",
+     "md5": "9735d56dfad4beda6e3300010fd7307c"
+    },
+    {
+     "year": 2021,
+     "file": "ortho_2021.jpg",
+     "md5": "24d54ea232e4f68fd6fad7a9d7e7f37b"
+    },
+    {
+     "year": 2023,
+     "file": "ortho_2023.jpg",
+     "md5": "46b20f9e8eca6127ac5039ba7e413421"
+    },
+    {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "c1fa5de80fbe6dd02803fbd5a51082f0"
+    },
+    {
+     "year": 2025,
+     "file": "ortho_2025.jpg",
+     "md5": "ab5cfc60d13a1c5e41245a99bc0260ec"
+    }
+   ],
+   "s2_checked": "2026-11-18",
+   "s2": [
+    {
+     "date": "2024-01-30",
+     "file": "s2_2024-01-30.jpg",
+     "item": "S2B_33UXS_20240130_0_L2A",
+     "scene_cloud": 13.9
+    },
+    {
+     "date": "2024-05-04",
+     "file": "s2_2024-05-04.jpg",
+     "item": "S2A_33UXS_20240504_0_L2A",
+     "scene_cloud": 10.8
+    },
+    {
+     "date": "2024-07-30",
+     "file": "s2_2024-07-30.jpg",
+     "item": "S2A_33UXS_20240730_0_L2A",
+     "scene_cloud": 0.3
+    },
+    {
+     "date": "2024-08-24",
+     "file": "s2_2024-08-24.jpg",
+     "item": "S2B_33UXS_20240824_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-09-06",
+     "file": "s2_2024-09-06.jpg",
+     "item": "S2B_33UXS_20240906_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-10-26",
+     "file": "s2_2024-10-26.jpg",
+     "item": "S2B_33UXS_20241026_0_L2A",
+     "scene_cloud": 15.7
+    },
+    {
+     "date": "2024-11-27",
+     "file": "s2_2024-11-27.jpg",
+     "item": "S2A_33UXS_20241127_0_L2A",
+     "scene_cloud": 9.3
+    },
+    {
+     "date": "2025-02-05",
+     "file": "s2_2025-02-05.jpg",
+     "item": "S2C_33UXS_20250205_0_L2A",
+     "scene_cloud": 2.8
+    },
+    {
+     "date": "2025-03-22",
+     "file": "s2_2025-03-22.jpg",
+     "item": "S2A_33UXS_20250322_1_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-04-04",
+     "file": "s2_2025-04-04.jpg",
+     "item": "S2B_33UXS_20250404_0_L2A",
+     "scene_cloud": 1.7
+    },
+    {
+     "date": "2025-06-30",
+     "file": "s2_2025-06-30.jpg",
+     "item": "S2A_33UXS_20250630_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-07-05",
+     "file": "s2_2025-07-05.jpg",
+     "item": "S2C_33UXS_20250705_0_L2A",
+     "scene_cloud": 13.6
+    },
+    {
+     "date": "2025-08-12",
+     "file": "s2_2025-08-12.jpg",
+     "item": "S2B_33UXS_20250812_1_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-09-28",
+     "file": "s2_2025-09-28.jpg",
+     "item": "S2B_33UXS_20250928_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-10-03",
+     "file": "s2_2025-10-03.jpg",
+     "item": "S2C_33UXS_20251003_0_L2A",
+     "scene_cloud": 21.9
+    },
+    {
+     "date": "2025-11-07",
+     "file": "s2_2025-11-07.jpg",
+     "item": "S2A_33UXS_20251107_0_L2A",
+     "scene_cloud": 5.5
+    },
+    {
+     "date": "2025-12-10",
+     "file": "s2_2025-12-10.jpg",
+     "item": "S2B_33UXS_20251210_2_L2A",
+     "scene_cloud": 27.8
+    },
+    {
+     "date": "2026-02-28",
+     "file": "s2_2026-02-28.jpg",
+     "item": "S2B_33UXS_20260228_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2026-03-07",
+     "file": "s2_2026-03-07.jpg",
+     "item": "S2A_33UXS_20260307_1_L2A",
+     "scene_cloud": 2.1
+    },
+    {
+     "date": "2026-04-23",
+     "file": "s2_2026-04-23.jpg",
+     "item": "S2A_33UXS_20260423_0_L2A",
+     "scene_cloud": 12.8
+    },
+    {
+     "date": "2026-05-03",
+     "file": "s2_2026-05-03.jpg",
+     "item": "S2A_33UXS_20260503_0_L2A",
+     "scene_cloud": 13.0
+    },
+    {
+     "date": "2026-06-25",
+     "file": "s2_2026-06-25.jpg",
+     "item": "S2A_33UXS_20260625_1_L2A",
+     "scene_cloud": 4.6
+    },
+    {
+     "date": "2026-07-30",
+     "file": "s2_2026-07-30.jpg",
+     "item": "S2C_33UXS_20260730_0_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2026-08-14",
+     "file": "s2_2026-08-14.jpg",
+     "item": "S2A_33UXS_20260814_1_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2026-09-28",
+     "file": "s2_2026-09-28.jpg",
+     "item": "S2C_33UXS_20260928_0_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2026-10-23",
+     "file": "s2_2026-10-23.jpg",
+     "item": "S2B_33UXS_20261023_0_L2A",
+     "scene_cloud": 8.6
+    },
+    {
+     "date": "2026-11-15",
+     "file": "s2_2026-11-15.jpg",
+     "item": "S2B_33UXS_20261115_0_L2A",
+     "scene_cloud": 0.0
+    }
+   ]
+  },
+  {
+   "key": "mee-elk",
+   "match": {
+    "grid": "pse",
+    "name": "MEE Ełk",
+    "applicant": "Magazyn EE Ełk"
+   },
+   "label": "Ełk BESS (Greenvolt), 200 MW",
+   "lat": 53.76594,
+   "lon": 22.295741,
+   "half_m": 250,
+   "s2_half_m": 500,
+   "parcels": [
+    "280502_2.0031.451/98"
+   ],
+   "outline": {
+    "280502_2.0031.451/98": [
+     [
+      [
+       22.297445,
+       53.766097
+      ],
+      [
+       22.297325,
+       53.766098
+      ],
+      [
+       22.296409,
+       53.76611
+      ],
+      [
+       22.295827,
+       53.767462
+      ],
+      [
+       22.294101,
+       53.767501
+      ],
+      [
+       22.294038,
+       53.765478
+      ],
+      [
+       22.294614,
+       53.764812
+      ],
+      [
+       22.294772,
+       53.764648
+      ],
+      [
+       22.295002,
+       53.76438
+      ],
+      [
+       22.29638,
+       53.76498
+      ],
+      [
+       22.296524,
+       53.765037
+      ],
+      [
+       22.296889,
+       53.7652
+      ],
+      [
+       22.297343,
+       53.765213
+      ],
+      [
+       22.297412,
+       53.765203
+      ],
+      [
+       22.297445,
+       53.766097
+      ]
+     ]
+    ]
+   },
+   "location": {
+    "short": "GUNB building permit",
+    "text": "Building permits ST-WM-EK/WNIOSEK/1375/2024 and 1376/2024 (Magazyn EE Ełk: energy storage and its 110/SN kV substation, decisions of 6–7 Nov 2023, revised 2025) give parcel 451/80, obręb Nowa Wieś Ełcka (gmina Ełk), since divided. The new installation visible on the images stands on today's parcel 451/98 (GUGiK's parcel service)",
+    "url": "https://wyszukiwarka.gunb.gov.pl/"
+   },
+   "note": "Status on 20 Oct 2026: switched on (on a temporary 220 kV tap; PSE's row is for the permanent 400 kV connection).",
+   "ortho_checked": "2026-11-18",
+   "ortho": [
+    {
+     "year": 2020,
+     "file": "ortho_2020.jpg",
+     "md5": "5fdebade64631d02748d45aabd7743d4"
+    },
+    {
+     "year": 2022,
+     "file": "ortho_2022.jpg",
+     "md5": "07e9b9918e96b83cf22e32bf340805c2"
+    },
+    {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "65b8504d6191de01b7729f53091bfbd0"
+    }
+   ],
+   "s2_checked": "2026-11-18",
+   "s2": [
+    {
+     "date": "2024-03-07",
+     "file": "s2_2024-03-07.jpg",
+     "item": "S2B_34UEE_20240307_0_L2A",
+     "scene_cloud": 2.6
+    },
+    {
+     "date": "2024-04-28",
+     "file": "s2_2024-04-28.jpg",
+     "item": "S2A_34UEE_20240428_0_L2A",
+     "scene_cloud": 1.0
+    },
+    {
+     "date": "2024-05-01",
+     "file": "s2_2024-05-01.jpg",
+     "item": "S2A_34UEE_20240501_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-06-30",
+     "file": "s2_2024-06-30.jpg",
+     "item": "S2A_34UEE_20240630_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-07-22",
+     "file": "s2_2024-07-22.jpg",
+     "item": "S2B_34UEE_20240722_0_L2A",
+     "scene_cloud": 26.9
+    },
+    {
+     "date": "2024-08-29",
+     "file": "s2_2024-08-29.jpg",
+     "item": "S2A_34UEE_20240829_0_L2A",
+     "scene_cloud": 4.7
+    },
+    {
+     "date": "2024-09-08",
+     "file": "s2_2024-09-08.jpg",
+     "item": "S2A_34UEE_20240908_1_L2A",
+     "scene_cloud": 6.4
+    },
+    {
+     "date": "2024-10-18",
+     "file": "s2_2024-10-18.jpg",
+     "item": "S2A_34UEE_20241018_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-11-04",
+     "file": "s2_2024-11-04.jpg",
+     "item": "S2A_34UEE_20241104_0_L2A",
+     "scene_cloud": 24.6
+    },
+    {
+     "date": "2025-02-12",
+     "file": "s2_2025-02-12.jpg",
+     "item": "S2C_34UEE_20250212_0_L2A",
+     "scene_cloud": 1.0
+    },
+    {
+     "date": "2025-03-29",
+     "file": "s2_2025-03-29.jpg",
+     "item": "S2B_34UEE_20250329_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-04-23",
+     "file": "s2_2025-04-23.jpg",
+     "item": "S2C_34UEE_20250423_0_L2A",
+     "scene_cloud": 12.6
+    },
+    {
+     "date": "2025-05-06",
+     "file": "s2_2025-05-06.jpg",
+     "item": "S2C_34UEE_20250506_0_L2A",
+     "scene_cloud": 1.4
+    },
+    {
+     "date": "2025-06-15",
+     "file": "s2_2025-06-15.jpg",
+     "item": "S2C_34UEE_20250615_0_L2A",
+     "scene_cloud": 9.8
+    },
+    {
+     "date": "2025-07-02",
+     "file": "s2_2025-07-02.jpg",
+     "item": "S2C_34UEE_20250702_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-08-29",
+     "file": "s2_2025-08-29.jpg",
+     "item": "S2B_34UEE_20250829_0_L2A",
+     "scene_cloud": 22.3
+    },
+    {
+     "date": "2025-09-02",
+     "file": "s2_2025-09-02.jpg",
+     "item": "S2A_34UEE_20250902_0_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2025-10-08",
+     "file": "s2_2025-10-08.jpg",
+     "item": "S2B_34UEE_20251008_0_L2A",
+     "scene_cloud": 3.3
+    },
+    {
+     "date": "2026-03-27",
+     "file": "s2_2026-03-27.jpg",
+     "item": "S2B_34UEE_20260327_0_L2A",
+     "scene_cloud": 2.4
+    },
+    {
+     "date": "2026-04-23",
+     "file": "s2_2026-04-23.jpg",
+     "item": "S2A_34UEE_20260423_1_L2A",
+     "scene_cloud": 0.2
+    },
+    {
+     "date": "2026-05-01",
+     "file": "s2_2026-05-01.jpg",
+     "item": "S2C_34UEE_20260501_0_L2A",
+     "scene_cloud": 1.0
+    },
+    {
+     "date": "2026-06-27",
+     "file": "s2_2026-06-27.jpg",
+     "item": "S2C_34UEE_20260627_0_L2A",
+     "scene_cloud": 3.1
+    },
+    {
+     "date": "2026-08-09",
+     "file": "s2_2026-08-09.jpg",
+     "item": "S2C_34UEE_20260809_0_L2A",
+     "scene_cloud": 3.0
+    },
+    {
+     "date": "2026-09-08",
+     "file": "s2_2026-09-08.jpg",
+     "item": "S2C_34UEE_20260908_0_L2A",
+     "scene_cloud": 18.3
+    },
+    {
+     "date": "2026-10-25",
+     "file": "s2_2026-10-25.jpg",
+     "item": "S2C_34UEE_20261025_0_L2A",
+     "scene_cloud": 17.8
+    },
+    {
+     "date": "2026-11-16",
+     "file": "s2_2026-11-16.jpg",
+     "item": "S2A_34UEE_20261116_0_L2A",
+     "scene_cloud": 14.3
     }
    ]
   }
