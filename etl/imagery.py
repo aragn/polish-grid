@@ -1,0 +1,216 @@
+"""
+Aerial and satellite images of the projects whose site is known (etl/sites.json),
+for the "Satellite image" card on the queue page.
+
+    python etl/imagery.py            # add what is new
+
+Two sources, both free:
+
+* GUGiK orthophotos (Geoportal.gov.pl WMS): the current image and the archive
+  (the StandardResolutionTime service), one image per distinct flight since 2020,
+  labelled with the year it was in use.  About 0.3 m per pixel.
+  mapy.geoportal.gov.pl does not answer from every network (it does from
+  GitHub's runners); when it fails, the orthophotos already saved stay.
+* Sentinel-2 L2A (EU Copernicus), read from the AWS open-data copy through the
+  Earth Search STAC catalogue, no account needed.  The clearest pass of each month
+  since January 2024, cut to a square around the site.  10 m pixels.  A pass counts
+  as clear when its scene classification shows no cloud, cloud shadow, cirrus or
+  snow in a square three times the crop's size, and under 0.3% of the crop is
+  bright and colourless (thin cloud the classification misses).
+
+Writes data/imagery/<key>/*.jpg and data/imagery.json.  main() returns True when
+anything changed.
+"""
+
+import argparse
+import datetime as dt
+import hashlib
+import io
+import json
+import math
+import os
+
+import requests
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+OUT_DIR = os.path.join(ROOT, "data", "imagery")
+OUT_JSON = os.path.join(ROOT, "data", "imagery.json")
+SITES = os.path.join(HERE, "sites.json")
+
+WMS = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/"
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
+ORTHO_FROM = 2020
+ORTHO_PX = 1000
+STAC = "https://earth-search.aws.element84.com/v1"
+S2_FROM = "2024-01-01"
+S2_PX = 480
+S2_SCENE_CLOUD = 30                # per cent of the whole 110 km tile: a first filter only
+CLEAR_CLASSES = (4, 5, 6, 7)       # vegetation, bare, water, unclassified
+CLOUD_CLASSES = (3, 8, 9, 10, 11)  # cloud shadow, cloud medium and high, cirrus, snow
+GREY = 110                         # true-colour value: brighter than this in every band and nearly colourless = cloud
+
+
+def today():
+    return dt.date.today().isoformat()
+
+
+def bbox(lat, lon, half):
+    dlat = half / 111320
+    dlon = half / (111320 * math.cos(math.radians(lat)))
+    return f"{lon - dlon:.6f},{lat - dlat:.6f},{lon + dlon:.6f},{lat + dlat:.6f}"
+
+
+def reencode(raw, px):
+    """JPEG bytes -> (smaller JPEG bytes, looks blank).  GUGiK returns a white image where it has none."""
+    from PIL import Image, ImageStat
+    image = Image.open(io.BytesIO(raw)).convert("RGB")
+    blank = max(ImageStat.Stat(image).stddev) < 3
+    if image.width != px:
+        image = image.resize((px, px), Image.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, "JPEG", quality=82, optimize=True)
+    return buffer.getvalue(), blank
+
+
+def wms_get(service, lat, lon, half, extra=None):
+    params = {"SERVICE": "WMS", "VERSION": "1.1.1", "REQUEST": "GetMap", "LAYERS": "Raster", "STYLES": "",
+              "SRS": "EPSG:4326", "BBOX": bbox(lat, lon, half), "WIDTH": ORTHO_PX, "HEIGHT": ORTHO_PX, "FORMAT": "image/jpeg"}
+    params.update(extra or {})
+    response = requests.get(WMS + service, params=params, headers=UA, timeout=90)
+    response.raise_for_status()
+    if "image" not in response.headers.get("Content-Type", ""):
+        raise RuntimeError(f"{service}: {response.text[:200]}")
+    return response.content
+
+
+def orthophotos(site, entry, folder):
+    """The distinct GUGiK images since ORTHO_FROM.  Returns True when the set changed."""
+    lat, lon, half = site["lat"], site["lon"], site.get("half_m", 300)
+    seen, found = set(), []
+    try:
+        for year in range(ORTHO_FROM, dt.date.today().year + 1):
+            raw = wms_get("StandardResolutionTime", lat, lon, half, {"TIME": f"{year}-12-01"})
+            digest = hashlib.md5(raw).hexdigest()
+            if digest in seen:
+                continue
+            seen.add(digest)
+            small, blank = reencode(raw, ORTHO_PX)
+            if not blank:
+                found.append({"year": year, "md5": hashlib.md5(small).hexdigest(), "jpg": small})
+        small, blank = reencode(wms_get("StandardResolution", lat, lon, half), ORTHO_PX)
+        digest = hashlib.md5(small).hexdigest()
+        if not blank and digest not in {f["md5"] for f in found}:
+            # The current image is newer than anything in the archive service.
+            found.append({"year": dt.date.today().year, "md5": digest, "jpg": small, "current": True})
+    except Exception as error:   # noqa: BLE001 -- keep what we have
+        print(f"  orthophotos for {site['key']}: {error}")
+        return False
+    entry["ortho_checked"] = today()
+    if [(o["year"], o["md5"]) for o in entry.get("ortho", [])] == [(o["year"], o["md5"]) for o in found]:
+        return False
+    for name in os.listdir(folder):
+        if name.startswith("ortho_"):
+            os.remove(os.path.join(folder, name))
+    entry["ortho"] = []
+    for image in found:
+        name = f"ortho_{image['year']}{'_current' if image.get('current') else ''}.jpg"
+        open(os.path.join(folder, name), "wb").write(image["jpg"])
+        entry["ortho"].append({"year": image["year"], "file": name, "md5": image["md5"], **({"current": True} if image.get("current") else {})})
+    print(f"  orthophotos for {site['key']}: {[o['year'] for o in entry['ortho']]}")
+    return True
+
+
+def sentinel2(site, entry, folder):
+    """Add the clearest pass of every month not yet filled.  Returns True when a pass was added."""
+    try:
+        import numpy as np
+        import rasterio
+        from PIL import Image
+        from pystac_client import Client
+        from rasterio.warp import transform
+        from rasterio.windows import from_bounds
+    except ImportError as error:
+        print(f"  Sentinel-2 skipped ({error})")
+        return False
+    os.environ.setdefault("AWS_NO_SIGN_REQUEST", "YES")
+    os.environ.setdefault("GDAL_DISABLE_READDIR_ON_OPEN", "EMPTY_DIR")
+    lat, lon, half = site["lat"], site["lon"], site.get("s2_half_m", 500)
+    have = {p["date"][:7] for p in entry.get("s2", [])}
+    try:
+        items = list(Client.open(STAC).search(
+            collections=["sentinel-2-l2a"], intersects={"type": "Point", "coordinates": [lon, lat]},
+            datetime=f"{S2_FROM}/{today()}", query={"eo:cloud_cover": {"lt": S2_SCENE_CLOUD}}, max_items=2000).items())
+    except Exception as error:   # noqa: BLE001
+        print(f"  Sentinel-2 search for {site['key']}: {error}")
+        return False
+    by_month = {}
+    for item in items:
+        by_month.setdefault(item.datetime.date().isoformat()[:7], []).append(item)
+    added = []
+    for month in sorted(set(by_month) - have):
+        for item in sorted(by_month[month], key=lambda i: i.properties.get("eo:cloud_cover", 100)):
+            try:
+                with rasterio.open(item.assets["scl"].href) as src:
+                    (x,), (y,) = transform("EPSG:4326", src.crs, [lon], [lat])
+                    window = lambda h: from_bounds(x - h, y - h, x + h, y + h, src.transform)   # noqa: E731
+                    wide = src.read(1, window=window(3 * half), boundless=True, fill_value=0)
+                    near = src.read(1, window=window(half), boundless=True, fill_value=0)
+                if np.isin(near, CLEAR_CLASSES).mean() < 0.99 or np.isin(wide, CLOUD_CLASSES).mean() > 0.002 or (wide == 0).mean() > 0.01:
+                    continue
+                with rasterio.open(item.assets["visual"].href) as src:
+                    rgb = src.read([1, 2, 3], window=from_bounds(x - half, y - half, x + half, y + half, src.transform), boundless=True, fill_value=0)
+                low, high = rgb.min(axis=0).astype(int), rgb.max(axis=0).astype(int)
+                if ((low > GREY) & (high - low < 25)).mean() > 0.003:
+                    continue   # thin cloud the classification missed: bright, colourless pixels
+            except Exception as error:   # noqa: BLE001
+                print(f"  {item.id}: {error}")
+                continue
+            date = item.datetime.date().isoformat()
+            name = f"s2_{date}.jpg"
+            Image.fromarray(np.moveaxis(rgb, 0, -1)).resize((S2_PX, S2_PX), Image.LANCZOS).save(
+                os.path.join(folder, name), "JPEG", quality=85, optimize=True)
+            added.append({"date": date, "file": name, "item": item.id, "scene_cloud": round(item.properties.get("eo:cloud_cover", 0), 1)})
+            break
+    entry["s2_checked"] = today()
+    if not added:
+        return False
+    entry["s2"] = sorted(entry.get("s2", []) + added, key=lambda p: p["date"])
+    print(f"  Sentinel-2 for {site['key']}: added {[a['date'] for a in added]}")
+    return True
+
+
+def main():
+    sites = json.load(open(SITES, encoding="utf-8"))["sites"]
+    try:
+        old = {s["key"]: s for s in json.load(open(OUT_JSON, encoding="utf-8"))["sites"]}
+    except (OSError, ValueError, KeyError):
+        old = {}
+    unchecked = lambda r: {k: v for k, v in (r or {}).items() if not k.endswith("_checked")}   # noqa: E731
+    out, changed = [], False
+    for site in sites:
+        print(f"Imagery: {site['key']}")
+        folder = os.path.join(OUT_DIR, site["key"])
+        os.makedirs(folder, exist_ok=True)
+        before = old.get(site["key"])
+        entry = {k: v for k, v in (before or {}).items() if k in ("ortho", "ortho_checked", "s2", "s2_checked")}
+        if before and (before["lat"], before["lon"], before.get("half_m"), before.get("s2_half_m")) != \
+                (site["lat"], site["lon"], site.get("half_m"), site.get("s2_half_m")):
+            entry = {}   # a corrected location or size: start again
+            for name in os.listdir(folder):
+                os.remove(os.path.join(folder, name))
+        orthophotos(site, entry, folder)
+        sentinel2(site, entry, folder)
+        record = {k: site[k] for k in ("key", "match", "label", "lat", "lon", "half_m", "s2_half_m", "location", "note") if k in site}
+        record.update(entry)
+        changed |= unchecked(record) != unchecked(before)
+        out.append(record)
+    changed |= set(old) != {s["key"] for s in sites}
+    if changed:
+        json.dump({"updated": today(), "sites": out}, open(OUT_JSON, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return changed
+
+
+if __name__ == "__main__":
+    argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
+    print("changed" if main() else "no change")

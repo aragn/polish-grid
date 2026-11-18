@@ -191,6 +191,26 @@
     .changes td { padding:7px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
     .changes .from { color:var(--muted); text-decoration:line-through; }
     #mini-map { height:240px; border-radius:10px; overflow:hidden; background:var(--panel); border:1px solid var(--border); }
+    .sat-pane { display:flex; align-items:center; gap:12px; width:100%; margin-top:10px; padding:8px; border:1px solid var(--border); border-radius:10px; background:var(--panel); color:var(--text); text-align:left; cursor:pointer; font:inherit; }
+    .sat-pane:hover { background:var(--hover); border-color:var(--accent); }
+    .sat-pane img { width:64px; height:64px; object-fit:cover; border-radius:6px; flex:none; }
+    .sat-pane b { display:block; font-size:13.5px; }
+    .sat-pane span { display:block; color:var(--muted); font-size:12px; margin-top:2px; line-height:1.35; }
+    .sat-pane .go { margin-left:auto; color:var(--accent); font-size:18px; display:inline; }
+    .d-back { flex:none; align-self:center; }
+    .d-sat { display:grid; grid-template-columns:minmax(0, 1fr) 320px; gap:16px; padding:16px 20px 20px; }
+    .sat-main { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; aspect-ratio:1 / 1; width:min(100%, calc(100vh - 220px)); min-width:min(100%, 320px); margin:0 auto; }
+    .sat-main img { width:100%; height:100%; object-fit:contain; display:block; image-rendering:auto; }
+    .sat-pin { position:absolute; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px; border:2px solid #ff3b30; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.6); pointer-events:none; }
+    .sat-scale { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.6); color:#fff; font-size:11.5px; padding:3px 7px; border-radius:5px; }
+    .sat-thumbs { display:flex; gap:8px; overflow-x:auto; padding:10px 0 4px; }
+    .sat-thumbs button { flex:none; border:2px solid transparent; background:none; padding:0; border-radius:7px; cursor:pointer; color:var(--muted); font:inherit; font-size:11.5px; }
+    .sat-thumbs button img { width:84px; height:84px; object-fit:cover; display:block; border-radius:5px; }
+    .sat-thumbs button.on { border-color:var(--accent); color:var(--text); }
+    .sat-thumbs button span { display:block; padding:3px 0 2px; text-align:center; }
+    .sat-side .seg { display:inline-flex; margin-bottom:12px; }
+    .sat-side h3 { margin:0 0 6px; font-size:15px; }
+    .sat-pane[hidden], .d-sat[hidden], .d-body[hidden], .d-back[hidden] { display:none; }
     dl.facts { margin:12px 0 0; }
     .facts dt { font-weight:650; font-size:13px; margin-top:12px; }
     .facts dd { margin:2px 0 0; color:var(--muted); font-size:13px; line-height:1.45; overflow-wrap:anywhere; }
@@ -200,7 +220,7 @@
       .map-wrap { border-right:0; border-bottom:1px solid var(--border); min-height:520px; }
       .timing { grid-template-columns:1fr; }
       .timing > div + div { border-left:0; border-top:1px solid var(--border); }
-      .d-body { grid-template-columns:1fr; }
+      .d-body, .d-sat { grid-template-columns:1fr; }
       .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
       .d-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
     }
@@ -348,6 +368,7 @@
 
   <dialog id="detail" aria-labelledby="d-title">
     <div class="d-head">
+      <button class="btn d-back" type="button" id="d-back" hidden>← Back to project</button>
       <div><h2 id="d-title"></h2><p id="d-sub"></p></div>
       <button class="d-close" type="button" id="d-close" aria-label="Close">×</button>
     </div>
@@ -377,7 +398,20 @@
       </div>
       <aside>
         <div id="mini-map"></div>
+        <button class="sat-pane" type="button" id="d-sat-pane" hidden></button>
         <dl class="facts" id="d-facts"></dl>
+      </aside>
+    </div>
+    <div class="d-sat" id="d-sat" hidden>
+      <div>
+        <div class="sat-main"><img id="sat-img" alt=""><span class="sat-pin"></span><span class="sat-scale" id="sat-scale"></span></div>
+        <div class="sat-thumbs" id="sat-thumbs"></div>
+      </div>
+      <aside class="sat-side">
+        <div class="seg" id="sat-source"><button type="button" data-src="ortho">Aerial · GUGiK</button><button type="button" data-src="s2">Satellite · Sentinel-2</button></div>
+        <h3 id="sat-when"></h3>
+        <div class="chart-sub" id="sat-what"></div>
+        <dl class="facts" id="sat-facts"></dl>
       </aside>
     </div>
   </dialog>
@@ -438,7 +472,7 @@
   const DSO_GRIDS = ["tauron", "enea", "pge", "energa", "stoen"];
   const gridOf = project => project.grid || "pse";
   const gridOn = project => state.grids.has(gridOf(project));
-  let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart, saturation = { stations: [], versions: [] }, satByStation = {};
+  let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart, saturation = { stations: [], versions: [] }, satByStation = {}, imagery = { sites: [] };
   const monthIndex = {};
 
   /* ---------------- helpers ---------------- */
@@ -509,8 +543,9 @@
 
   async function load() {
     const get = async path => { const response = await fetch(path, { cache: "no-cache" }); if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`); return response.json(); };
-    [queue, history, geo, gridLines, saturation] = await Promise.all([get("data/queue.json"), get("data/history.json"), get("geo/poland_voivodeships.json"),
-      get("geo/grid_lines.json").catch(() => ({ lines: [] })), get("data/saturation.json").catch(() => ({ stations: [], versions: [] }))]);
+    [queue, history, geo, gridLines, saturation, imagery] = await Promise.all([get("data/queue.json"), get("data/history.json"), get("geo/poland_voivodeships.json"),
+      get("geo/grid_lines.json").catch(() => ({ lines: [] })), get("data/saturation.json").catch(() => ({ stations: [], versions: [] })),
+      get("data/imagery.json").catch(() => ({ sites: [] }))]);
     satByStation = {};
     for (const s of saturation.stations) if (s.station) satByStation[s.station] = s;
     queue.months.forEach((asof, index) => { monthIndex[asof] = index; });
@@ -1032,6 +1067,8 @@
     renderCod(p);
     renderChanges(p);
     renderFacts(p);
+    renderSatPane(p);
+    showSatView(false);
     const dialog = document.getElementById("detail");
     if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
@@ -1206,6 +1243,87 @@
     }, true);
   }
 
+  /* ---------------- site images ---------------- */
+
+  /* data/imagery.json (etl/imagery.py): GUGiK orthophotos and Sentinel-2 passes for the
+     projects whose site is known (etl/sites.json, kept by hand). */
+  const plain = text => String(text || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L").toLowerCase().replace(/\s+/g, " ").trim();
+  function siteOf(p) {
+    return imagery.sites.find(site => site.match && (site.match.grid || "pse") === gridOf(p) && plain(site.match.name) === plain(p.name) &&
+      plain(p.applicant).includes(plain(site.match.applicant)) && ((site.ortho || []).length || (site.s2 || []).length));
+  }
+  const satUrl = (site, file) => `data/imagery/${encodeURIComponent(site.key)}/${encodeURIComponent(file)}`;
+  const satView = { site: null, src: "ortho", index: 0 };
+
+  function satList(site, src) {
+    return src === "ortho"
+      ? (site.ortho || []).map(o => ({ file: o.file, label: o.current ? "Current" : String(o.year), when: o.current ? "Current orthophoto" : `Orthophoto in use in ${o.year}` }))
+      : (site.s2 || []).map(s => ({ file: s.file, label: fmtDate(s.date), when: `Sentinel-2 pass of ${fmtDate(s.date)}`, item: s.item }));
+  }
+
+  function renderSatPane(p) {
+    const pane = document.getElementById("d-sat-pane");
+    const site = siteOf(p);
+    satView.site = site || null;
+    pane.hidden = !site;
+    if (!site) return;
+    const ortho = site.ortho || [], s2 = site.s2 || [];
+    const thumb = ortho.length ? satUrl(site, ortho[ortho.length - 1].file) : satUrl(site, s2[s2.length - 1].file);
+    const parts = [ortho.length ? `aerial to ${ortho[ortho.length - 1].current ? "now" : ortho[ortho.length - 1].year}` : "",
+      s2.length ? `satellite to ${fmtDate(s2[s2.length - 1].date)}` : ""].filter(Boolean);
+    pane.innerHTML = `<img src="${thumb}" alt=""><div><b>View satellite image</b><span>Site from ${esc(site.location?.short || "a known location")} · ${esc(parts.join(", "))}</span></div><span class="go">→</span>`;
+  }
+
+  function showSatView(on) {
+    document.querySelector("#detail .d-body").hidden = on;
+    document.getElementById("d-sat").hidden = !on;
+    document.getElementById("d-back").hidden = !on;
+    document.getElementById("detail").scrollTop = 0;
+    if (on) renderSat();
+    else requestAnimationFrame(() => { if (miniChart) miniChart.resize(); if (codChart) codChart.resize(); });
+  }
+
+  function openSat() {
+    const site = satView.site;
+    satView.src = (site.ortho || []).length ? "ortho" : "s2";
+    satView.index = satList(site, satView.src).length - 1;
+    showSatView(true);
+  }
+
+  function renderSat() {
+    const site = satView.site;
+    if (!site) return;
+    const list = satList(site, satView.src);
+    const pick = list[satView.index] || list[list.length - 1];
+    document.querySelectorAll("#sat-source button").forEach(b => {
+      b.classList.toggle("on", b.dataset.src === satView.src);
+      b.disabled = !satList(site, b.dataset.src).length;
+    });
+    const ortho = satView.src === "ortho";
+    const across = 2 * (ortho ? site.half_m || 300 : site.s2_half_m || 500);
+    document.getElementById("sat-img").src = pick ? satUrl(site, pick.file) : "";
+    document.getElementById("sat-img").alt = pick ? pick.when : "";
+    document.getElementById("sat-scale").textContent = `${across.toLocaleString("en")} m across`;
+    document.getElementById("sat-when").textContent = pick ? pick.when : "No image";
+    document.getElementById("sat-what").textContent = ortho
+      ? "Aerial orthophoto from GUGiK, Poland's mapping office, about 0.3 m per pixel. One image per distinct flight since 2020, labelled with the year it was in use; flights come every one to three years."
+      : "Sentinel-2 true colour (EU Copernicus), 10 m per pixel: shows earthworks, large fields of panels and new pads, not single containers. The clearest pass of each month since January 2024; months with only cloudy passes are missing.";
+    document.getElementById("sat-thumbs").innerHTML = list.map((item, index) => ({ item, index })).reverse().map(({ item, index }) =>
+      `<button type="button" data-index="${index}" class="${item === pick ? "on" : ""}"><img src="${satUrl(site, item.file)}" alt="" loading="lazy"><span>${esc(item.label)}</span></button>`).join("");
+    const lat = site.lat.toFixed(5), lon = site.lon.toFixed(5);
+    const facts = [
+      ["Site", site.label || ""],
+      ["Coordinates", `${lat}, ${lon} (the red circle)`],
+      ["Where the location comes from", site.location ? (site.location.url ? `<a href="${esc(site.location.url)}" target="_blank" rel="noopener">${esc(site.location.text)}</a>` : esc(site.location.text)) : "", true],
+      ["Note", site.note || ""],
+      ["Look further", `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat}&lng=${lon}" target="_blank" rel="noopener">Copernicus Browser</a> · ` +
+        `<a href="https://www.geoportal.gov.pl/" target="_blank" rel="noopener">Geoportal.gov.pl</a> · ` +
+        `<a href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=16/${lat}/${lon}" target="_blank" rel="noopener">OpenStreetMap</a>`, true],
+      ["Images updated", fmtDate(imagery.updated)]
+    ].filter(([, value]) => value);
+    document.getElementById("sat-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
+  }
+
   /* ---------------- wiring ---------------- */
 
   function renderAll(full) {
@@ -1299,6 +1417,21 @@
     list.addEventListener("keydown", event => { if (event.key === "Enter") openRow(event); });
     const dialog = document.getElementById("detail");
     document.getElementById("d-close").addEventListener("click", () => dialog.close());
+    document.getElementById("d-sat-pane").addEventListener("click", openSat);
+    document.getElementById("d-back").addEventListener("click", () => showSatView(false));
+    document.getElementById("sat-source").addEventListener("click", event => {
+      const button = event.target.closest("button[data-src]");
+      if (!button || button.disabled) return;
+      satView.src = button.dataset.src;
+      satView.index = satList(satView.site, satView.src).length - 1;
+      renderSat();
+    });
+    document.getElementById("sat-thumbs").addEventListener("click", event => {
+      const button = event.target.closest("button[data-index]");
+      if (!button) return;
+      satView.index = Number(button.dataset.index);
+      renderSat();
+    });
     dialog.addEventListener("click", event => { if (event.target === dialog) dialog.close(); });
     window.addEventListener("resize", () => { mapChart.resize(); historyChart.resize(); if (miniChart) miniChart.resize(); if (codChart) codChart.resize(); });
     document.getElementById("theme").addEventListener("click", () => {

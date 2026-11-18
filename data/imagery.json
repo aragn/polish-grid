@@ -1,0 +1,183 @@
+{
+ "updated": "2026-11-18",
+ "sites": [
+  {
+   "key": "mee-dziegielewo",
+   "match": {
+    "grid": "pse",
+    "name": "MEE Dzięgielewo",
+    "applicant": "Elektrownia PV 96"
+   },
+   "label": "MEE Dzięgielewo BESS (R.Power), 300 MW / 1,200 MWh",
+   "lat": 52.64089,
+   "lon": 19.67353,
+   "half_m": 300,
+   "s2_half_m": 500,
+   "location": {
+    "short": "GUNB building permit",
+    "text": "Land parcel of building permit ST-MZ-PL/WNIOSEK/23768/2025 in GUNB's register of building permits, gmina Stara Biała, placed by GUGiK",
+    "url": "https://wyszukiwarka.gunb.gov.pl/"
+   },
+   "note": "Construction was reported as starting in July 2026 (ESS News 23 Jul, gramwzielone 28 Jul); the EPC contract says works begin on the investor's written instruction.",
+   "s2_checked": "2026-11-18",
+   "s2": [
+    {
+     "date": "2024-03-07",
+     "file": "s2_2024-03-07.jpg",
+     "item": "S2B_34UDD_20240307_0_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2024-05-01",
+     "file": "s2_2024-05-01.jpg",
+     "item": "S2A_34UDD_20240501_0_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2024-06-30",
+     "file": "s2_2024-06-30.jpg",
+     "item": "S2A_34UDD_20240630_0_L2A",
+     "scene_cloud": 0.6
+    },
+    {
+     "date": "2024-07-10",
+     "file": "s2_2024-07-10.jpg",
+     "item": "S2A_34UDD_20240710_0_L2A",
+     "scene_cloud": 9.1
+    },
+    {
+     "date": "2024-08-29",
+     "file": "s2_2024-08-29.jpg",
+     "item": "S2A_34UDD_20240829_0_L2A",
+     "scene_cloud": 0.9
+    },
+    {
+     "date": "2024-09-08",
+     "file": "s2_2024-09-08.jpg",
+     "item": "S2A_34UDD_20240908_0_L2A",
+     "scene_cloud": 0.2
+    },
+    {
+     "date": "2024-10-18",
+     "file": "s2_2024-10-18.jpg",
+     "item": "S2A_34UDD_20241018_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2024-11-02",
+     "file": "s2_2024-11-02.jpg",
+     "item": "S2B_34UDD_20241102_0_L2A",
+     "scene_cloud": 0.5
+    },
+    {
+     "date": "2025-02-05",
+     "file": "s2_2025-02-05.jpg",
+     "item": "S2C_34UDD_20250205_0_L2A",
+     "scene_cloud": 11.6
+    },
+    {
+     "date": "2025-03-19",
+     "file": "s2_2025-03-19.jpg",
+     "item": "S2A_34UDD_20250319_1_L2A",
+     "scene_cloud": 0.1
+    },
+    {
+     "date": "2025-04-28",
+     "file": "s2_2025-04-28.jpg",
+     "item": "S2A_34UDD_20250428_1_L2A",
+     "scene_cloud": 11.2
+    },
+    {
+     "date": "2025-05-06",
+     "file": "s2_2025-05-06.jpg",
+     "item": "S2C_34UDD_20250506_0_L2A",
+     "scene_cloud": 13.6
+    },
+    {
+     "date": "2025-06-15",
+     "file": "s2_2025-06-15.jpg",
+     "item": "S2C_34UDD_20250615_0_L2A",
+     "scene_cloud": 0.2
+    },
+    {
+     "date": "2025-08-14",
+     "file": "s2_2025-08-14.jpg",
+     "item": "S2C_34UDD_20250814_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2025-09-08",
+     "file": "s2_2025-09-08.jpg",
+     "item": "S2B_34UDD_20250908_1_L2A",
+     "scene_cloud": 1.4
+    },
+    {
+     "date": "2026-03-14",
+     "file": "s2_2026-03-14.jpg",
+     "item": "S2A_34UDD_20260314_1_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2026-04-21",
+     "file": "s2_2026-04-21.jpg",
+     "item": "S2C_34UDD_20260421_0_L2A",
+     "scene_cloud": 5.1
+    },
+    {
+     "date": "2026-05-01",
+     "file": "s2_2026-05-01.jpg",
+     "item": "S2C_34UDD_20260501_0_L2A",
+     "scene_cloud": 0.0
+    },
+    {
+     "date": "2026-06-20",
+     "file": "s2_2026-06-20.jpg",
+     "item": "S2C_34UDD_20260620_0_L2A",
+     "scene_cloud": 2.6
+    },
+    {
+     "date": "2026-07-30",
+     "file": "s2_2026-07-30.jpg",
+     "item": "S2C_34UDD_20260730_0_L2A",
+     "scene_cloud": 4.3
+    },
+    {
+     "date": "2026-08-14",
+     "file": "s2_2026-08-14.jpg",
+     "item": "S2B_34UDD_20260814_0_L2A",
+     "scene_cloud": 0.5
+    },
+    {
+     "date": "2026-09-28",
+     "file": "s2_2026-09-28.jpg",
+     "item": "S2C_34UDD_20260928_0_L2A",
+     "scene_cloud": 0.4
+    },
+    {
+     "date": "2026-11-09",
+     "file": "s2_2026-11-09.jpg",
+     "item": "S2A_34UDD_20261109_1_L2A",
+     "scene_cloud": 0.0
+    }
+   ],
+   "ortho_checked": "2026-11-18",
+   "ortho": [
+    {
+     "year": 2020,
+     "file": "ortho_2020.jpg",
+     "md5": "fb1818f82890eacf124608ab7b1b409a"
+    },
+    {
+     "year": 2022,
+     "file": "ortho_2022.jpg",
+     "md5": "c6871acb99caf2e6e977ef27da7df2ad"
+    },
+    {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "85b3f14a720b15d2da77e60604d9fb7b"
+    }
+   ]
+  }
+ ]
+}
