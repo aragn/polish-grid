@@ -202,7 +202,7 @@ def parse_new(path, by_chars=False):
 # The kind of plant as the old lists write it -> the art. 7 type code.
 KIND = [
     ("słoneczn", "PV"), ("fotowolta", "PV"), ("pv", "PV"), ("wiatr", "FW"), ("magazyn", "MEE"),
-    ("wodn", "EW"), ("biogaz", "BG"), ("biomas", "JBM"), ("kogenera", "SG"), ("ciepłown", "SG"),
+    ("wodn", "EW"), ("biogaz", "BG"), ("biomas", "JBM"), ("kogenera", "SG"), ("ciepłown", "SG"), ("gaz ziemny", "SG"),
     ("gazow", "SG"), ("hybryd", "MIX"),
 ]
 
@@ -258,6 +258,50 @@ def parse_old_enea(path):
     return {"asof": asof, "layout": "oldenea", "rows": rows}
 
 
+# Dates may start with a footnote star ("*20.02.2025 r.").  kW: thousands in groups of exactly three digits
+# ("121 000"), so the figure cannot swallow the first digit of the date after it ("121 000 29.07.2019").
+DATE = r"\*?(\d{1,2}\.\d\d\.\d{4}) r\."
+KW = r"(\d+(?: \d{3})*(?:,\d+)?)"
+STOEN_ROW = re.compile(
+    r"^(\d+) (Osoba \w+) (.*?)\s*((?:Elektrownia|Elektrociepłownia|Magazyn|Instalacja|Układ|Agregat|Ogniwa?|Jednostka|Turbina|Silnik)[^\d(]*?)\s*"
+    + KW + r"?(?:\s+\d(?=\s))?\s*(?:\(?[^()]*\)\s*)?" + DATE + r"(?:\s+" + DATE + r")?(?:\s+" + DATE + r")?")
+LONE_NUMBER = re.compile(r"^\(?(?:zwiększenie o )?" + KW + r"\)?(?:\s|$)")
+
+
+def parse_old_stoen(path):
+    """Stoen Operator's "Zestawienie podmiotów ubiegających się o przyłączenie źródeł ... o napięciu wyższym niż
+    1kV": no ruled table, one row per text line: L.p., applicant type, location (a Warsaw street), kind, kW,
+    conditions, agreement, start of delivery (wytwarzania).  Where the kW cell wraps ("120 (zwiększenie o 70)")
+    the total can sit on the line above or below."""
+    rows, asof = [], None
+    with pdfplumber.open(path) as pdf:
+        lines = []
+        for page in pdf.pages:
+            text = page.extract_text() or ""
+            if asof is None:
+                match = re.search(r"stan na dzień\s*(\d{1,2})\.(\d{1,2})\.(\d{4})", text)
+                if match:
+                    day, month, year = map(int, match.groups())
+                    asof = datetime.date(year, month, day).isoformat()
+            lines.extend(line.strip() for line in text.split("\n"))
+    for i, line in enumerate(lines):
+        match = STOEN_ROW.match(line)
+        if not match:
+            continue
+        lp, form, place, kind, kw_text, conditions, agreement, started = match.groups()
+        if not kw_text:
+            for near in (lines[i - 1] if i else "", lines[i + 1] if i + 1 < len(lines) else ""):
+                lone = LONE_NUMBER.match(near)
+                if lone:
+                    kw_text = lone.group(1)
+                    break
+        rows.append({"applicant_form": form, "place": place.strip(" ,"), "gmina": (place.split(",")[0].strip() or "Warszawa"),
+                     "voivodeship": "Mazowieckie", "kind": kind.strip(), "type": kind_code(kind), "mw_in": kw(kw_text) if kw_text else None,
+                     "conditions": to_date(conditions), "agreement": to_date(agreement) if agreement else None,
+                     "started": to_date(started) if started else None})
+    return {"asof": asof, "layout": "oldstoen", "rows": rows}
+
+
 # ---------------------------------------------------------------- storage registers
 
 def parse_storage_register(path, operator):
@@ -309,7 +353,7 @@ def parse_storage_register(path, operator):
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     layout, path = sys.argv[1], sys.argv[2]
-    parsed = {"new": parse_new, "old": parse_old_tauron, "oldenea": parse_old_enea}[layout](path)
+    parsed = {"new": parse_new, "old": parse_old_tauron, "oldenea": parse_old_enea, "oldstoen": parse_old_stoen}[layout](path)
     print(parsed["asof"], len(parsed["rows"]))
     for row in parsed["rows"][:3] + parsed["rows"][-2:]:
         print(row)

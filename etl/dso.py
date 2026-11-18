@@ -45,7 +45,9 @@ OPERATORS = {
     "enea": {"name": "ENEA Operator Sp. z o.o.", "short": "ENEA"},
     "pge": {"name": "PGE Dystrybucja S.A.", "short": "PGE"},
     "energa": {"name": "Energa-Operator S.A.", "short": "ENERGA"},
+    "stoen": {"name": "Stoen Operator Sp. z o.o.", "short": "STOEN"},
 }
+STOEN = "https://www.stoen.pl"
 PGE = "https://pgedystrybucja.pl"
 ENERGA = "https://energa-operator.pl"
 
@@ -121,6 +123,31 @@ def energa_targets(backfill):
     return [("energa", "new", links[0], None)]
 
 
+def stoen_targets(backfill):
+    """Stoen (Warsaw) links its list from its generators' page.  stoen.pl refuses connections from some networks,
+    so the Wayback Machine's copies of the list (and of later ones, as it archives them) are read too."""
+    targets = []
+    try:
+        page = fetch(STOEN + "/strona/chce-przylaczyc-zrodlo-wytwarzania-energii", timeout=20).text
+        for link in sorted(set(re.findall(r'href="([^"]*/files/[^"]*(?:zestawienie-zrodel|podmiot|8l)[^"]*\.pdf)"', page))):
+            targets.append(("stoen", "stoen", link if link.startswith("http") else STOEN + link, None))
+    except requests.RequestException as error:
+        print(f"  stoen.pl unreachable ({type(error).__name__}): using the Wayback Machine's copies")
+    try:
+        cdx = requests.get("https://web.archive.org/cdx/search/cdx", params={"url": "stoen.pl/files/*", "fl": "timestamp,original",
+                           "filter": "original:.*(zestawienie-zrodel|podmiotow-ubiegajacych|8l).*", "limit": "500"}, timeout=60).text
+        latest = {}
+        for line in cdx.splitlines():
+            stamp, original = line.split(" ", 1)
+            key = original.split("stoen.pl", 1)[-1]
+            latest[key] = max(latest.get(key, ("", ""))[0], stamp), original
+        for key, (stamp, original) in sorted(latest.items()):
+            targets.append(("stoen", "stoen", WAYBACK.format(stamp=stamp, url=original), STOEN + key))
+    except requests.RequestException as error:
+        print(f"  Wayback Machine: {error}")
+    return targets
+
+
 def storage_targets():
     page = requests.get(ENEA + "/przylaczenie-do-sieci/magazyny-energii-elektrycznej", headers=UA, timeout=60).text
     enea = re.findall(r'href="(/media/\d+/rejestr-magazynow[^"]*)"', page)
@@ -152,6 +179,10 @@ def is_pdf(content):
 
 def parse_file(job):
     operator, layout, path = job
+    if layout == "stoen":
+        # Stoen's old layout until it publishes PSE's; whichever the file holds.
+        parsed = dso_parse.parse_new(path)
+        return job, parsed if parsed["rows"] else dso_parse.parse_old_stoen(path)
     if layout == "new" and operator == "energa":
         # ENERGA's PDF: rows packed into shared cells, overlapping and partly outside the detected tables.
         return job, dso_parse.parse_new(path, by_chars=True)
@@ -171,7 +202,8 @@ def run(backfill=False, workers=6):
     known = {entry["md5"]: entry for entry in sources["lists"]}
 
     jobs, fetched = [], []
-    for operator, layout, url, original in tauron_targets(backfill) + enea_targets(backfill) + pge_targets(backfill) + energa_targets(backfill):
+    for operator, layout, url, original in (tauron_targets(backfill) + enea_targets(backfill) + pge_targets(backfill)
+                                             + energa_targets(backfill) + stoen_targets(backfill)):
         content, modified = download(url)
         time.sleep(1)
         if not content or not is_pdf(content):
@@ -199,6 +231,7 @@ def run(backfill=False, workers=6):
                 continue
             folder = os.path.join(SNAPSHOTS, operator)
             os.makedirs(folder, exist_ok=True)
+            layout = parsed.get("layout") or layout   # the layout the parser found (Stoen: old or new)
             out = {"doc": operator, "asof": parsed["asof"], "layout": layout, "source": entry, "rows": parsed["rows"]}
             target = os.path.join(folder, f"{parsed['asof']}.json")
             # Two files with the same date (the quarterly list and the new monthly list): the new layout wins.
