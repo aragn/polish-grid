@@ -4,7 +4,11 @@ for the "Satellite image" card on the queue page.  A site given by land parcels
 (as listed in GUNB's register of building permits) is outlined and centred on
 those parcels, whose shapes come from GUGiK's parcel service (ULDK).
 
-    python etl/imagery.py            # add what is new
+    python etl/imagery.py            # add what is new, if the last check is a week old
+    python etl/imagery.py --force    # check now
+
+Run from etl/update.py every morning; it checks the images once a week (and at
+once for a site new to etl/sites.json or moved).
 
 Two sources, both free:
 
@@ -47,6 +51,7 @@ SITES = os.path.join(HERE, "sites.json")
 WMS = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/"
 ULDK = "https://uldk.gugik.gov.pl/"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
+EVERY_DAYS = 7                     # check the images once a week
 ORTHO_FROM = 2020
 ORTHO_PX = 1000
 STAC = "https://earth-search.aws.element84.com/v1"
@@ -258,12 +263,22 @@ def sentinel2(site, entry, folder):
     return True
 
 
-def main():
+def main(force=False):
     sites = json.load(open(SITES, encoding="utf-8"))["sites"]
     try:
-        old = {s["key"]: s for s in json.load(open(OUT_JSON, encoding="utf-8"))["sites"]}
+        saved = json.load(open(OUT_JSON, encoding="utf-8"))
+        old = {s["key"]: s for s in saved["sites"]}
     except (OSError, ValueError, KeyError):
-        old = {}
+        saved, old = {}, {}
+    # Weekly: the daily update calls this every morning, but the images are checked only once
+    # EVERY_DAYS days have passed since the last check (or when a site is new or moved).
+    checked = saved.get("checked") or saved.get("updated")
+    new_sites = [s["key"] for s in sites if s["key"] not in old
+                 or (s.get("parcels") or None) != (old[s["key"]].get("parcels") or None)
+                 or (not s.get("parcels") and (s.get("lat"), s.get("lon")) != (old[s["key"]].get("lat"), old[s["key"]].get("lon")))]
+    if not force and not new_sites and checked and (dt.date.today() - dt.date.fromisoformat(checked)).days < EVERY_DAYS:
+        print(f"Imagery: last checked {checked}, next check from {dt.date.fromisoformat(checked) + dt.timedelta(days=EVERY_DAYS)}")
+        return False
     unchecked = lambda r: {k: v for k, v in (r or {}).items() if not k.endswith("_checked")}   # noqa: E731
     out, changed = [], False
     for site in sites:
@@ -293,11 +308,13 @@ def main():
         changed |= unchecked(record) != unchecked(before)
         out.append(record)
     changed |= set(old) != {s["key"] for s in sites}
-    if changed:
-        json.dump({"updated": today(), "sites": out}, open(OUT_JSON, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    # Always record the check, so the next one waits a week; "updated" moves only when images changed.
+    json.dump({"updated": today() if changed else saved.get("updated", today()), "checked": today(), "sites": out},
+              open(OUT_JSON, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     return changed
 
 
 if __name__ == "__main__":
-    argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
-    print("changed" if main() else "no change")
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--force", action="store_true", help="check now, even if the last check is less than a week old")
+    print("changed" if main(parser.parse_args().force) else "no change")
