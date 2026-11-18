@@ -117,80 +117,6 @@
       "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): running."
     },
     {
-      "key": "stary-grodkow",
-      "match": {
-        "grid": "tauron",
-        "station": "GDK3",
-        "mw": 50
-      },
-      "label": "Stary Grodków BESS, 50 MW",
-      "parcels": [
-        "160709_2.0010.293/6",
-        "160709_2.0010.293/8"
-      ],
-      "location": {
-        "short": "GUNB building permit",
-        "text": "Parcels 293/6 and 293/8, obręb Stary Grodków (gmina Skoroszyce): ME Stary Grodków's PV farm of up to 12 MW with energy storage and SN/WN substation (decision of 18 Sep 2024), building permit ST-OP-NY/WNIOSEK/3307/2024 in GUNB's register of building permits",
-        "url": "https://wyszukiwarka.gunb.gov.pl/"
-      },
-      "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): running. Matched by station code and size: TAURON's list gives no names."
-    },
-    {
-      "key": "herby",
-      "match": {
-        "grid": "tauron",
-        "station": "HER3",
-        "mw": 5
-      },
-      "label": "Herby BESS, 5 MW / 22.4 MWh",
-      "parcels": [
-        "240704_2.0003.561/2"
-      ],
-      "location": {
-        "short": "GUNB building permit",
-        "text": "Parcel 561/2, obręb 0003 Herby: Elektrownia PV 62's energy storage of 5 MW / 22.352 MWh (decision of 9 Aug 2023), building permit ST-SL-LU/WNIOSEK/11984/2023 in GUNB's register of building permits",
-        "url": "https://wyszukiwarka.gunb.gov.pl/"
-      },
-      "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): running. Matched by station code and size: TAURON's list gives no names."
-    },
-    {
-      "key": "mee-elk",
-      "match": {
-        "grid": "pse",
-        "name": "MEE Ełk",
-        "applicant": "Magazyn EE Ełk"
-      },
-      "label": "Ełk BESS (Greenvolt), 200 MW",
-      "parcels": [
-        "280502_2.0031.451/80"
-      ],
-      "location": {
-        "short": "GUNB building permit",
-        "text": "Parcel 451/80, obręb Nowa Wieś Ełcka (gmina Ełk): energy storage (decision of 6 Nov 2023, revised 13 Aug 2025), with its 110/SN kV substation on the same parcel, building permit ST-WM-EK/WNIOSEK/1375/2024 in GUNB's register of building permits",
-        "url": "https://wyszukiwarka.gunb.gov.pl/"
-      },
-      "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): switched on (on a temporary 220 kV tap; PSE's row is for the permanent 400 kV connection)."
-    },
-    {
-      "key": "zawiercie",
-      "match": {
-        "grid": "tauron",
-        "station": "ARG3",
-        "mw": 8.1
-      },
-      "label": "Zawiercie BESS (BESS CM2), 9.8 MW",
-      "parcels": [
-        "241602_1.0012.27/2",
-        "241602_1.0012.33/3"
-      ],
-      "location": {
-        "short": "GUNB building permit",
-        "text": "Parcels 27/2 and 33/3, obręb 0012 Zawiercie: BESS CM2's energy storage (decision of 11 Dec 2024), building permit ST-SL-ZE/WNIOSEK/21396/2024 in GUNB's register of building permits",
-        "url": "https://wyszukiwarka.gunb.gov.pl/"
-      },
-      "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): switched on. Matched by station code and size: TAURON's list gives no names."
-    },
-    {
       "key": "bydgoszcz-mzk",
       "match": {
         "grid": "enea",
@@ -253,27 +179,6 @@
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       },
       "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): being built (ground broken Feb–Mar 2026)."
-    },
-    {
-      "key": "mee-trzebinia",
-      "match": {
-        "grid": "pse",
-        "names": [
-          "MEE Trzebinia",
-          "ME Trzebinia"
-        ],
-        "applicant": "Fotowoltaika HIG XVIII"
-      },
-      "label": "Trzebinia BESS (DRI / DTEK), 133 MW",
-      "parcels": [
-        "120303_5.0001.3554/3"
-      ],
-      "location": {
-        "short": "GUNB building permit",
-        "text": "Parcel 3554/3, obręb Balin (gmina Chrzanów): Fotowoltaika HIG XVIII's energy storage (decision of 28 Nov 2024), building permit ST-MA-CH/WNIOSEK/19413/2024 in GUNB's register of building permits",
-        "url": "https://wyszukiwarka.gunb.gov.pl/"
-      },
-      "note": "Vitreous Labs' register of built batteries (status of 20 Oct 2026): being built (start announced by June 2026)."
     },
     {
       "key": "mee-mieczyslawow",
