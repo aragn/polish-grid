@@ -202,6 +202,10 @@
     .sat-main { position:relative; background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow:hidden; aspect-ratio:1 / 1; width:min(100%, calc(100vh - 220px)); min-width:min(100%, 320px); margin:0 auto; }
     .sat-main img { width:100%; height:100%; object-fit:contain; display:block; image-rendering:auto; }
     .sat-pin { position:absolute; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px; border:2px solid #ff3b30; border-radius:50%; box-shadow:0 0 0 2px rgba(255,255,255,.6); pointer-events:none; }
+    .sat-outline { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+    .sat-outline polygon { fill:rgba(255,59,48,.08); stroke:#ff3b30; stroke-width:2; vector-effect:non-scaling-stroke; stroke-linejoin:round; }
+    .sat-outline polygon.halo { fill:none; stroke:rgba(255,255,255,.55); stroke-width:4.5; }
+    .sat-pin[hidden] { display:none; }
     .sat-scale { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.6); color:#fff; font-size:11.5px; padding:3px 7px; border-radius:5px; }
     .sat-thumbs { display:flex; gap:8px; overflow-x:auto; padding:10px 0 4px; }
     .sat-thumbs button { flex:none; border:2px solid transparent; background:none; padding:0; border-radius:7px; cursor:pointer; color:var(--muted); font:inherit; font-size:11.5px; }
@@ -404,7 +408,7 @@
     </div>
     <div class="d-sat" id="d-sat" hidden>
       <div>
-        <div class="sat-main"><img id="sat-img" alt=""><span class="sat-pin"></span><span class="sat-scale" id="sat-scale"></span></div>
+        <div class="sat-main"><img id="sat-img" alt=""><svg class="sat-outline" id="sat-outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg><span class="sat-pin" id="sat-pin"></span><span class="sat-scale" id="sat-scale"></span></div>
         <div class="sat-thumbs" id="sat-thumbs"></div>
       </div>
       <aside class="sat-side">
@@ -1304,6 +1308,12 @@
     document.getElementById("sat-img").src = pick ? satUrl(site, pick.file) : "";
     document.getElementById("sat-img").alt = pick ? pick.when : "";
     document.getElementById("sat-scale").textContent = `${across.toLocaleString("en")} m across`;
+    // The permit's parcels, drawn in the image's own frame (a lat/lon square of `across` metres).
+    const dlat = across / 2 / 111320, dlon = across / 2 / (111320 * Math.cos(site.lat * Math.PI / 180));
+    const rings = Object.values(site.outline || {}).flat();
+    const pts = ring => ring.map(([lon, lat]) => `${((lon - site.lon + dlon) / (2 * dlon) * 100).toFixed(2)},${((site.lat + dlat - lat) / (2 * dlat) * 100).toFixed(2)}`).join(" ");
+    document.getElementById("sat-outline").innerHTML = rings.map(ring => `<polygon class="halo" points="${pts(ring)}"/><polygon points="${pts(ring)}"/>`).join("");
+    document.getElementById("sat-pin").hidden = rings.length > 0;
     document.getElementById("sat-when").textContent = pick ? pick.when : "No image";
     document.getElementById("sat-what").textContent = ortho
       ? "Aerial orthophoto from GUGiK, Poland's mapping office, about 0.3 m per pixel. One image per distinct flight since 2020, labelled with the year it was in use; flights come every one to three years."
@@ -1313,7 +1323,8 @@
     const lat = site.lat.toFixed(5), lon = site.lon.toFixed(5);
     const facts = [
       ["Site", site.label || ""],
-      ["Coordinates", `${lat}, ${lon} (the red circle)`],
+      [site.parcels?.length ? "Permit parcels (outlined in red)" : "Coordinates", site.parcels?.length
+        ? `${site.parcels.join(", ")} · centre ${lat}, ${lon}` : `${lat}, ${lon} (the red circle)`],
       ["Where the location comes from", site.location ? (site.location.url ? `<a href="${esc(site.location.url)}" target="_blank" rel="noopener">${esc(site.location.text)}</a>` : esc(site.location.text)) : "", true],
       ["Note", site.note || ""],
       ["Look further", `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat}&lng=${lon}" target="_blank" rel="noopener">Copernicus Browser</a> · ` +

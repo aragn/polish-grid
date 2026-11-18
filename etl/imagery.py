@@ -1,6 +1,8 @@
 """
 Aerial and satellite images of the projects whose site is known (etl/sites.json),
-for the "Satellite image" card on the queue page.
+for the "Satellite image" card on the queue page.  A site given by land parcels
+(as listed in GUNB's register of building permits) is outlined and centred on
+those parcels, whose shapes come from GUGiK's parcel service (ULDK).
 
     python etl/imagery.py            # add what is new
 
@@ -29,6 +31,7 @@ import io
 import json
 import math
 import os
+import re
 
 import requests
 
@@ -39,6 +42,7 @@ OUT_JSON = os.path.join(ROOT, "data", "imagery.json")
 SITES = os.path.join(HERE, "sites.json")
 
 WMS = "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/"
+ULDK = "https://uldk.gugik.gov.pl/"
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
 ORTHO_FROM = 2020
 ORTHO_PX = 1000
@@ -59,6 +63,39 @@ def bbox(lat, lon, half):
     dlat = half / 111320
     dlon = half / (111320 * math.cos(math.radians(lat)))
     return f"{lon - dlon:.6f},{lat - dlat:.6f},{lon + dlon:.6f},{lat + dlat:.6f}"
+
+
+def parcel_rings(parcel_id):
+    """A parcel's outline from GUGiK's parcel service (ULDK): a list of rings of [lon, lat]."""
+    response = requests.get(ULDK, params={"request": "GetParcelById", "id": parcel_id, "result": "geom_wkt", "srid": "4326"},
+                            headers=UA, timeout=60)
+    response.raise_for_status()
+    text = response.text.strip()
+    if not text.startswith("0") or "POLYGON" not in text:
+        raise RuntimeError(f"ULDK {parcel_id}: {text[:120]}")
+    rings = []
+    for ring in re.findall(r"\(([^()]+)\)", text.split(";", 1)[-1]):
+        points = [[float(v) for v in pair.split()] for pair in ring.split(",")]
+        # Poland's latitudes (49-55) are always larger than its longitudes (14-24): order the pair by that.
+        rings.append([[round(min(a, b), 6), round(max(a, b), 6)] for a, b in points])
+    return rings
+
+
+def place(site, before):
+    """lat, lon, half_m and the parcel outlines for a site: from its parcels when it has them."""
+    parcels = site.get("parcels") or []
+    if not parcels:
+        return {"lat": site["lat"], "lon": site["lon"], "half_m": site.get("half_m", 300)}
+    if before and before.get("parcels") == parcels and before.get("outline"):
+        outline = before["outline"]
+    else:
+        outline = {parcel: parcel_rings(parcel) for parcel in parcels}
+    points = [pt for rings in outline.values() for ring in rings for pt in ring]
+    lons, lats = [p[0] for p in points], [p[1] for p in points]
+    lat, lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2
+    extent = max((max(lats) - min(lats)) * 111320, (max(lons) - min(lons)) * 111320 * math.cos(math.radians(lat)))
+    half = site.get("half_m") or int(min(900, max(250, extent * 0.8)) // 50 * 50)
+    return {"lat": round(lat, 6), "lon": round(lon, 6), "half_m": half, "parcels": parcels, "outline": outline}
 
 
 def reencode(raw, px):
@@ -193,15 +230,24 @@ def main():
         folder = os.path.join(OUT_DIR, site["key"])
         os.makedirs(folder, exist_ok=True)
         before = old.get(site["key"])
+        try:
+            placed = place(site, before)
+        except Exception as error:   # noqa: BLE001 -- the parcel service is unreachable: keep the last record
+            print(f"  parcels for {site['key']}: {error}")
+            if before:
+                out.append(before)
+            continue
+        site = {**site, **placed}
+        site["s2_half_m"] = site.get("s2_half_m") or max(500, site["half_m"])
         entry = {k: v for k, v in (before or {}).items() if k in ("ortho", "ortho_checked", "s2", "s2_checked")}
         if before and (before["lat"], before["lon"], before.get("half_m"), before.get("s2_half_m")) != \
-                (site["lat"], site["lon"], site.get("half_m"), site.get("s2_half_m")):
+                (site["lat"], site["lon"], site["half_m"], site["s2_half_m"]):
             entry = {}   # a corrected location or size: start again
             for name in os.listdir(folder):
                 os.remove(os.path.join(folder, name))
         orthophotos(site, entry, folder)
         sentinel2(site, entry, folder)
-        record = {k: site[k] for k in ("key", "match", "label", "lat", "lon", "half_m", "s2_half_m", "location", "note") if k in site}
+        record = {k: site[k] for k in ("key", "match", "label", "lat", "lon", "half_m", "s2_half_m", "parcels", "outline", "location", "note") if k in site}
         record.update(entry)
         changed |= unchecked(record) != unchecked(before)
         out.append(record)
