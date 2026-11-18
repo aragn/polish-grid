@@ -1,0 +1,20 @@
+{
+  "_about": "Projects with a known site location, for the satellite-image card. Kept by hand: the queue lists only give the connection station. 'match' picks the queue project (grid, name and applicant, compared without case or accents). 'half_m' is half the side of the image square in metres.",
+  "sites": [
+    {
+      "key": "mee-dziegielewo",
+      "match": {"grid": "pse", "name": "MEE Dzięgielewo", "applicant": "Elektrownia PV 96"},
+      "label": "MEE Dzięgielewo BESS (R.Power), 300 MW / 1,200 MWh",
+      "lat": 52.64089,
+      "lon": 19.67353,
+      "half_m": 300,
+      "s2_half_m": 500,
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Land parcel of building permit ST-MZ-PL/WNIOSEK/23768/2025 in GUNB's register of building permits, gmina Stara Biała, placed by GUGiK",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      },
+      "note": "Construction was reported as starting in July 2026 (ESS News 23 Jul, gramwzielone 28 Jul); the EPC contract says works begin on the investor's written instruction."
+    }
+  ]
+}

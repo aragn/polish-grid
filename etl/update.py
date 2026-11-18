@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 import build  # noqa: E402
 import capacity_market  # noqa: E402
 import dso  # noqa: E402
+import imagery  # noqa: E402
 import pse  # noqa: E402
 import running  # noqa: E402
 import saturation  # noqa: E402
@@ -51,8 +52,13 @@ def main():
         jwcd_changed = running.fetch_jwcd()
         cm_changed = capacity_market.main()   # URE's capacity-market results: only new notices are read
         sat_changed = saturation.main()       # PSE's switchyards with no free connection bays
-        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed:
-            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market or the saturated switchyards.")
+        try:                                  # orthophotos and Sentinel-2 passes of the known sites
+            img_changed = imagery.main()
+        except Exception as error:            # noqa: BLE001 -- images must not stop the queue update
+            print(f"Imagery failed: {error}")
+            img_changed = False
+        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed and not img_changed:
+            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market, the saturated switchyards or the site images.")
             return
     build.main()
 
