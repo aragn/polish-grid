@@ -56,6 +56,17 @@
    "rows": 8730
   },
   {
+   "operator": "stoen",
+   "layout": "stoen",
+   "url": "https://www.stoen.pl/files/2025-07/zestawienie-zrodel-na-stronie-www-powyzej-1-kv-01.07.2025.pdf",
+   "via": "https://web.archive.org/web/20260102021923id_/http://www.stoen.pl/files/2025-07/zestawienie-zrodel-na-stronie-www-powyzej-1-kv-01.07.2025.pdf",
+   "published": null,
+   "md5": "cba5ef2c62c1bbb9d7b328476478fd8b",
+   "file": "archive/stoen/cba5ef2c_zestawienie-zrodel-na-stronie-www-powyzej-1-kv-01.07.2025.pdf",
+   "asof": "2025-07-01",
+   "rows": 101
+  },
+  {
    "operator": "tauron",
    "layout": "old",
    "url": "https://www.tauron-dystrybucja.pl/-/media/offer-documents/dystrybucja/przylaczenie/dostepne-moce/informacja-iv-kw-2021.ashx",

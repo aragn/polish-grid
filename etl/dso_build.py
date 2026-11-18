@@ -35,6 +35,7 @@ OPERATORS = {
     "enea": {"name": "ENEA Operator Sp. z o.o.", "regions": ["Zachodniopomorskie", "Lubuskie", "Wielkopolskie", "Kujawsko-pomorskie", "Dolnośląskie", "Pomorskie"]},
     "pge": {"name": "PGE Dystrybucja S.A.", "regions": ["Lubelskie", "Podlaskie", "Mazowieckie", "Łódzkie", "Podkarpackie", "Świętokrzyskie", "Warmińsko-mazurskie"]},
     "energa": {"name": "Energa-Operator S.A.", "regions": ["Pomorskie", "Zachodniopomorskie", "Warmińsko-mazurskie", "Kujawsko-pomorskie", "Mazowieckie", "Wielkopolskie", "Łódzkie"]},
+    "stoen": {"name": "Stoen Operator Sp. z o.o.", "regions": ["Mazowieckie"]},
 }
 NOISE = r"\b(gpz|rpz|rs|st|se|sto|stacja|elektroenergetyczna|transformatorowa|rozdzielnia|rozdzielcza|glowny|punkt|zasilajacy|zasilania|abonencka|kv|wn|sn|nn)\b"
 
@@ -191,7 +192,9 @@ def normalise(raw, layout, asof):
            "refusal_reason": raw.get("refusal_reason") or "", "expired": raw.get("expired"),
            "terminated": raw.get("terminated") or raw.get("lapsed"), "connected": raw.get("connected"),
            "started": raw.get("started"), "remarks": raw.get("remarks") or "", "status_pl": raw.get("status_pl") or "",
-           "status": raw.get("status"), "station_text": raw.get("station") or "", "voivodeship": raw.get("voivodeship") or "",
+           "status": raw.get("status"),
+           # Stoen's old list gives a street ("Warszawa, ul. Czajki"): shown as written, placed by its town.
+           "station_text": raw.get("station") or (raw.get("place") or "" if layout == "oldstoen" else ""), "voivodeship": raw.get("voivodeship") or "",
            "gmina": raw.get("gmina") or raw.get("place") or "", "seat": raw.get("seat") or "", "kind": raw.get("kind") or "",
            "applicant_form": raw.get("applicant_form") or ""}
     if layout != "new":
