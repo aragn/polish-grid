@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polish Grid · Capacity market</title>
+  <meta name="description" content="Poland's capacity market: every auction since 2018, the units awarded, their capacity obligations, prices, contract lengths and derating factors, from URE's final results.">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
+      --hover:#1a1f25; --accent:#5b9cff; --chip:#1c2127;
+      --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
+      --axis:#30353c; --axis-label:#727a84; --grid:#20252b;
+      --t-storage:#e6dd3b; --t-gas:#d95926; --t-thermal:#7f8994; --t-wind:#199e70; --t-solar:#c98500; --t-hydro:#9085e9;
+      --t-dsr:#5b9cff; --t-foreign:#4fb3c8; --t-nuclear:#b07cc6; --t-new:#3fb950; --shadow:rgba(0,0,0,.55);
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+        --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+        --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+        --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+        --t-storage:#a89c00; --t-gas:#eb6834; --t-thermal:#5d6670; --t-wind:#1baf7a; --t-solar:#eda100; --t-hydro:#6250d6;
+        --t-dsr:#2a78d6; --t-foreign:#1b8aa0; --t-nuclear:#8a4fa3; --t-new:#1a7f37; --shadow:rgba(16,24,40,.14);
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+      --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+      --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+      --axis:#c3c2b7; --axis-label:#898781; --grid:#e9e8e3;
+      --t-storage:#a89c00; --t-gas:#eb6834; --t-thermal:#5d6670; --t-wind:#1baf7a; --t-solar:#eda100; --t-hydro:#6250d6;
+      --t-dsr:#2a78d6; --t-foreign:#1b8aa0; --t-nuclear:#8a4fa3; --t-new:#1a7f37; --shadow:rgba(16,24,40,.14);
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; }
+    a { color:var(--accent); }
+    button, input, select { font-family:inherit; }
+    .topbar { display:flex; align-items:center; gap:18px; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+    .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+    .brand span { color:var(--muted); font-weight:500; }
+    .nav { display:flex; gap:4px; flex-wrap:wrap; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; white-space:nowrap; }
+    .nav a.active { color:var(--text); background:var(--hover); }
+    .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
+    .intro h1 { font-size:22px; margin:0 0 6px; font-weight:650; }
+    .intro p { margin:0; color:var(--muted); line-height:1.55; max-width:1080px; }
+    .tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin:18px 0 16px; }
+    .tabs button { border:0; background:none; color:var(--muted); padding:10px 16px; font-size:14px; cursor:pointer; border-bottom:2px solid transparent; }
+    .tabs button.on { color:var(--text); font-weight:600; border-bottom-color:var(--accent); }
+    .tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
+    .tile { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; min-width:0; }
+    .tile .k { color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+    .tile .v { font-size:24px; font-weight:650; margin-top:6px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tile .v small { font-size:13px; color:var(--muted); font-weight:500; }
+    .tile .s { color:var(--muted); font-size:12.5px; margin-top:4px; line-height:1.4; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-top:16px; }
+    .panel-head { padding:14px 18px 8px; }
+    .panel-title { font-weight:650; font-size:15px; }
+    .panel-sub { color:var(--muted); font-size:12.5px; margin-top:3px; line-height:1.5; }
+    .note { color:var(--muted); font-size:12px; line-height:1.55; padding:0 18px 12px; }
+    .units-layout { display:grid; grid-template-columns:250px minmax(0, 1fr); gap:16px; padding:6px 18px 18px; }
+    .facet { border:1px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:10px; background:var(--panel-2); }
+    .facet h4 { margin:0 0 6px; font-size:13px; display:flex; justify-content:space-between; }
+    .facet label { display:flex; align-items:center; gap:8px; font-size:13px; padding:3px 0; cursor:pointer; }
+    .facet label span.n { margin-left:auto; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; }
+    .facet i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px; }
+    .toolbar .count { color:var(--muted); font-size:13px; }
+    .toolbar .count b { color:var(--text); }
+    .input, .select { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:7px 10px; font-size:13px; }
+    .input { min-width:260px; margin-left:auto; }
+    .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:7px 12px; font-size:13px; cursor:pointer; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+    table.list { border-collapse:collapse; width:100%; font-size:13px; }
+    .list th { text-align:left; color:var(--muted); font-weight:600; font-size:12px; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none; background:var(--panel-2); }
+    .list td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .list tr[data-code] { cursor:pointer; }
+    .list tr[data-code]:hover td { background:var(--hover); }
+    .list .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .list .sub { color:var(--muted); font-size:12px; margin-top:2px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
+    .chip i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+    .badge { display:inline-block; font-size:11px; border:1px solid var(--border); border-radius:5px; padding:1px 5px; color:var(--muted); }
+    .badge.new { color:var(--t-new); border-color:var(--t-new); }
+    .pager { display:flex; justify-content:center; gap:12px; align-items:center; padding:12px; color:var(--muted); font-size:13px; }
+    .charts { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:16px; padding:6px 18px 18px; }
+    .chart-box { border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--panel-2); min-width:0; }
+    .chart-title { font-weight:650; font-size:14px; }
+    .chart-sub { color:var(--muted); font-size:12px; margin:2px 0 6px; line-height:1.45; }
+    .chart { height:320px; }
+    table.kwd { border-collapse:collapse; width:100%; font-size:12.5px; }
+    .kwd th, .kwd td { padding:6px 8px; border-bottom:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .kwd th:first-child, .kwd td:first-child { text-align:left; white-space:normal; }
+    .kwd th { color:var(--muted); font-weight:600; }
+    .kwd td.low { color:var(--muted); }
+    .controls { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px; color:var(--muted); font-size:13px; }
+    dialog { border:1px solid var(--border); border-radius:14px; background:var(--panel); color:var(--text); width:min(980px, 94vw); padding:0; box-shadow:0 20px 60px var(--shadow); }
+    dialog::backdrop { background:rgba(0,0,0,.5); }
+    .d-head { display:flex; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .d-head h2 { margin:0; font-size:18px; }
+    .d-head p { margin:4px 0 0; color:var(--muted); font-size:13px; }
+    .d-close { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:8px; width:34px; height:34px; cursor:pointer; font-size:18px; }
+    .d-body { padding:16px 20px 20px; }
+    .facts { display:grid; grid-template-columns:180px 1fr; gap:6px 14px; font-size:13px; margin:0 0 14px; }
+    .facts dt { color:var(--muted); }
+    .facts dd { margin:0; }
+    footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
+    @media (max-width: 1100px) {
+      .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .units-layout, .charts { grid-template-columns:1fr; }
+      .input { min-width:0; width:100%; margin-left:0; }
+    }
+    @media (max-width: 640px) {
+      .topbar, main { padding-left:16px; padding-right:16px; }
+      .tiles { grid-template-columns:1fr; }
+      .facts { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
+    <nav class="nav"><a href="../">Connection queue (PSE)</a><a href="../output/">Unit output (JWCD)</a><a class="active" href="./">Capacity market</a></nav>
+    <button class="theme" type="button" id="theme">Theme</button>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>Capacity market</h1>
+      <p id="intro">Loading…</p>
+    </section>
+    <div class="tabs" id="tabs"><button type="button" data-tab="units" class="on">Units and contracts</button><button type="button" data-tab="totals">Auctions and totals</button></div>
+
+    <section id="view-units">
+      <div class="tiles" id="unit-tiles"></div>
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Capacity market units and their contracts</div>
+          <div class="panel-sub">Every unit (jednostka rynku mocy, JRM) that won a contract in a main, additional or supplementary auction, from URE's final results. The obligation is already derated: it is at most the unit's net capacity times the derating factor (KWD) of its technology. Technology is read from the unit's name and provider, as URE does not publish it. Click a row for every contract and, where found, the project in the connection queue.</div>
+        </div>
+        <div class="units-layout">
+          <aside id="facets"></aside>
+          <div>
+            <div class="toolbar">
+              <span class="count" id="unit-count"></span>
+              <input class="input" id="search" type="search" placeholder="Search code, unit, provider" aria-label="Search">
+              <button class="btn" type="button" id="csv">Download CSV</button>
+            </div>
+            <div class="table-wrap"><table class="list" id="units"></table></div>
+            <div class="pager" id="pager"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="view-totals" hidden>
+      <div class="controls"><label>Delivery year <select class="select" id="year"></select></label><span id="year-note"></span></div>
+      <div class="tiles" id="year-tiles"></div>
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title" id="year-title"></div>
+          <div class="panel-sub">Contracts covering the delivery year: multi-year contracts from earlier main auctions, that year's main auction, the supplementary auction, and the additional auctions for its quarters (counted for a quarter of the year).</div>
+        </div>
+        <div class="charts">
+          <div class="chart-box"><div class="chart-title">Clearing prices</div><div class="chart-sub">zł/kW a year, by delivery year; main auctions about four years ahead, additional auctions one year ahead by quarter</div><div class="chart" id="price-chart"></div></div>
+          <div class="chart-box"><div class="chart-title" id="tech-title">Obligations by technology</div><div class="chart-sub">MW of capacity obligation; new units in a brighter shade</div><div class="chart" id="tech-chart"></div></div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-title">Derating factors (KWD) by technology</div>
+          <div class="panel-sub">Korekcyjne współczynniki dyspozycyjności set by the minister for each main auction (Dziennik Ustaw, rozporządzenie w sprawie parametrów aukcji): a unit may offer at most its net capacity times this factor. Battery storage fell from 96% to 13% for 2030, when it was grouped with pumped storage.</div>
+        </div>
+        <div style="padding:0 18px 16px; overflow-x:auto"><table class="kwd" id="kwd"></table></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><div class="panel-title" id="providers-title">Largest providers</div><div class="panel-sub">MW of obligation for the delivery year, by the company holding the contract</div></div>
+        <div style="padding:0 18px 16px; overflow-x:auto"><table class="list" id="providers"></table></div>
+      </section>
+    </section>
+    <footer id="footer"></footer>
+  </main>
+
+  <dialog id="detail" aria-labelledby="d-title">
+    <div class="d-head"><div><h2 id="d-title"></h2><p id="d-sub"></p></div><button class="d-close" type="button" id="d-close" aria-label="Close">×</button></div>
+    <div class="d-body"><dl class="facts" id="d-facts"></dl><div class="table-wrap"><table class="list" id="d-contracts"></table></div></div>
+  </dialog>
+
+  <script>
+  "use strict";
+  /* Polish Grid: the capacity market.  Data: data/capacity_market.json (URE's final results and the
+     ministers' auction parameters, built by etl/capacity_market.py) and data/cm_links.json (units linked
+     to connection-queue projects, etl/cm_match.py). */
+  const TECH = {
+    storage: { label: "Battery storage", color: "--t-storage" }, pumped_hydro: { label: "Pumped storage", color: "--t-hydro" },
+    hydro: { label: "Hydro", color: "--t-hydro" }, wind: { label: "Onshore wind", color: "--t-wind" }, solar: { label: "Solar PV", color: "--t-solar" },
+    ccgt: { label: "Combined-cycle gas", color: "--t-gas" }, gas_engine: { label: "Gas engines and turbines, CHP", color: "--t-gas" },
+    thermal: { label: "Coal and other thermal", color: "--t-thermal" }, nuclear: { label: "Nuclear", color: "--t-nuclear" },
+    dsr: { label: "Demand response (DSR)", color: "--t-dsr" }, foreign: { label: "Foreign (cross-border)", color: "--t-foreign" }
+  };
+  const TECH_ORDER = ["storage", "pumped_hydro", "hydro", "wind", "solar", "ccgt", "gas_engine", "thermal", "nuclear", "dsr", "foreign"];
+  const KIND = { main: "Main", additional: "Additional", supplementary: "Supplementary", tiebreak: "Tie-break" };
+  const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA", pge: "PGE", energa: "ENERGA" };
+  const PAGE = 30;
+  const state = { tab: "units", years: new Set(), techs: new Set(), types: new Set(), search: "", sort: ["mw", -1], page: 0, year: null };
+  let data, links = {}, priceChart, techChart;
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (v, d = 0) => v == null || !isFinite(v) ? "—" : v.toLocaleString("en", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const mw = v => v == null ? "—" : fmt(v, v < 10 ? 2 : v < 100 ? 1 : 0);
+  const pln = v => v == null ? "—" : Math.abs(v) >= 1e9 ? `${fmt(v / 1e9, 2)} bn zł` : Math.abs(v) >= 1e6 ? `${fmt(v / 1e6, 1)}m zł` : `${fmt(v / 1e3, 0)}k zł`;
+  const pct = v => v == null ? "—" : `${fmt(v * 100, 2)}%`;
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtDate = iso => { if (!iso) return "—"; const [y, m, d] = iso.split("-"); return `${Number(d)} ${MONTHS[m - 1]} ${y}`; };
+  const typeOf = unit => {
+    const t = unit.types.join(" ").toLowerCase();
+    return t.includes("zagraniczn") ? "foreign" : t.includes("redukcji") ? "dsr" : t.includes("nowa") ? "new" : t.includes("modernizowana") ? "refurbished" : t.includes("niepotwierdzona") ? "unconfirmed" : "existing";
+  };
+  const TYPE_LABEL = { new: "New", refurbished: "Refurbished", existing: "Existing", dsr: "Demand response", unconfirmed: "Unconfirmed DSR", foreign: "Foreign" };
+  /* A contract's yearly value: zł/kW/year × MW × 1000; additional auctions buy a quarter. */
+  const yearlyValue = c => c.price == null || c.mw == null ? null : c.price * c.mw * 1000 * (c.quarter ? 0.25 : 1);
+  const covers = (c, year) => c.from <= year && year <= c.to;
+
+  async function load() {
+    const get = async p => { const r = await fetch(p, { cache: "no-cache" }); if (!r.ok) throw new Error(`${p}: HTTP ${r.status}`); return r.json(); };
+    data = await get("../data/capacity_market.json");
+    try { links = (await get("../data/cm_links.json")).links || {}; } catch (e) { links = {}; }
+    const auctions = Object.fromEntries(data.auctions.map(a => [a.id, a]));
+    const byUnit = {};
+    for (const c of data.contracts) { c.a = auctions[c.auction]; (byUnit[c.code] ||= []).push(c); }
+    for (const u of data.units) {
+      u.contracts = (byUnit[u.code] || []).sort((a, b) => a.from - b.from || (a.quarter || 0) - (b.quarter || 0));
+      u.type = typeOf(u);
+      u.from = Math.min(...u.contracts.map(c => c.from)); u.to = Math.max(...u.contracts.map(c => c.to));
+      u.mw = Math.max(...u.contracts.map(c => c.mw || 0));
+      const main = u.contracts.filter(c => c.a.kind === "main").pop() || u.contracts[u.contracts.length - 1];
+      u.lead = main; u.kwd = main.kwd; u.reach = main.derated_from; u.price = main.price;
+      u.links = links[u.code] || [];
+    }
+    // One spelling per company: URE writes "PGE POLSKA GRUPA ENERGETYCZNA S.A." and "PGE Polska Grupa Energetyczna S.A.".
+    const spelling = {};
+    const key = name => (name || "").toUpperCase().replace(/[\s.]+/g, " ").trim();
+    for (const u of data.units) { const k = key(u.provider), s = spelling[k]; if (!s || (s === s.toUpperCase() && u.provider !== u.provider.toUpperCase())) spelling[k] = u.provider; }
+    for (const u of data.units) u.provider = spelling[key(u.provider)] || u.provider;
+    const years = [...new Set(data.auctions.map(a => a.delivery_year))].sort();
+    state.year =Math.max(...data.auctions.filter(a => a.kind === "main").map(a => a.delivery_year));
+    $("year").innerHTML = years.map(y => `<option${y === state.year ? " selected" : ""}>${y}</option>`).join("");
+    const mains = data.auctions.filter(a => a.kind === "main");
+    $("intro").innerHTML = `PSE buys capacity years ahead in a yearly main auction per delivery year (about five years before it), then tops it up in additional auctions for each quarter one year ahead and, since 2025, supplementary auctions. ` +
+      `What it buys is a capacity obligation: a unit's net capacity derated by its technology's factor (KWD), paid a price per kW a year; in exchange the unit must deliver when PSE declares a stress period. ` +
+      `New units may win contracts of up to 17 years, refurbished ones up to 5, existing ones 1. Here: <b>${data.auctions.length}</b> auction results for delivery ${years[0]}–${years[years.length - 1]}, ` +
+      `<b>${data.units.length.toLocaleString("en")}</b> units, from URE's final results (latest main auction: ${fmtDate(mains[mains.length - 1].date)}, delivery ${mains[mains.length - 1].delivery_year}). Prices in złoty.`;
+    priceChart = echarts.init($("price-chart")); techChart = echarts.init($("tech-chart"));
+    setup();
+    if (location.hash.startsWith("#JRM")) { const u = data.units.find(u => u.code === decodeURIComponent(location.hash.slice(1))); if (u) openUnit(u); }
+    render();
+  }
+
+  /* ---------------- units view ---------------- */
+  function filtered(ignore) {
+    const q = state.search.toLowerCase();
+    return data.units.filter(u =>
+      (ignore === "years" || !state.years.size || u.contracts.some(c => [...state.years].some(y => covers(c, y)))) &&
+      (ignore === "techs" || !state.techs.size || state.techs.has(u.technology)) &&
+      (ignore === "types" || !state.types.size || state.types.has(u.type)) &&
+      (!q || [u.code, u.name, u.provider, TECH[u.technology]?.label].join(" ").toLowerCase().includes(q)));
+  }
+  function facet(title, key, values, label, color) {
+    const counts = {};
+    for (const u of filtered(key)) for (const v of values(u)) counts[v] = (counts[v] || 0) + 1;
+    const keys = Object.keys(counts).sort((a, b) => key === "years" ? b - a : (TECH_ORDER.indexOf(a) - TECH_ORDER.indexOf(b)) || counts[b] - counts[a]);
+    return `<div class="facet"><h4>${esc(title)}<span class="n">${keys.length}</span></h4>` + keys.map(v =>
+      `<label><input type="checkbox" data-facet="${key}" value="${esc(v)}"${state[key].has(key === "years" ? Number(v) : v) ? " checked" : ""}>` +
+      `${color ? `<i style="background:${css(color(v))}"></i>` : ""}${esc(label(v))}<span class="n">${counts[v]}</span></label>`).join("") + `</div>`;
+  }
+  function renderUnits() {
+    $("facets").innerHTML =
+      facet("Delivery year", "years", u => [...new Set(u.contracts.flatMap(c => Array.from({ length: c.to - c.from + 1 }, (_, i) => c.from + i)))], v => v) +
+      facet("Technology", "techs", u => [u.technology], v => TECH[v]?.label || v, v => TECH[v]?.color || "--muted") +
+      facet("Type", "types", u => [u.type], v => TYPE_LABEL[v] || v);
+    const items = filtered();
+    const [key, dir] = state.sort;
+    const val = { code: u => Number(u.code.split("/")[1]) || 0, name: u => (u.name || u.provider).toLowerCase(), tech: u => TECH_ORDER.indexOf(u.technology),
+      period: u => u.from * 100 + u.to, mw: u => u.mw, kwd: u => u.kwd ?? -1, reach: u => u.reach ?? -1, price: u => u.price ?? -1, value: u => yearlyValue(u.lead) ?? -1, queue: u => u.links.length }[key];
+    items.sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * dir; });
+    const total = items.reduce((s, u) => s + u.mw, 0);
+    $("unit-count").innerHTML = `<b>${items.length.toLocaleString("en")}</b> of ${data.units.length.toLocaleString("en")} units · ${fmt(total)} MW of obligation (each unit's largest)`;
+    const pages = Math.max(1, Math.ceil(items.length / PAGE));
+    state.page = Math.min(state.page, pages - 1);
+    const head = [["code", "Code"], ["name", "Unit · provider"], ["tech", "Technology"], ["period", "Delivery"], ["mw", "MW", 1], ["kwd", "Derating", 1], ["reach", "Up to net MW", 1], ["price", "zł/kW·yr", 1], ["value", "zł a year", 1], ["queue", "Queue"]];
+    $("units").innerHTML = `<thead><tr>${head.map(([k, l, n]) => `<th data-sort="${k}" class="${n ? "num" : ""}">${l}${state.sort[0] === k ? (state.sort[1] < 0 ? " ↓" : " ↑") : ""}</th>`).join("")}</tr></thead><tbody>` +
+      items.slice(state.page * PAGE, (state.page + 1) * PAGE).map(u => {
+        const t = TECH[u.technology] || { label: u.technology, color: "--muted" };
+        return `<tr data-code="${esc(u.code)}"><td>${esc(u.code)}</td>` +
+          `<td><div>${esc(u.name || "Name not published")}</div><div class="sub">${esc(u.provider)}</div></td>` +
+          `<td><span class="chip"><i style="background:${css(t.color)}"></i>${esc(t.label)}</span><div class="sub">${u.type === "new" ? `<span class="badge new">new</span>` : esc(TYPE_LABEL[u.type])}</div></td>` +
+          `<td>${u.from === u.to ? u.from : `${u.from}–${u.to}`}<div class="sub">${u.contracts.length} contract${u.contracts.length === 1 ? "" : "s"}</div></td>` +
+          `<td class="num">${mw(u.mw)}</td><td class="num">${pct(u.kwd)}</td><td class="num">${mw(u.reach)}</td>` +
+          `<td class="num">${fmt(u.price, 2)}</td><td class="num">${pln(yearlyValue(u.lead))}</td>` +
+          `<td>${u.links.length ? u.links.map(l => `<a href="../#project-${l.id}" onclick="event.stopPropagation()">${esc(GRID_SHORT[l.grid] || l.grid)}</a>`).join(" ") : `<span class="sub">—</span>`}</td></tr>`;
+      }).join("") + `</tbody>`;
+    $("pager").innerHTML = `<button class="btn" data-page="-1"${state.page ? "" : " disabled"}>← Previous</button><span>Page ${state.page + 1} of ${pages}</span><button class="btn" data-page="1"${state.page < pages - 1 ? "" : " disabled"}>Next →</button>`;
+    // Tiles for what is filtered.
+    const newUnits = items.filter(u => u.type === "new"), storage = items.filter(u => u.technology === "storage");
+    const year = state.years.size ? Math.max(...state.years) : state.year;
+    let value = 0, unknown = 0;
+    for (const u of items) for (const c of u.contracts) if (covers(c, year)) { const v = yearlyValue(c); if (v == null) unknown++; else value += v; }
+    const byProvider = {};
+    for (const u of items) byProvider[u.provider] = (byProvider[u.provider] || 0) + u.mw;
+    const top = Object.entries(byProvider).sort((a, b) => b[1] - a[1])[0] || ["—", 0];
+    $("unit-tiles").innerHTML = [
+      ["Units", fmt(items.length), `delivery ${Math.min(...items.map(u => u.from))}–${Math.max(...items.map(u => u.to))}`],
+      ["New capacity", `${fmt(newUnits.reduce((s, u) => s + u.mw, 0))} <small>MW</small>`, `${newUnits.length} new units (contracts up to 17 years)`],
+      ["Batteries", `${fmt(storage.reduce((s, u) => s + u.mw, 0))} <small>MW</small>`, `${storage.length} units · ${total ? fmt(100 * storage.reduce((s, u) => s + u.mw, 0) / total) : 0}% of the MW`],
+      [`Premiums in ${year}`, pln(value), `contracts of these units covering ${year}${unknown ? ` · ${unknown} without a price` : ""}`],
+      ["Largest provider", esc(top[0]), `${fmt(top[1])} MW · ${total ? fmt(100 * top[1] / total) : 0}%`]
+    ].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v" title="${esc(String(v).replace(/<[^>]+>/g, ""))}">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+  }
+  function openUnit(u) {
+    const t = TECH[u.technology] || { label: u.technology };
+    $("d-title").textContent = `${u.code} · ${u.name || "name not published"}`;
+    $("d-sub").textContent = `${u.provider} · ${t.label} · ${TYPE_LABEL[u.type]}`;
+    const facts = [
+      ["Provider", `${esc(u.provider)}${u.nip ? ` (NIP ${esc(u.nip)})` : ""}`],
+      ["Type in URE's lists", esc(u.types.join("; "))],
+      ["Technology", `${esc(t.label)} <span class="sub">(read from the name and provider)</span>`],
+      ["Delivery", `${u.from}–${u.to}`],
+      ["In the connection queue", u.links.length ? u.links.map(l => `<a href="../#project-${l.id}">${esc(l.title)}</a> · ${esc(GRID_SHORT[l.grid] || l.grid)}, ${esc(l.station)}, ${mw(l.mw)} MW <span class="sub">(${esc(l.how)})</span>`).join("<br>") : "not found"]
+    ];
+    $("d-facts").innerHTML = facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+    $("d-contracts").innerHTML = `<thead><tr><th>Auction</th><th>Held</th><th>Delivery</th><th class="num">MW</th><th class="num">Years</th><th class="num">zł/kW·yr</th><th class="num">zł a year</th><th class="num">Derating</th><th class="num">Up to net MW</th></tr></thead><tbody>` +
+      u.contracts.map(c => `<tr><td>${esc(KIND[c.a.kind] || c.a.kind)}${c.quarter ? ` Q${c.quarter}` : ""}</td><td>${fmtDate(c.a.date)}</td><td>${c.quarter ? `Q${c.quarter} ${c.from}` : c.from === c.to ? c.from : `${c.from}–${c.to}`}</td>` +
+        `<td class="num">${mw(c.mw)}</td><td class="num">${c.years ?? (c.quarter ? "¼" : "—")}</td><td class="num">${fmt(c.price, 2)}</td><td class="num">${pln(yearlyValue(c))}</td>` +
+        `<td class="num" title="${esc(c.kwd_group || "")}">${pct(c.kwd)}</td><td class="num">${mw(c.derated_from)}</td></tr>`).join("") + `</tbody>`;
+    if (!$("detail").open) $("detail").showModal();
+  }
+
+  /* ---------------- totals view ---------------- */
+  function renderTotals() {
+    const year = state.year;
+    const rows = data.contracts.filter(c => covers(c, year));
+    const share = c => c.quarter ? 0.25 : 1;
+    const unit = Object.fromEntries(data.units.map(u => [u.code, u]));
+    const main = data.auctions.find(a => a.kind === "main" && a.delivery_year === year);
+    const mainRows = rows.filter(c => c.a.kind === "main");
+    const mwMain = mainRows.reduce((s, c) => s + c.mw, 0);
+    const foreign = mainRows.filter(c => unit[c.code].technology === "foreign").reduce((s, c) => s + c.mw, 0);
+    const cost = rows.reduce((s, c) => s + (yearlyValue(c) || 0), 0);
+    const newRows = mainRows.filter(c => unit[c.code].type === "new");
+    const newMw = newRows.reduce((s, c) => s + c.mw, 0);
+    const batt = newRows.filter(c => unit[c.code].technology === "storage").reduce((s, c) => s + c.mw, 0);
+    const own = main ? data.contracts.filter(c => c.auction === main.id) : [];
+    $("year-title").textContent = `Delivery year ${year}`;
+    $("year-note").textContent = main ? `main auction held ${fmtDate(main.date)}` : "";
+    $("year-tiles").innerHTML = [
+      ["Capacity contracted", `${fmt(mwMain / 1000, 1)} <small>GW</small>`, `main auctions (this year's and multi-year contracts from earlier ones) · ${fmt(foreign / 1000, 2)} GW abroad`],
+      ["Main auction price", main ? `${fmt(main.price, 2)} <small>zł/kW·yr</small>` : "—", main ? `${fmt(own.reduce((s, c) => s + c.mw, 0))} MW bought in it, ${own.length} units` : "no main auction"],
+      ["New capacity", `${fmt(newMw)} <small>MW</small>`, `${newRows.length} new units · ${newMw ? fmt(100 * batt / newMw) : 0}% batteries`],
+      ["Cost of the year", pln(cost), "all contracts covering the year, at their own auction's price (quarters ¼)"],
+      ["Auctions", `${data.auctions.filter(a => a.delivery_year === year).length}`, data.auctions.filter(a => a.delivery_year === year).map(a => KIND[a.kind] + (a.quarter ? ` Q${a.quarter}` : "")).join(", ")]
+    ].map(([k, v, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+
+    // Prices.
+    const years = [...new Set(data.auctions.map(a => a.delivery_year))].sort();
+    const series = [{ name: "Main", type: "line", symbolSize: 7, lineStyle: { width: 2 }, color: css("--accent"),
+      data: years.map(y => { const a = data.auctions.find(x => x.kind === "main" && x.delivery_year === y); return a ? a.price : null; }) }];
+    [1, 2, 3, 4].forEach((q, i) => series.push({ name: `Additional Q${q}`, type: "scatter", symbolSize: 8, color: [css("--t-wind"), css("--t-solar"), css("--t-gas"), css("--t-hydro")][i],
+      data: years.map(y => { const a = data.auctions.find(x => x.kind === "additional" && x.delivery_year === y && x.quarter === q); return a ? a.price : null; }) }));
+    series.push({ name: "Supplementary", type: "scatter", symbol: "diamond", symbolSize: 10, color: css("--t-storage"),
+      data: years.map(y => { const a = data.auctions.find(x => x.kind === "supplementary" && x.delivery_year === y); return a ? a.price : null; }) });
+    const axis = { axisLine: { lineStyle: { color: css("--axis") } }, axisLabel: { color: css("--axis-label") }, splitLine: { lineStyle: { color: css("--grid") } } };
+    const tooltip = { trigger: "axis", backgroundColor: css("--tooltip-bg"), borderColor: css("--tooltip-border"), textStyle: { color: css("--text"), fontSize: 12 } };
+    priceChart.setOption({ animation: false, grid: { left: 48, right: 12, top: 36, bottom: 26 }, tooltip, legend: { top: 0, textStyle: { color: css("--muted"), fontSize: 11 }, itemWidth: 10, itemHeight: 8 },
+      xAxis: { type: "category", data: years.map(String), ...axis, splitLine: { show: false } }, yAxis: { type: "value", ...axis }, series }, true);
+
+    // Technology for the year (main contracts), new vs other.
+    const tech = {};
+    for (const c of mainRows) { const u = unit[c.code]; const k = u.technology; (tech[k] ||= { n: 0, o: 0 }); if (u.type === "new") tech[k].n += c.mw; else tech[k].o += c.mw; }
+    const keys = TECH_ORDER.filter(k => tech[k]).reverse();
+    $("tech-title").textContent = `Obligations by technology, ${year}`;
+    techChart.setOption({ animation: false, grid: { left: 170, right: 20, top: 30, bottom: 26 }, tooltip: { ...tooltip, axisPointer: { type: "shadow" } },
+      legend: { top: 0, textStyle: { color: css("--muted"), fontSize: 11 }, itemWidth: 10, itemHeight: 8 },
+      xAxis: { type: "value", ...axis }, yAxis: { type: "category", data: keys.map(k => TECH[k].label), ...axis, splitLine: { show: false } },
+      series: [
+        { name: "Existing, refurbished, DSR", type: "bar", stack: "t", data: keys.map(k => ({ value: Math.round(tech[k].o), itemStyle: { color: css(TECH[k].color), opacity: 0.55 } })) },
+        { name: "New", type: "bar", stack: "t", data: keys.map(k => ({ value: Math.round(tech[k].n), itemStyle: { color: css(TECH[k].color) } })) }
+      ] }, true);
+
+    // KWD matrix: main auctions by delivery year.
+    const groups = [["Battery storage", ["akumulator"]], ["Pumped storage", ["członem pompowym"]], ["Hydro, run-of-river", ["przepływowych"]], ["Onshore wind", ["wiatrowych na lądzie", "wiatrow"]],
+      ["Offshore wind", ["morskich"]], ["Solar PV", ["słoneczn"]], ["Combined-cycle gas", ["gazowo-parowych"]], ["Gas turbines, engines", ["turbin gazowych"]], ["Steam turbines (coal, biomass)", ["turbin parowych"]],
+      ["Nuclear", ["jądrow"]], ["Demand response", ["redukcji"]], ["Other", ["pozostałych"]]];
+    const mainsK = data.auctions.filter(a => a.kind === "main" && a.kwd).sort((a, b) => a.delivery_year - b.delivery_year);
+    const find = (kwd, words) => { for (const w of words) for (const [g, v] of Object.entries(kwd)) if (g.includes(w) && !(w === "wiatrow" && g.includes("morsk"))) return v; return null; };
+    $("kwd").innerHTML = `<tr><th>Technology group</th>${mainsK.map(a => `<th>${a.delivery_year}</th>`).join("")}</tr>` +
+      groups.map(([label, words]) => `<tr><td>${esc(label)}</td>${mainsK.map(a => { const v = find(a.kwd, words); return `<td class="${v != null && v < 0.5 ? "low" : ""}">${v == null ? "—" : fmt(v * 100, 1) + "%"}</td>`; }).join("")}</tr>`).join("") +
+      `<tr><td class="sub">Source</td>${mainsK.map(a => `<td class="sub">${esc(a.kwd_source || "")}</td>`).join("")}</tr>`;
+
+    // Providers.
+    const prov = {};
+    for (const c of mainRows) { const u = unit[c.code]; const p = prov[u.provider] ||= { mw: 0, units: new Set(), value: 0, techs: new Set() }; p.mw += c.mw; p.units.add(c.code); p.value += yearlyValue(c) || 0; p.techs.add(u.technology); }
+    const top = Object.entries(prov).sort((a, b) => b[1].mw - a[1].mw).slice(0, 20);
+    $("providers-title").textContent = `Largest providers, ${year}`;
+    $("providers").innerHTML = `<thead><tr><th>Provider</th><th>Technologies</th><th class="num">Units</th><th class="num">MW</th><th class="num">Share</th><th class="num">zł a year</th></tr></thead><tbody>` +
+      top.map(([name, p]) => `<tr><td>${esc(name)}</td><td>${[...p.techs].map(k => `<span class="chip"><i style="background:${css(TECH[k]?.color || "--muted")}"></i>${esc(TECH[k]?.label || k)}</span>`).join(" ")}</td>` +
+        `<td class="num">${p.units.size}</td><td class="num">${fmt(p.mw)}</td><td class="num">${mwMain ? fmt(100 * p.mw / mwMain, 1) : 0}%</td><td class="num">${pln(p.value)}</td></tr>`).join("") + `</tbody>`;
+  }
+
+  /* ---------------- wiring ---------------- */
+  function render() {
+    $("view-units").hidden = state.tab !== "units"; $("view-totals").hidden = state.tab !== "totals";
+    document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === state.tab));
+    if (state.tab === "units") renderUnits(); else { renderTotals(); priceChart.resize(); techChart.resize(); }
+  }
+  function setup() {
+    $("tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) { state.tab = b.dataset.tab; render(); } });
+    $("facets").addEventListener("change", e => { const i = e.target.closest("input[data-facet]"); if (!i) return; const set = state[i.dataset.facet]; const v = i.dataset.facet === "years" ? Number(i.value) : i.value; if (i.checked) set.add(v); else set.delete(v); state.page = 0; renderUnits(); });
+    let typing; $("search").addEventListener("input", e => { clearTimeout(typing); typing = setTimeout(() => { state.search = e.target.value.trim(); state.page = 0; renderUnits(); }, 150); });
+    $("units").addEventListener("click", e => {
+      const th = e.target.closest("th[data-sort]");
+      if (th) { const k = th.dataset.sort; state.sort = state.sort[0] === k ? [k, -state.sort[1]] : [k, ["name", "code", "tech", "period"].includes(k) ? 1 : -1]; renderUnits(); return; }
+      const tr = e.target.closest("tr[data-code]"); if (tr) openUnit(data.units.find(u => u.code === tr.dataset.code));
+    });
+    $("pager").addEventListener("click", e => { const b = e.target.closest("button[data-page]"); if (b && !b.disabled) { state.page += Number(b.dataset.page); renderUnits(); } });
+    $("year").addEventListener("change", e => { state.year = Number(e.target.value); renderTotals(); });
+    $("d-close").addEventListener("click", () => $("detail").close());
+    $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
+    $("csv").addEventListener("click", () => {
+      const cols = ["code", "unit", "provider", "nip", "technology", "type", "auction", "held", "delivery_from", "delivery_to", "quarter", "mw_obligation", "contract_years", "price_pln_kw_year", "pln_a_year", "kwd", "up_to_net_mw", "queue_projects"];
+      const lines = [cols.join(",")];
+      for (const u of filtered()) for (const c of u.contracts) lines.push([u.code, u.name, u.provider, u.nip, TECH[u.technology]?.label, TYPE_LABEL[u.type], c.auction, c.a.date, c.from, c.to, c.quarter || "", c.mw, c.years ?? "", c.price ?? "", yearlyValue(c) ?? "", c.kwd ?? "", c.derated_from ?? "", u.links.map(l => `${l.grid}:${l.id}`).join(" ")]
+        .map(v => { const t = String(v ?? ""); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; }).join(","));
+      const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" })); a.download = "poland-capacity-market.csv"; a.click();
+    });
+    window.addEventListener("resize", () => { priceChart.resize(); techChart.resize(); });
+    $("theme").addEventListener("click", () => {
+      const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("pg-theme", root.dataset.theme); } catch (e) { /* private mode */ }
+      render();
+    });
+    $("footer").innerHTML = `Data: <a href="${esc(data.sources.results)}" target="_blank" rel="noopener">URE, Informacje Prezesa URE</a> (final results of every main, additional and supplementary auction: units, obligations, contract lengths, providers, clearing prices) ` +
+      `and the ministers' regulations on auction parameters in <a href="https://api.sejm.gov.pl/eli/acts/DU" target="_blank" rel="noopener">Dziennik Ustaw</a> (derating factors). ` +
+      `Technologies, the yearly values (price × obligation) and the links to queue projects are this site's estimates and can be wrong; unit names are published only in the 2028 and 2029 main auction results. Data updated ${fmtDate(data.updated)}.`;
+  }
+  (function initTheme() { try { const s = localStorage.getItem("pg-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) { /* private mode */ } })();
+  load().catch(e => { $("intro").textContent = `Could not load the data: ${e.message}`; console.error(e); });
+  </script>
+</body>
+</html>

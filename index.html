@@ -104,6 +104,12 @@
     .matrix td.cell i { width:7px; height:7px; margin:0 5px 0 0; }
     .matrix tr.total td { color:var(--muted); cursor:default; background:none; font-weight:600; }
     .presets { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .cm-filter { display:flex; align-items:center; gap:7px; margin-top:10px; font-size:13px; cursor:pointer; }
+    .cm-tag { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.3px; color:var(--bg); background:var(--accent); border-radius:4px; padding:1px 5px; }
+    table.cm { border-collapse:collapse; width:100%; font-size:12.5px; margin-top:8px; }
+    .cm th, .cm td { padding:5px 7px; border-bottom:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .cm th:first-child, .cm td:first-child { text-align:left; }
+    .cm th { color:var(--muted); font-weight:600; }
     .presets button, .btn { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
     .presets button:hover, .btn:hover { background:var(--hover); }
     .sizes { display:flex; align-items:flex-end; gap:16px; color:var(--muted); font-size:12px; flex-wrap:wrap; }
@@ -217,7 +223,7 @@
 <body>
   <header class="topbar">
     <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
-    <nav class="nav"><a class="active" href="./">Connection queue (PSE)</a><a href="output/">Unit output (JWCD)</a></nav>
+    <nav class="nav"><a class="active" href="./">Connection queue (PSE)</a><a href="output/">Unit output (JWCD)</a><a href="capacity/">Capacity market</a></nav>
     <button class="theme" type="button" id="theme">Theme</button>
   </header>
   <main>
@@ -269,6 +275,7 @@
               <button type="button" data-preset="exited">Refused, withdrawn, dropped</button>
               <button type="button" data-preset="all">Everything</button>
             </div>
+            <label class="cm-filter"><input type="checkbox" id="only-cm"> <span class="cm-tag">CM</span> Only projects with a capacity-market contract <span id="cm-count" class="count" style="margin:0"></span></label>
             <div class="note" style="padding:8px 0 0">Click a technology, a phase or a cell to hide or show it; the table and the timing below follow.</div>
           </div>
           <div class="box">
@@ -348,6 +355,11 @@
           <div class="chart-sub" id="d-steps-sub"></div>
           <div class="steps" id="d-steps"></div>
         </div>
+        <div class="d-card" id="d-cm-card" hidden>
+          <h3><span class="cm-tag">CM</span> Capacity market</h3>
+          <div class="chart-sub" id="d-cm-sub"></div>
+          <div id="d-cm"></div>
+        </div>
         <div class="d-card">
           <h3>Connection date</h3>
           <div class="chart-sub">The connection date in the agreement (before July 2026: "termin przyłączenia"; since: "data rozpoczęcia dostarczania energii"), as each monthly list showed it.</div>
@@ -416,7 +428,7 @@
   const state = {
     month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
     search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true,
-    grids: new Set(["pse", "tauron", "enea", "pge", "energa"]), dsoLoading: true
+    grids: new Set(["pse", "tauron", "enea", "pge", "energa"]), dsoLoading: true, onlyCm: false
   };
   const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA", pge: "PGE", energa: "ENERGA" };
   const DSO_GRIDS = ["tauron", "enea", "pge", "energa"];
@@ -480,6 +492,7 @@
     for (const project of queue.projects) {
       const now = at(project, state.month);
       if (!now || !gridOn(project)) continue;
+      if (state.onlyCm && !project.cm) continue;
       if (hiddenCell(techRow(project).key, now.phase)) continue;
       if (state.region && project.region !== state.region) continue;
       if (!matchesSearch(project)) continue;
@@ -522,6 +535,15 @@
     renderMapNote();
     renderGridNote();
     renderAll(true);
+    openFromHash();
+  }
+
+  /* "#project-123" (from the capacity-market page) opens that project's card once its file has loaded. */
+  function openFromHash() {
+    const match = /^#project-(\d+)$/.exec(location.hash);
+    if (!match) return;
+    const project = queue.projects.find(p => p.id === Number(match[1]));
+    if (project) openDetail(project);
   }
 
   function renderGridNote() {
@@ -696,7 +718,15 @@
     return items;
   }
 
+  function renderCmCount() {
+    const el = document.getElementById("cm-count");
+    if (!el) return;
+    const n = queue.projects.filter(p => p.cm && gridOn(p)).length;
+    el.textContent = `(${n.toLocaleString("en")} linked)`;
+  }
+
   function renderSide(items) {
+    renderCmCount();
     const month = queue.months[state.month];
     document.getElementById("month-label").textContent = fmtMonth(month);
     const slider = document.getElementById("month");
@@ -712,7 +742,7 @@
     const cells = {};
     for (const project of queue.projects) {
       const now = at(project, state.month);
-      if (!now || !gridOn(project) || (state.region && project.region !== state.region) || !matchesSearch(project)) continue;
+      if (!now || !gridOn(project) || (state.onlyCm && !project.cm) || (state.region && project.region !== state.region) || !matchesSearch(project)) continue;
       const key = `${techRow(project).key}|${now.phase}`;
       const cell = cells[key] ||= { count: 0, mw: 0 };
       cell.count += 1; cell.mw += now.mw || 0;
@@ -955,6 +985,7 @@
     ];
     document.getElementById("d-tiles").innerHTML = tiles.map(([k, v]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div></div>`).join("");
     renderSteps(p);
+    renderCm(p);
     renderCod(p);
     renderChanges(p);
     renderFacts(p);
@@ -997,6 +1028,23 @@
     document.getElementById("d-steps").innerHTML = html;
     document.getElementById("d-steps-sub").textContent = `The path every project follows; the current step is highlighted. Dates are the operator's; ` +
       `"date not published" means PSE's lists never gave it (applications before 2024, or before the project entered the lists in ${fmtMonth(p.first_seen)}).`;
+  }
+
+  /* The capacity-market contracts of the unit(s) linked to the project (etl/cm_match.py). */
+  function renderCm(p) {
+    const card = document.getElementById("d-cm-card");
+    card.hidden = !p.cm;
+    if (!p.cm) return;
+    const zl = v => v == null ? "—" : v >= 1e6 ? `${(v / 1e6).toLocaleString("en", { maximumFractionDigits: 1 })}m zł` : `${Math.round(v / 1e3).toLocaleString("en")}k zł`;
+    const kinds = { main: "Main", additional: "Additional", supplementary: "Supplementary", tiebreak: "Tie-break" };
+    document.getElementById("d-cm-sub").innerHTML = p.cm.map(u =>
+      `<b>${esc(u.code)}</b> ${esc(u.name || "")} · ${esc(u.provider)}${u.new ? " · new unit" : ""}. Linked because the ${esc(u.how)} (this site's match, can be wrong). ` +
+      `<a href="capacity/#${encodeURIComponent(u.code)}">All its contracts</a>`).join("<br>");
+    document.getElementById("d-cm").innerHTML = p.cm.map(u => `<table class="cm"><tr><th>Auction</th><th>Delivery</th><th>MW obligation</th><th>zł/kW·yr</th><th>zł a year</th><th>Derating</th><th>Up to net MW</th></tr>` +
+      u.contracts.map(c => `<tr><td>${kinds[c.kind] || c.kind}${c.quarter ? ` Q${c.quarter}` : ""}</td><td>${c.quarter ? `Q${c.quarter} ${c.from}` : c.from === c.to ? c.from : `${c.from}–${c.to}`}</td>` +
+        `<td>${c.mw == null ? "—" : c.mw.toLocaleString("en", { maximumFractionDigits: 3 })}</td><td>${c.price == null ? "—" : c.price.toFixed(2)}</td>` +
+        `<td>${zl(c.price == null || c.mw == null ? null : c.price * c.mw * 1000 * (c.quarter ? 0.25 : 1))}</td>` +
+        `<td>${c.kwd == null ? "—" : (c.kwd * 100).toFixed(2) + "%"}</td><td>${c.derated_from == null ? "—" : c.derated_from.toLocaleString("en", { maximumFractionDigits: 1 })}</td></tr>`).join("") + `</table>`).join("");
   }
 
   function renderCod(p) {
@@ -1136,6 +1184,7 @@
       all: []
     };
     const applyPreset = name => { state.hidden = new Set(presets[name]); state.page = 0; state.month = queue.months.length - 1; renderAll(false); };
+    document.getElementById("only-cm").addEventListener("change", event => { state.onlyCm = event.target.checked; state.page = 0; renderAll(false); });
     document.getElementById("grids").addEventListener("click", event => {
       const button = event.target.closest("button[data-grid]");
       if (!button) return;
@@ -1189,6 +1238,7 @@
     renderSizes();
     renderMapNote();
     renderGridNote();
+    openFromHash();
     document.getElementById("map-sub").textContent = `${queue.projects.length.toLocaleString("en")} projects listed by PSE at some point since ${fmtMonth(queue.months[0])}; the slider replays the monthly lists`;
     document.getElementById("footer").innerHTML =
       `Data: <a href="https://www.pse.pl/obszary-dzialalnosci/krajowy-system-elektroenergetyczny/wykaz-obiektow-planowanych-do-przylaczenia" target="_blank" rel="noopener">PSE S.A., wykaz obiektów planowanych do przyłączenia</a> ` +

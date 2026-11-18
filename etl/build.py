@@ -33,6 +33,7 @@ sys.path.insert(0, HERE)
 from stations import Stations, fold  # noqa: E402
 import dso_build  # noqa: E402
 import running  # noqa: E402
+import cm_match  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 SNAPSHOTS = os.path.join(ROOT, "data", "snapshots")
@@ -561,6 +562,7 @@ def main():
     # The distribution operators' lists, and the registers of running units for every project.
     dso_projects, dso_sources, dso_report = dso_build.projects(technology, STATUS_PHASE)
     running_found = running.apply(projects + dso_projects, None)
+    cm_linked = cm_match.apply(projects + dso_projects)
     refusals, refusals_asof = refusals_by_quarter() or ([], None)
 
     projects.sort(key=lambda item: (item["phase"] in ("withdrawn", "refused"), -(item["mw"] or 0)))
@@ -570,6 +572,15 @@ def main():
         # The map's month slider: [first month, last month, phase, MW] runs, months as indexes into "months".
         project["runs"] = runs_of(project.pop("_timeline"), project.get("left"))
     monthly = history(projects, dso_projects, application_lists)
+    # Capacity-market unit -> the queue projects it is linked to, for the capacity-market page.
+    links = collections.defaultdict(list)
+    for project in projects + dso_projects:
+        for unit in project.get("cm", []):
+            title = project.get("name") or f"{project.get('type') or 'Project'} at {(project.get('stations') or [project.get('station') or ''])[0]}"
+            links[unit["code"]].append({"id": project["id"], "grid": project.get("grid", "pse"), "title": title,
+                                        "station": (project.get("stations") or [project.get("station") or ""])[0], "phase": project["phase"],
+                                        "mw": project.get("mw"), "how": unit["how"]})
+    json.dump({"updated": today(), "links": links}, open(os.path.join(OUT, "cm_links.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     sources = [{"asof": asof, "doc": doc, "rows": len(rows), "url": source["url"], "published": source.get("published")}
                for asof, doc, rows, source in snapshots]
     used = {name for project in projects for name in project["stations"]}
@@ -593,6 +604,7 @@ def main():
     counts = collections.Counter(project["phase"] for project in projects)
     print(f"{len(projects)} projects from {len(snapshots)} monthly lists ({ASOFS[0]} to {latest_asof}); phases {dict(counts)}")
     print(f"Distribution operators: {json.dumps(dso_report, ensure_ascii=False)}")
+    print(f"Capacity-market units linked to projects: {len(cm_linked)}")
     print(f"Running units matched: {len(running_found)} " +
           json.dumps(collections.Counter(p['running']['source'] for p in running_found), ensure_ascii=False))
     if unknown:
