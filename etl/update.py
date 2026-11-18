@@ -52,7 +52,7 @@ def main():
         jwcd_changed = running.fetch_jwcd()
         cm_changed = capacity_market.main()   # URE's capacity-market results: only new notices are read
         sat_changed = saturation.main()       # PSE's switchyards with no free connection bays
-        try:                                  # orthophotos and Sentinel-2 passes of the known sites
+        try:                                  # orthophotos and Sentinel-2 passes of the known sites, weekly
             img_changed = imagery.main()
         except Exception as error:            # noqa: BLE001 -- images must not stop the queue update
             print(f"Imagery failed: {error}")
