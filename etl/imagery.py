@@ -20,7 +20,8 @@ Two sources, both free:
   snow in a square three times the crop's size (at most 3 km across), and under 0.3%
   of the crop is bright and colourless where the site is not usually so (thin cloud
   the classification misses; ash fields and roofs are grey in most passes and do not
-  count).  Of the passes that qualify, each month keeps the one with the least.
+  count, nor do the permit parcels, where new white containers are the point).  Of the
+  passes that qualify, each month keeps the one with the least.
 
 Writes data/imagery/<key>/*.jpg and data/imagery.json.  main() returns True when
 anything changed.
@@ -231,6 +232,15 @@ def sentinel2(site, entry, folder):
     # "Usually grey": in at least a sixth of the passes (ash fields are grey only when dry), widened by a pixel.
     usual = np.mean(stack, axis=0) >= 1 / 6 if len(stack) >= 6 else np.zeros((n, n), bool)
     usual = usual | np.roll(usual, 1, 0) | np.roll(usual, -1, 0) | np.roll(usual, 1, 1) | np.roll(usual, -1, 1)
+    # The permit parcels themselves are left out: new white containers there are what we look for, not cloud.
+    points = [pt for rings in (site.get("outline") or {}).values() for ring in rings for pt in ring]
+    if points:
+        cols = [((p[0] - lon) * 111320 * math.cos(math.radians(lat)) + half) / (2 * half) * n for p in points]
+        rows = [(half - (p[1] - lat) * 111320) / (2 * half) * n for p in points]
+        c0, c1 = max(0, int(min(cols)) - 3), min(n, int(max(cols)) + 4)
+        r0, r1 = max(0, int(min(rows)) - 3), min(n, int(max(rows)) + 4)
+        if (c1 - c0) * (r1 - r0) <= 0.4 * n * n:
+            usual[r0:r1, c0:c1] = True
     added = []
     for month, cands in sorted(candidates.items()):
         share, date, item, rgb = min(((float((grey_mask(rgb) & ~usual).mean()), date, item, rgb) for date, item, rgb in cands), key=lambda c: c[0])
