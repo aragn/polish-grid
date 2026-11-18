@@ -1139,8 +1139,36 @@
     const stations = p.stations.map(name => { const s = queue.stations[name] || {}; return esc(`${name}${s.code ? ` (${s.code})` : ""}${s.kv ? `, ${s.kv} kV station` : ""}${s.planned ? ` – planned; ${s.note || ""}` : ""}`); }).join("<br>");
     const first = sourceFor(p.first_seen, p), last = sourceFor(p.last_seen, p);
     const sat = gridOf(p) === "pse" ? p.stations.map(name => satByStation[name]).filter(s => s && s.now) : [];
-    const satText = sat.map(s => `<br><span style="color:var(${s.all_full ? "--sat-full" : "--sat-part"})">■</span> PSE: no free connection bays at ${esc(s.name)} ` +
-      `${esc(s.switchyards.filter(y => y.now).map(y => y.kv + " kV").join(", "))} (list of ${fmtDate(saturation.latest)}, since ${fmtDate(s.switchyards.filter(y => y.now).map(y => y.first).sort()[0])})`).join("");
+    // PSE counts free bays per switchyard (one voltage level of a substation): say whether the project asked for
+    // the full switchyard itself or for another one at the same substation.
+    const askedKv = new Set((p.kv || "").match(/\d+/g) || []);
+    const satText = sat.map(s => {
+      const yards = s.switchyards.filter(y => y.now);
+      const fullKv = yards.map(y => y.kv);
+      const own = fullKv.filter(kv => askedKv.has(kv));
+      const since = kvs => fmtDate(yards.filter(y => kvs.includes(y.kv)).map(y => y.first).sort()[0]);
+      const list = `PSE's list of ${fmtDate(saturation.latest)}`;
+      let text, color;
+      if (own.length) {
+        color = "--sat-full";
+        const holds = ["conditions", "agreement", "operating", "operational"].includes(p.phase);
+        text = `The switchyard this project asked for, ${esc(s.name)} ${esc(own.join(", "))} kV, has no free connection bays (${list}, since ${since(own)}). ` +
+          (holds ? `The project already has its ${p.agreement ? "agreement" : "conditions"}, so its bay is allocated: the list stops new applications, not this one.`
+                 : "New applications there are refused without being examined.");
+      } else if (askedKv.size) {
+        color = "--sat-part";
+        // Refusals at this substation at a voltage PSE does not list as full: the grid around it is short too.
+        const refused = queue.projects.filter(q => q !== p && gridOf(q) === "pse" && q.phase === "refused" && q.stations.includes(s.station) &&
+          !((q.kv || "").match(/\d+/g) || []).some(kv => fullKv.includes(kv)));
+        text = `Another switchyard of this substation is full: ${esc(s.name)} ${esc(fullKv.join(", "))} kV (${list}, since ${since(fullKv)}). ` +
+          `This project asked for ${esc([...askedKv].join(", "))} kV, which PSE does not list as full` +
+          (refused.length ? `; still, ${refused.length} application${refused.length === 1 ? "" : "s"} at other voltages of this substation ${refused.length === 1 ? "was" : "were"} refused for lack of technical and economic conditions (latest ${fmtDate(refused.map(q => q.refused).filter(Boolean).sort().pop())}).` : ".");
+      } else {
+        color = "--sat-part";
+        text = `${esc(s.name)} ${esc(fullKv.join(", "))} kV has no free connection bays (${list}); PSE's queue does not say which voltage this project asked for.`;
+      }
+      return `<br><span style="color:var(${color})">■</span> ${text}`;
+    }).join("");
     const facts = [
       ["Project name", p.name || (gridOf(p) === "pse" ? "Not published (PSE named projects only from July 2026)" : "Not published by the operator")],
       ["Applicant", [p.applicant || "Not published", p.seat].filter(Boolean).join(", ")],
