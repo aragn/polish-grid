@@ -246,6 +246,42 @@
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       },
       "note": "Status on 20 Oct 2026: being built (planned from Q2 2026). Matched by station code and size: TAURON's list gives no names."
+    },
+    {
+      "key": "stary-grodkow",
+      "match": {
+        "grid": "tauron",
+        "station": "GDK3",
+        "mw": 50
+      },
+      "label": "Stary Grodków BESS, 50 MW",
+      "parcels": [
+        "160709_2.0010.526/2"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Building permit ST-OP-NY/WNIOSEK/3307/2024 (ME Stary Grodków: PV farm of up to 12 MW with energy storage and SN/WN substation, decision of 18 Sep 2024) gives parcels 293/6 and 293/8, obręb Stary Grodków (gmina Skoroszyce), since renumbered. The battery containers visible on the images stand on today's parcel 526/2 (GUGiK's parcel service)",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      },
+      "note": "Status on 20 Oct 2026: running. Matched by station code and size: TAURON's list gives no names."
+    },
+    {
+      "key": "mee-elk",
+      "match": {
+        "grid": "pse",
+        "name": "MEE Ełk",
+        "applicant": "Magazyn EE Ełk"
+      },
+      "label": "Ełk BESS (Greenvolt), 200 MW",
+      "parcels": [
+        "280502_2.0031.451/98"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Building permits ST-WM-EK/WNIOSEK/1375/2024 and 1376/2024 (Magazyn EE Ełk: energy storage and its 110/SN kV substation, decisions of 6–7 Nov 2023, revised 2025) give parcel 451/80, obręb Nowa Wieś Ełcka (gmina Ełk), since divided. The new installation visible on the images stands on today's parcel 451/98 (GUGiK's parcel service)",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      },
+      "note": "Status on 20 Oct 2026: switched on (on a temporary 220 kV tap; PSE's row is for the permanent 400 kV connection)."
     }
   ]
 }
