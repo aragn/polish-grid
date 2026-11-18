@@ -17,7 +17,7 @@
       --line-400:#4a5260; --line-220:#323843; --station:#7d8691;
       --t-solar:#c98500; --t-wind:#199e70; --t-offshore:#3987e5; --t-storage:#9085e9; --t-hybrid:#d55181;
       --t-gas:#d95926; --t-other:#8c949e; --t-distribution:#008300; --t-demand:#e66767;
-      --p-1:#1c5cab; --p-2:#2a78d6; --p-3:#5598e7; --p-4:#86b6ef; --p-5:#b7d3f6; --p-exit:#5f656d; --op:#3fb950;
+      --p-1:#1c5cab; --p-2:#2a78d6; --p-3:#5598e7; --p-4:#86b6ef; --p-5:#b7d3f6; --p-exit:#5f656d; --op:#3fb950; --sat-full:#ff5a5a; --sat-part:#ffa53d;
       --done:#5ecb8a; --current:#5b9cff; --exit:#e66767;
       --shadow:rgba(0,0,0,.55);
     }
@@ -32,7 +32,7 @@
         --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
         --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
         --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
-        --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37;
+        --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37; --sat-full:#d32f2f; --sat-part:#e07b00;
         --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
       }
     }
@@ -46,7 +46,7 @@
       --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
       --t-solar:#eda100; --t-wind:#1baf7a; --t-offshore:#2a78d6; --t-storage:#6250d6; --t-hybrid:#e87ba4;
       --t-gas:#eb6834; --t-other:#898781; --t-distribution:#008300; --t-demand:#e34948;
-      --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37;
+      --p-1:#104281; --p-2:#1c5cab; --p-3:#2a78d6; --p-4:#5598e7; --p-5:#86b6ef; --p-exit:#b2b0a6; --op:#1a7f37; --sat-full:#d32f2f; --sat-part:#e07b00;
       --done:#0ca30c; --current:#2a78d6; --exit:#d03b3b; --shadow:rgba(0,0,0,.18);
     }
 
@@ -104,6 +104,8 @@
     .matrix td.cell i { width:7px; height:7px; margin:0 5px 0 0; }
     .matrix tr.total td { color:var(--muted); cursor:default; background:none; font-weight:600; }
     .presets { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .sat-key { color:var(--muted); font-size:12px; line-height:1.7; margin-top:6px; }
+    .sat-key i { display:inline-block; width:11px; height:11px; border:2.4px solid; margin:0 5px -2px 0; box-sizing:border-box; }
     .cm-filter { display:flex; align-items:center; gap:7px; margin-top:10px; font-size:13px; cursor:pointer; }
     .cm-tag { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.3px; color:var(--bg); background:var(--accent); border-radius:4px; padding:1px 5px; }
     table.cm { border-collapse:collapse; width:100%; font-size:12.5px; margin-top:8px; }
@@ -287,7 +289,9 @@
             <div class="layers">
               <label><input type="checkbox" id="layer-lines" checked> <span class="key-line" style="border-color:var(--line-400)"></span> 400 kV <span class="key-line" style="border-color:var(--line-220)"></span> 220 kV lines</label>
               <label><input type="checkbox" id="layer-stations" checked> Substations</label>
+              <label><input type="checkbox" id="layer-saturation" checked> No free connection bays (PSE)</label>
             </div>
+            <div class="sat-key" id="sat-key"></div>
           </div>
         </aside>
       </div>
@@ -428,13 +432,13 @@
   const state = {
     month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
     search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true,
-    grids: new Set(["pse", "tauron", "enea", "pge", "energa", "stoen"]), dsoLoading: true, onlyCm: false
+    grids: new Set(["pse", "tauron", "enea", "pge", "energa", "stoen"]), dsoLoading: true, onlyCm: false, saturation: true
   };
   const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA", pge: "PGE", energa: "ENERGA", stoen: "STOEN" };
   const DSO_GRIDS = ["tauron", "enea", "pge", "energa", "stoen"];
   const gridOf = project => project.grid || "pse";
   const gridOn = project => state.grids.has(gridOf(project));
-  let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart;
+  let queue, history, geo, gridLines, mapChart, historyChart, miniChart, codChart, saturation = { stations: [], versions: [] }, satByStation = {};
   const monthIndex = {};
 
   /* ---------------- helpers ---------------- */
@@ -505,7 +509,10 @@
 
   async function load() {
     const get = async path => { const response = await fetch(path, { cache: "no-cache" }); if (!response.ok) throw new Error(`${path}: HTTP ${response.status}`); return response.json(); };
-    [queue, history, geo, gridLines] = await Promise.all([get("data/queue.json"), get("data/history.json"), get("geo/poland_voivodeships.json"), get("geo/grid_lines.json").catch(() => ({ lines: [] }))]);
+    [queue, history, geo, gridLines, saturation] = await Promise.all([get("data/queue.json"), get("data/history.json"), get("geo/poland_voivodeships.json"),
+      get("geo/grid_lines.json").catch(() => ({ lines: [] })), get("data/saturation.json").catch(() => ({ stations: [], versions: [] }))]);
+    satByStation = {};
+    for (const s of saturation.stations) if (s.station) satByStation[s.station] = s;
     queue.months.forEach((asof, index) => { monthIndex[asof] = index; });
     state.month = queue.months.length - 1;
     echarts.registerMap("poland", geo);
@@ -669,6 +676,16 @@
       {
         id: "projects", type: "scatter", coordinateSystem: "geo", z: 3, data, progressive: 0,
         emphasis: { scale: 1.5, itemStyle: { borderColor: cssVar("--text"), borderWidth: 1.5 } }
+      },
+      {
+        // PSE's switchyards with no free connection bays: hollow squares above the projects.
+        id: "saturation", type: "scatter", coordinateSystem: "geo", z: 4, symbol: "rect", symbolSize: 13,
+        data: state.saturation ? saturation.stations.filter(s => s.lat != null && s.now).map(s => ({
+          name: s.name, value: [s.lon, s.lat], sat: s,
+          itemStyle: { color: "transparent", borderWidth: 2.4, borderType: s.section === "full" ? "solid" : "dashed",
+            borderColor: cssVar(s.section === "full" && !s.all_full ? "--sat-part" : "--sat-full") }
+        })) : [],
+        emphasis: { scale: 1.4 }
       }
     ];
     if (!full) {
@@ -681,6 +698,18 @@
           trigger: "item", confine: true, backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), borderWidth: 1,
           textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;",
           formatter: params => {
+            if (params.seriesId === "saturation") {
+              const s = params.data.sat, muted = cssVar("--tooltip-muted");
+              const now = s.switchyards.filter(y => y.now);
+              const what = s.section === "full" ? (s.all_full ? "No free connection bays at any of its switchyards" : "No free connection bays at some switchyards")
+                : s.section === "not_owned" ? "Planned switchyard PSE will not own, or not decided: applications stay unexamined"
+                : "Planned switchyard included only conditionally: applications stay unexamined";
+              return `<div style="max-width:320px;white-space:normal"><b>${esc(s.name)}</b> <span style="color:${muted}">${esc(s.code)}</span>` +
+                `<div style="margin-top:4px">${esc(what)}</div>` +
+                now.map(y => tooltipRow(cssVar(s.all_full || s.section !== "full" ? "--sat-full" : "--sat-part"), `${y.kv} kV switchyard`, `listed since ${fmtDate(y.first)}`)).join("") +
+                (s.section === "full" && s.station_kv.length ? `<div style="color:${muted};margin-top:4px">Station's switchyards: ${esc(s.station_kv.join(", "))} kV</div>` : "") +
+                `<div style="color:${muted};margin-top:4px">PSE's list of ${fmtDate(saturation.latest)}: applications there are refused without being examined.</div></div>`;
+            }
             if (params.seriesId === "stations") {
               const station = params.data.station;
               return `<b>${esc(params.data.name)}</b>${station.code ? ` <span style="color:${cssVar("--tooltip-muted")}">${esc(station.code)}</span>` : ""}` +
@@ -775,6 +804,18 @@
       return `<div><i style="width:${size}px;height:${size}px"></i>${mw.toLocaleString("en")} MW</div>`;
     }).join("") + `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.5px var(--text)"></i>past connection date</div>` +
       `<div><i style="width:12px;height:12px;background:transparent;box-shadow:0 0 0 1.8px var(--op)"></i>operational</div>`;
+  }
+
+  function renderSatKey() {
+    const now = saturation.stations.filter(s => s.now);
+    const full = now.filter(s => s.section === "full"), planned = now.filter(s => s.section !== "full");
+    const unplaced = planned.filter(s => s.lat == null).map(s => `${s.code}${s.prsp ? ` (${s.prsp})` : ""}`);
+    document.getElementById("sat-key").innerHTML = !saturation.versions.length ? "" :
+      `<i style="border-color:var(--sat-full)"></i>every switchyard full · <i style="border-color:var(--sat-part)"></i>some switchyards full · ` +
+      `<i style="border-color:var(--sat-full);border-style:dashed"></i>planned, not examined<br>` +
+      `PSE's list of ${fmtDate(saturation.latest)}: ${full.length} stations with no free bays (${full.filter(s => s.all_full).length} at every switchyard). ` +
+      `PSE gives no amount of spare capacity, only stations with none. ` +
+      (unplaced.length ? `Planned switchyards PSE names only by code, not on the map: ${esc(unplaced.join(", "))}.` : "");
   }
 
   function renderMapNote() {
@@ -1097,13 +1138,16 @@
     const installed = Object.entries(p.installed || {}).map(([key, value]) => `${{ pv: "PV", wind: "wind", storage_out: "storage discharge", storage_in: "storage charge", load: "load", other: typeName(p.type).toLowerCase() }[key] || key} ${fmtMw(value)}`).join(", ");
     const stations = p.stations.map(name => { const s = queue.stations[name] || {}; return esc(`${name}${s.code ? ` (${s.code})` : ""}${s.kv ? `, ${s.kv} kV station` : ""}${s.planned ? ` – planned; ${s.note || ""}` : ""}`); }).join("<br>");
     const first = sourceFor(p.first_seen, p), last = sourceFor(p.last_seen, p);
+    const sat = gridOf(p) === "pse" ? p.stations.map(name => satByStation[name]).filter(s => s && s.now) : [];
+    const satText = sat.map(s => `<br><span style="color:var(${s.all_full ? "--sat-full" : "--sat-part"})">■</span> PSE: no free connection bays at ${esc(s.name)} ` +
+      `${esc(s.switchyards.filter(y => y.now).map(y => y.kv + " kV").join(", "))} (list of ${fmtDate(saturation.latest)}, since ${fmtDate(s.switchyards.filter(y => y.now).map(y => y.first).sort()[0])})`).join("");
     const facts = [
       ["Project name", p.name || (gridOf(p) === "pse" ? "Not published (PSE named projects only from July 2026)" : "Not published by the operator")],
       ["Applicant", [p.applicant || "Not published", p.seat].filter(Boolean).join(", ")],
       ["Connects to", `${p.operator || "PSE S.A."} – ${gridOf(p) === "pse" ? "transmission grid" : "distribution grid"}`],
       [gridOf(p) === "pse" ? "PSE application id" : `${GRID_SHORT[gridOf(p)]} object id`, p.pse_id],
       ["Running", p.running ? `${p.running.source}: ${p.running.unit}${p.running.place ? ` (${p.running.place})` : ""}${p.running.mw ? `, ${fmtMw(p.running.mw)}` : ""}${p.running.mwh ? ` / ${p.running.mwh.toLocaleString("en")} MWh` : ""}${p.running.since ? `, since ${fmtDate(p.running.since)}` : ""}` : ""],
-      ["Connection point", `${stations || esc(p.station)}${p.station && !p.stations.includes(p.station) ? `<br><span style="color:var(--muted-2)">${esc(GRID_SHORT[gridOf(p)])} wrote: ${esc(p.station.split("\n").join("; "))}</span>` : ""}${gridOf(p) !== "pse" && p.placed === "place" ? `<br><span style="color:var(--muted-2)">placed at the town or village of that name</span>` : ""}`, true],
+      ["Connection point", `${stations || esc(p.station)}${p.station && !p.stations.includes(p.station) ? `<br><span style="color:var(--muted-2)">${esc(GRID_SHORT[gridOf(p)])} wrote: ${esc(p.station.split("\n").join("; "))}</span>` : ""}${gridOf(p) !== "pse" && p.placed === "place" ? `<br><span style="color:var(--muted-2)">placed at the town or village of that name</span>` : ""}${satText}`, true],
       ["Voltage", kvText(p.kv)],
       ["Voivodeship", p.region],
       ["Installation", `${p.type}${codes.length ? ` (${codes.map(code => TYPE_LABEL[code] || code).join(", ")})` : ""}${p.change_request ? " · change of conditions requested" : ""}`],
@@ -1205,6 +1249,7 @@
     });
     document.getElementById("layer-lines").addEventListener("change", event => { state.lines = event.target.checked; drawMap(false); });
     document.getElementById("layer-stations").addEventListener("change", event => { state.stations = event.target.checked; drawMap(false); });
+    document.getElementById("layer-saturation").addEventListener("change", event => { state.saturation = event.target.checked; drawMap(false); });
     document.getElementById("sort").addEventListener("change", event => { state.sort = event.target.value; state.page = 0; renderTable(shown()); });
     let typing;
     document.getElementById("search").addEventListener("input", event => {
@@ -1238,6 +1283,7 @@
     renderIntro();
     renderSizes();
     renderMapNote();
+    renderSatKey();
     renderGridNote();
     openFromHash();
     document.getElementById("map-sub").textContent = `${queue.projects.length.toLocaleString("en")} projects listed by PSE at some point since ${fmtMonth(queue.months[0])}; the slider replays the monthly lists`;
@@ -1245,6 +1291,7 @@
       `Data: <a href="https://www.pse.pl/obszary-dzialalnosci/krajowy-system-elektroenergetyczny/wykaz-obiektow-planowanych-do-przylaczenia" target="_blank" rel="noopener">PSE S.A., wykaz obiektów planowanych do przyłączenia</a> ` +
       `(every monthly version since 2020, read from PSE's document archive; earlier versions, 2017–2020, are scans not yet read). ` +
       `Substations and lines: © OpenStreetMap contributors (ODbL). Voivodeships: GUGiK PRG via polska-geojson (MIT). ` +
+      `Switchyards with no free connection bays: <a href="https://www.pse.pl/obszary-dzialalnosci/krajowy-system-elektroenergetyczny/wykaz-obiektow-planowanych-do-przylaczenia" target="_blank" rel="noopener">PSE, wykaz rozdzielni bez możliwości przyłączenia</a> (every version since August 2025). ` +
       `Distribution: <a href="https://www.tauron-dystrybucja.pl/przylaczenie-do-sieci/dostepne-moce/podmioty-ubiegajace-sie" target="_blank" rel="noopener">TAURON Dystrybucja</a> and ` +
       `<a href="https://www.operator.enea.pl/przylaczenie-do-sieci/informacje-o-przylaczeniach" target="_blank" rel="noopener">ENEA Operator</a> (lists under art. 7 ust. 8l and registers of energy storage), ` +
       `<a href="https://pgedystrybucja.pl/przylaczenia/procedury-przylaczeniowe/informacja-o-podmiotach-ubiegajacych-sie-o-przylaczenie-do-sieci-powyzej-1kv" target="_blank" rel="noopener">PGE Dystrybucja</a> and ` +
