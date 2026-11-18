@@ -159,6 +159,24 @@
      "item": "S2A_34UDD_20261109_1_L2A",
      "scene_cloud": 0.0
     }
+   ],
+   "ortho_checked": "2026-11-18",
+   "ortho": [
+    {
+     "year": 2020,
+     "file": "ortho_2020.jpg",
+     "md5": "fb1818f82890eacf124608ab7b1b409a"
+    },
+    {
+     "year": 2022,
+     "file": "ortho_2022.jpg",
+     "md5": "c6871acb99caf2e6e977ef27da7df2ad"
+    },
+    {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "85b3f14a720b15d2da77e60604d9fb7b"
+    }
    ]
   }
  ]
