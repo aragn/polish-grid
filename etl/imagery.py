@@ -17,8 +17,10 @@ Two sources, both free:
   Earth Search STAC catalogue, no account needed.  The clearest pass of each month
   since January 2024, cut to a square around the site.  10 m pixels.  A pass counts
   as clear when its scene classification shows no cloud, cloud shadow, cirrus or
-  snow in a square three times the crop's size, and under 0.3% of the crop is
-  bright and colourless (thin cloud the classification misses).
+  snow in a square three times the crop's size (at most 3 km across), and under 0.3%
+  of the crop is bright and colourless where the site is not usually so (thin cloud
+  the classification misses; ash fields and roofs are grey in most passes and do not
+  count).  Of the passes that qualify, each month keeps the one with the least.
 
 Writes data/imagery/<key>/*.jpg and data/imagery.json.  main() returns True when
 anything changed.
@@ -52,7 +54,10 @@ S2_PX = 480
 S2_SCENE_CLOUD = 30                # per cent of the whole 110 km tile: a first filter only
 CLEAR_CLASSES = (4, 5, 6, 7)       # vegetation, bare, water, unclassified
 CLOUD_CLASSES = (3, 8, 9, 10, 11)  # cloud shadow, cloud medium and high, cirrus, snow
-GREY = 110                         # true-colour value: brighter than this in every band and nearly colourless = cloud
+WIDE_MAX_M = 1500                  # the cloud check's square: three times the crop, at most this half-side
+                                   # (a larger one catches chimney shadows and plumes at power-plant sites)
+GREY_SHARE = 0.003                 # share of the crop grey where the site is not usually grey that marks thin cloud
+GREY = 110                       # true-colour value: brighter than this in every band and nearly colourless = cloud
 
 
 def today():
@@ -66,7 +71,8 @@ def bbox(lat, lon, half):
 
 
 def parcel_rings(parcel_id):
-    """A parcel's outline from GUGiK's parcel service (ULDK): a list of rings of [lon, lat]."""
+    """A parcel's outline from GUGiK's parcel service (ULDK): a list of rings of [lon, lat]
+    (outer rings and holes alike; the card draws them even-odd, so holes stay open)."""
     response = requests.get(ULDK, params={"request": "GetParcelById", "id": parcel_id, "result": "geom_wkt", "srid": "4326"},
                             headers=UA, timeout=60)
     response.raise_for_status()
@@ -158,6 +164,13 @@ def orthophotos(site, entry, folder):
     return True
 
 
+def grey_mask(rgb):
+    """Pixels of a (3, h, w) true-colour crop that are bright in every band and nearly colourless."""
+    import numpy as np
+    low, high = rgb.min(axis=0).astype(int), rgb.max(axis=0).astype(int)
+    return (low > GREY) & (high - low < 25)
+
+
 def sentinel2(site, entry, folder):
     """Add the clearest pass of every month not yet filled.  Returns True when a pass was added."""
     try:
@@ -184,31 +197,49 @@ def sentinel2(site, entry, folder):
     by_month = {}
     for item in items:
         by_month.setdefault(item.datetime.date().isoformat()[:7], []).append(item)
-    added = []
+    # Every pass the classification calls clear, in the months still to fill.  Thin cloud the
+    # classification misses shows as bright colourless pixels; but some sites are bright and grey
+    # of themselves (ash fields, roofs), so only grey pixels that are not usually grey count.
+    n = max(60, round(2 * half / 10))   # 10 m pixels
+    candidates = {}
     for month in sorted(set(by_month) - have):
+        days = set()
         for item in sorted(by_month[month], key=lambda i: i.properties.get("eo:cloud_cover", 100)):
+            date = item.datetime.date().isoformat()
+            if date in days:
+                continue   # the same pass in the next tile
             try:
                 with rasterio.open(item.assets["scl"].href) as src:
                     (x,), (y,) = transform("EPSG:4326", src.crs, [lon], [lat])
                     window = lambda h: from_bounds(x - h, y - h, x + h, y + h, src.transform)   # noqa: E731
-                    wide = src.read(1, window=window(3 * half), boundless=True, fill_value=0)
+                    wide = src.read(1, window=window(min(3 * half, WIDE_MAX_M)), boundless=True, fill_value=0)
                     near = src.read(1, window=window(half), boundless=True, fill_value=0)
                 if np.isin(near, CLEAR_CLASSES).mean() < 0.99 or np.isin(wide, CLOUD_CLASSES).mean() > 0.002 or (wide == 0).mean() > 0.01:
                     continue
                 with rasterio.open(item.assets["visual"].href) as src:
-                    rgb = src.read([1, 2, 3], window=from_bounds(x - half, y - half, x + half, y + half, src.transform), boundless=True, fill_value=0)
-                low, high = rgb.min(axis=0).astype(int), rgb.max(axis=0).astype(int)
-                if ((low > GREY) & (high - low < 25)).mean() > 0.003:
-                    continue   # thin cloud the classification missed: bright, colourless pixels
+                    rgb = src.read([1, 2, 3], window=from_bounds(x - half, y - half, x + half, y + half, src.transform),
+                                   out_shape=(3, n, n), boundless=True, fill_value=0)
             except Exception as error:   # noqa: BLE001
                 print(f"  {item.id}: {error}")
                 continue
-            date = item.datetime.date().isoformat()
-            name = f"s2_{date}.jpg"
-            Image.fromarray(np.moveaxis(rgb, 0, -1)).resize((S2_PX, S2_PX), Image.LANCZOS).save(
-                os.path.join(folder, name), "JPEG", quality=85, optimize=True)
-            added.append({"date": date, "file": name, "item": item.id, "scene_cloud": round(item.properties.get("eo:cloud_cover", 0), 1)})
-            break
+            days.add(date)
+            candidates.setdefault(month, []).append((date, item, rgb))
+    # Where the site is usually grey: over the passes kept so far (clear by construction) and the new candidates.
+    stack = [grey_mask(np.moveaxis(np.asarray(Image.open(os.path.join(folder, kept["file"])).convert("RGB").resize((n, n), Image.BILINEAR)), -1, 0))
+             for kept in entry.get("s2", []) if os.path.exists(os.path.join(folder, kept["file"]))]
+    stack += [grey_mask(rgb) for cands in candidates.values() for _, _, rgb in cands]
+    # "Usually grey": in at least a sixth of the passes (ash fields are grey only when dry), widened by a pixel.
+    usual = np.mean(stack, axis=0) >= 1 / 6 if len(stack) >= 6 else np.zeros((n, n), bool)
+    usual = usual | np.roll(usual, 1, 0) | np.roll(usual, -1, 0) | np.roll(usual, 1, 1) | np.roll(usual, -1, 1)
+    added = []
+    for month, cands in sorted(candidates.items()):
+        share, date, item, rgb = min(((float((grey_mask(rgb) & ~usual).mean()), date, item, rgb) for date, item, rgb in cands), key=lambda c: c[0])
+        if share > GREY_SHARE:
+            continue
+        name = f"s2_{date}.jpg"
+        Image.fromarray(np.moveaxis(rgb, 0, -1)).resize((S2_PX, S2_PX), Image.LANCZOS).save(
+            os.path.join(folder, name), "JPEG", quality=85, optimize=True)
+        added.append({"date": date, "file": name, "item": item.id, "scene_cloud": round(item.properties.get("eo:cloud_cover", 0), 1)})
     entry["s2_checked"] = today()
     if not added:
         return False
