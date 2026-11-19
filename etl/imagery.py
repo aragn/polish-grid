@@ -101,7 +101,16 @@ def place(site, before):
     if before and before.get("parcels") == parcels and before.get("outline"):
         outline = before["outline"]
     else:
-        outline = {parcel: parcel_rings(parcel) for parcel in parcels}
+        # A parcel renumbered since the permit (split or merged) is no longer found: skip it,
+        # and give up only when none of the site's parcels is found.
+        outline = {}
+        for parcel in parcels:
+            try:
+                outline[parcel] = parcel_rings(parcel)
+            except RuntimeError as error:
+                print(f"  {error}")
+        if not outline:
+            raise RuntimeError(f"none of the {len(parcels)} parcels found")
     points = [pt for rings in outline.values() for ring in rings for pt in ring]
     lons, lats = [p[0] for p in points], [p[1] for p in points]
     lat, lon = (min(lats) + max(lats)) / 2, (min(lons) + max(lons)) / 2

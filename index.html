@@ -1337,7 +1337,9 @@
     const facts = [
       ["Site", site.label || ""],
       [site.parcels?.length ? "Permit parcels (outlined in red)" : "Coordinates", site.parcels?.length
-        ? `${site.parcels.join(", ")} · centre ${lat}, ${lon}` : `${lat}, ${lon} (the red circle)`],
+        ? `${site.parcels.filter(p => !site.outline || site.outline[p]).join(", ")} · centre ${lat}, ${lon}` +
+          (site.outline && site.parcels.some(p => !site.outline[p]) ? ` (not found, renumbered since the permit: ${site.parcels.filter(p => !site.outline[p]).join(", ")})` : "")
+        : `${lat}, ${lon} (the red circle)`],
       ["Where the location comes from", site.location ? (site.location.url ? `<a href="${esc(site.location.url)}" target="_blank" rel="noopener">${esc(site.location.text)}</a>` : esc(site.location.text)) : "", true],
       ["Note", site.note || ""],
       ["Look further", `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat}&lng=${lon}" target="_blank" rel="noopener">Copernicus Browser</a> · ` +
