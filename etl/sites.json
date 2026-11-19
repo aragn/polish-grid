@@ -282,6 +282,277 @@
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       },
       "note": "Status on 20 Oct 2026: switched on (on a temporary 220 kV tap; PSE's row is for the permanent 400 kV connection)."
+    },
+    {
+      "key": "pv-grabin",
+      "match": {
+        "grid": "pse",
+        "name": "PV Grabin-Niwnica",
+        "applicant": "Grand Solar 8"
+      },
+      "label": "PV Grabin-Niwnica (Grand Solar 8), 150 MW",
+      "parcels": [
+        "160907_5.0004.182/4"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcel 182/4 at Grabin (gmina Niemodlin) of building permit ST-OP-OL/WNIOSEK/747/2025 (Starosta Powiatu Opole, decision of 19 Mar 2025: solar farm Grabin of up to 120 MW). Separate permits cover a 110/220 kV substation and a 220 kV cable at Regulice, in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-pelplin-2",
+      "match": {
+        "grid": "pse",
+        "name": "FW Pelplin 2",
+        "applicant": "Radan Nordwind"
+      },
+      "label": "FW Pelplin 2 (Radan Nordwind), 104 MW",
+      "parcels": [
+        "221404_5.0009.62/34",
+        "221404_5.0009.62/33",
+        "221404_5.0009.62/35",
+        "221404_5.0009.62/36",
+        "221404_5.0009.66/1",
+        "221404_5.0009.68/6",
+        "221404_5.0009.69/2",
+        "221404_5.0009.69/3",
+        "221404_5.0009.70/5",
+        "221404_5.0009.70/6",
+        "221404_5.0009.70/7",
+        "221404_5.0009.70/8",
+        "221404_5.0009.70/9",
+        "221404_5.0009.71",
+        "221404_5.0009.75/2",
+        "221404_5.0009.146/9",
+        "221404_5.0009.149/3",
+        "221404_5.0009.150/1",
+        "221404_5.0009.150/2",
+        "221404_5.0009.151/2",
+        "221404_5.0009.152/10",
+        "221404_5.0009.166",
+        "221404_5.0009.167",
+        "221404_5.0009.168",
+        "221404_5.0009.169"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in obręb Ropuchy (gmina Pelplin) of PL-PM/WNIOSEK/97/2024 (Wojewoda Pomorski, decision of 18 Apr 2024: change of the 2013 permit for wind farm Pelplin 2, first stage of 28 turbines), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-nowogrodek-pomorski",
+      "match": {
+        "grid": "enea",
+        "applicant": "Eurowind Polska II",
+        "mw": 28.6
+      },
+      "label": "Nowogródek Pomorski wind farm (Eurowind, ENEA Mostkowo), 28.6 MW",
+      "parcels": [
+        "321005_2.0006.501/1",
+        "321005_2.0006.502/2",
+        "321005_2.0006.505",
+        "321005_2.0006.506",
+        "321005_2.0006.507/6",
+        "321005_2.0006.507/8",
+        "321005_2.0006.508",
+        "321005_2.0006.511/22",
+        "321005_2.0008.174/3",
+        "321005_2.0008.175",
+        "321005_2.0008.180",
+        "321005_2.0008.181",
+        "321005_2.0008.186",
+        "321005_2.0008.220",
+        "321005_2.0008.221/1",
+        "321005_2.0008.227/1",
+        "321005_2.0008.232",
+        "321005_2.0008.235/2"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in gmina Nowogródek Pomorski of building permit PL-ZP/WNIOSEK/7738/2024 (Wojewoda Zachodniopomorski, decision of 11 Apr 2024: wind farm of 13 Vestas V110 turbines of 2.2 MW, hub height 140 m), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-miejska-gorka",
+      "match": {
+        "grid": "pse",
+        "name": "FW Miejska Górka",
+        "applicant": "Finadvice Polska 1"
+      },
+      "label": "FW Miejska Górka (Finadvice), 227 MW",
+      "parcels": [
+        "302203_5.0006.691",
+        "302203_5.0006.676",
+        "302203_5.0006.665",
+        "302203_5.0006.634",
+        "302203_5.0006.540",
+        "302203_5.0006.506",
+        "302203_5.0006.347",
+        "302203_5.0006.333",
+        "302203_5.0006.320",
+        "302203_5.0006.249",
+        "302203_5.0006.238"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Konary of building permit ST-WK-RA/WNIOSEK/4578/2022 (Starosta Powiatu Rawicz, decision of 11 Apr 2022: access roads to 12 turbines), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-lasocice",
+      "match": {
+        "grid": "pse",
+        "name": "PV+MEE Lasocice",
+        "applicant": "Elektrownia PV Lasocice"
+      },
+      "label": "PV+MEE Lasocice, 60 MW (solar plant of 90 MW in the permit)",
+      "parcels": [
+        "160704_2.0009.36/2",
+        "160704_2.0005.23/1",
+        "160704_2.0005.45/5"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Lasocice of building permit ST-OP-NY/WNIOSEK/4304/2025 (Starosta Powiatu Nysa, decision of 3 Nov 2025: change of the permit for a solar plant of 90 MW), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-janikowo",
+      "match": {
+        "grid": "enea",
+        "station": "Janikowo",
+        "mw": 18.2993
+      },
+      "label": "Janikowo solar farm (ENEA, Janikowo), 18.3 MW",
+      "parcels": [
+        "040705_5.0013.108",
+        "040705_5.0013.106",
+        "040705_5.0013.84/1",
+        "040705_5.0013.83/4",
+        "040705_5.0013.82",
+        "040705_5.0013.79"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Pałuczyna (gmina Janikowo) of building permit ST-KP-IN/WNIOSEK/9719/2023 (Starosta Powiatu Inowrocław, decision of 10 Jan 2024: solar farm Janikowo of up to 18.3 MW), investor E&W Sp. z o.o. Projekt Sp. k., in GUNB's register of building permits. ENEA's list gives no applicant for this row: that it is this farm is our reading, from the station and the 18.3 MW",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-rajkowy-polenergia",
+      "match": {
+        "grid": "energa",
+        "applicant": "Polenergia Farma Fotowoltaiczna 2",
+        "mw": 31.992
+      },
+      "label": "Polenergia solar farm at Rajkowy (Energa, GPZ Subkowy), 32 MW",
+      "parcels": [
+        "221404_5.0007.170/5",
+        "221404_5.0007.169/2",
+        "221404_5.0007.169/1",
+        "221404_5.0007.168/4",
+        "221404_5.0007.163/19",
+        "221404_5.0007.163/16",
+        "221404_5.0007.163/15",
+        "221405_2.0004.90/3",
+        "221405_2.0004.125/14",
+        "221405_2.0004.125/7"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Rajkowy of building permit ST-PM-TC/WNIOSEK/7451/2023 (Starosta Powiatu Tczew, decision of 14 Jul 2023: solar farm of 35 MW), changed on 30 Mar 2026 (ST-PM-TC/WNIOSEK/14181/2025), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-kotla",
+      "match": {
+        "grid": "tauron",
+        "station": "Kotla, Dolnośląskie",
+        "mw": 130
+      },
+      "label": "Kotla solar farm (TAURON, Kotla), 130 MW",
+      "parcels": [
+        "020304_2.0005.1028",
+        "020304_2.0005.1255",
+        "020304_2.0005.1254",
+        "020304_2.0005.1247",
+        "020304_2.0008.53/5",
+        "020304_2.0005.987/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Kotla of building permits ST-DL-GL/WNIOSEK/11581/2023 (Starosta Powiatu Głogów, decision of 7 Feb 2024: change of the permit for solar plant PV Kotla-Kulów, investor Wena Projekt 2) and ST-DL-GL/WNIOSEK/8555/2024 (Starosta Powiatu Głogów, decision of 31 Oct 2024: solar plant PV Kotla 2 of up to 60 MW, investor Wena Projekt 7), in GUNB's register of building permits. TAURON's list gives no applicant for this row (conditions 2021, agreement 2021): that it is these plants is our reading, from the station, the size and the new panels north-east of Kotla",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-przykona-neo",
+      "match": {
+        "grid": "pse",
+        "name": "PV Przykona 2 i PV Przykona 3",
+        "applicant": "Neo Solar Farms"
+      },
+      "label": "PV Przykona 2 and 3 (Neo Solar Farms), 200 MW",
+      "parcels": [
+        "302706_2.0018.404/3",
+        "302706_2.0018.408/2",
+        "302706_2.0018.408/3",
+        "302706_2.0018.433/2",
+        "302706_2.0027.631/1",
+        "302706_2.0027.866",
+        "302706_2.0027.865",
+        "302706_2.0027.633/5",
+        "302706_2.0027.639",
+        "302706_2.0005.96/9",
+        "302706_2.0005.110/2",
+        "302706_2.0005.109/4",
+        "302706_2.0005.95/3",
+        "302706_2.0005.96/8",
+        "302706_2.0005.109/6",
+        "302706_2.0005.110/3",
+        "302706_2.0005.124/2",
+        "302706_2.0005.131/1",
+        "302706_2.0005.158",
+        "302706_2.0005.160",
+        "302706_2.0005.161"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Zimotki and Dąbrowa (gmina Przykona) of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits. Other solar farms (ZE PAK's, Energa's) lie next to them on the former Adamów mine land. Parcel 408/1, obręb Zimotki, 3 km south of the panels (probably the cable route), is left out",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-piensk",
+      "match": {
+        "grid": "tauron",
+        "station": "Pieńsk, Dolnośląskie",
+        "mw": 13
+      },
+      "label": "Pieńsk solar farm (TAURON, Pieńsk), 13 MW",
+      "parcels": [
+        "022504_4.0003.208",
+        "022504_4.0003.209",
+        "022504_4.0003.214",
+        "022504_4.0003.215",
+        "022504_4.0003.233",
+        "022504_4.0003.243",
+        "022504_5.0005.388",
+        "022504_5.0005.391",
+        "022504_5.0005.392",
+        "022504_5.0005.393"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Pieńsk of building permit ST-DL-ZG/WNIOSEK/16470/2022 (Starosta Powiatu Zgorzelec, decision of 6 Feb 2023: solar plant PV Pieńsk of up to 16 MW, investor SUN 1), in GUNB's register of building permits. TAURON's list gives no applicant for this row: that it is this plant is our reading, from the station and the size",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
     }
   ]
 }
