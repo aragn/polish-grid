@@ -553,6 +553,102 @@
         "text": "Parcels at Pieńsk of building permit ST-DL-ZG/WNIOSEK/16470/2022 (Starosta Powiatu Zgorzelec, decision of 6 Feb 2023: solar plant PV Pieńsk of up to 16 MW, investor SUN 1), in GUNB's register of building permits. TAURON's list gives no applicant for this row: that it is this plant is our reading, from the station and the size",
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       }
+    },
+    {
+      "key": "pv-brzezinka",
+      "match": {
+        "grid": "pse",
+        "name": "PV Brzezinka",
+        "applicant": "Solarfarm Brzezinka"
+      },
+      "label": "PV Brzezinka (Solarfarm Brzezinka), 220.8 MW",
+      "parcels": [
+        "021407_5.0003.22/2",
+        "021407_5.0003.36/2",
+        "021407_5.0003.36/3",
+        "021407_5.0003.355/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Działosza (gmina Syców) of building permit ST-DL-OS/WNIOSEK/4846/2024 (Starosta Powiatu Oleśnica, decision of 6 May 2024: solar plant EF Syców 4), in GUNB's register of building permits. It may be only part of the 220.8 MW",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "mee-kobiernice",
+      "match": {
+        "grid": "pse",
+        "name": "MEE Kobiernice",
+        "applicant": "ME Kobiernice"
+      },
+      "label": "MEE Kobiernice, 120 MW",
+      "parcels": [
+        "240208_2.0003.1604/19"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcel 1604/19, obręb Kobiernice (gmina Porąbka), of building permit ST-SL-BI/WNIOSEK/11284/2023 (Starosta Powiatu Bielsko-Biała, decision of 20 Jul 2023: energy storage), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-miloslaw-solar-park",
+      "match": {
+        "grid": "enea",
+        "applicant": "Grand Solar 12",
+        "mw": 15.3
+      },
+      "label": "Miłosław Solar Park (Grand Solar 12), 15.3 MW",
+      "parcels": [
+        "303002_5.0001.97/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcel 97/1 at Białe Piątkowo (gmina Miłosław) of building permit ST-WK-WR/WNIOSEK/12767/2023 (Starosta Powiatu Września, decision of 25 Aug 2023: solar farm Miłosław Solar Park), changed on 6 Feb 2025 (ST-WK-WR/WNIOSEK/24779/2024) and 12 Feb 2026 (ST-WK-WR/WNIOSEK/25932/2025), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-cybinka",
+      "match": {
+        "grid": "enea",
+        "applicant": "Lubuskie Elektrownie Słoneczne 1",
+        "mw": 28.5
+      },
+      "label": "Cybinka solar farm (Lubuskie Elektrownie Słoneczne 1), 28.5 MW",
+      "parcels": [
+        "080501_5.0002.1152/4",
+        "080501_5.0002.1152/3",
+        "080501_5.0002.1152/2",
+        "080501_5.0002.1152/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels 1152/1–1152/4 at Grzmiąca (gmina Cybinka) of building permit ST-LB-SL/WNIOSEK/10003/2021 (Starosta Powiatu Słubice, decision of 11 Mar 2022: solar farm SPV Cybinka of up to 40 MW), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "mee-zabrze-2",
+      "match": {
+        "grid": "pse",
+        "name": "MEE Zabrze II",
+        "applicant": "Bess10"
+      },
+      "label": "MEE Zabrze II (Bess10), 207.7 MW",
+      "parcels": [
+        "241309_2.0017.1280/3",
+        "247801_1.0003.247/54",
+        "247801_1.0003.222/47",
+        "247801_1.0003.191/50",
+        "247801_1.0003.246/54",
+        "247801_1.0003.231/60"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcels at Zabrze of building permit PL-SL/WNIOSEK/6424/2026 (Wojewoda Śląski, decision of 12 Jun 2026: energy storage at Zabrze), in GUNB's register of building permits. Most of the permit's parcels have been renumbered since, so the red outline shows only a small parcel and the cable route: that the ground cleared from April 2026 in the middle of the image is this storage is our reading",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
     }
   ]
 }
