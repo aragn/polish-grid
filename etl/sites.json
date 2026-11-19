@@ -282,6 +282,572 @@
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       },
       "note": "Status on 20 Oct 2026: switched on (on a temporary 220 kV tap; PSE's row is for the permanent 400 kV connection)."
+    },
+    {
+      "key": "pv-banie-2",
+      "match": {
+        "grid": "pse",
+        "name": "PV Banie 2",
+        "applicant": "BeGreen Poland 2018-31"
+      },
+      "label": "PV Banie 2 (BeGreen), 340 MW",
+      "parcels": [
+        "320601_2.0006.4/4",
+        "320601_2.0006.16/1",
+        "320601_2.0006.176",
+        "320601_2.0006.13/1",
+        "320601_2.0006.13/2",
+        "320601_2.0006.23/3",
+        "320601_2.0006.17",
+        "320601_2.0006.29/2",
+        "320601_2.0006.32/1",
+        "320601_2.0006.11/2",
+        "320601_2.0006.417",
+        "320601_2.0006.18",
+        "320601_2.0006.177",
+        "320601_2.0006.415/3",
+        "320601_2.0006.415/1",
+        "320601_2.0006.22/1",
+        "320601_2.0006.4/2",
+        "320601_2.0006.22/2",
+        "320601_2.0006.23/1",
+        "320601_2.0006.24",
+        "320601_2.0006.107",
+        "320601_2.0006.10/1",
+        "320601_2.0006.414",
+        "320601_2.0006.48/6",
+        "320601_2.0006.48/7",
+        "320601_2.0006.204",
+        "320601_2.0006.178/2",
+        "320601_2.0006.418",
+        "320601_2.0006.4/5",
+        "320601_2.0006.15/1",
+        "320601_2.0006.4/6",
+        "320601_2.0006.175/1",
+        "320601_2.0006.214",
+        "320601_2.0006.43",
+        "320601_2.0006.9",
+        "320601_2.0006.1",
+        "320601_2.0017.812",
+        "320601_2.0017.814",
+        "320601_2.0017.908/1",
+        "320601_2.0017.813",
+        "320601_2.0017.808",
+        "320601_2.0017.807",
+        "320601_2.0017.810"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The 43 parcels near Banie (gmina Banie) of building permit ST-ZP-GR/WNIOSEK/8646/2023 (Starosta Powiatu Gryfino, decision of 22 Jan 2025: solar farm Banie II, stage I), and the 110/33 kV substation at Kunowo of permit ST-ZP-GR/WNIOSEK/8813/2023 (Starosta Powiatu Gryfino, decision of 23 Jul 2024: Banie II, stage II), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-przykona-neo",
+      "match": {
+        "grid": "pse",
+        "name": "PV Przykona 2 i PV Przykona 3",
+        "applicant": "Neo Solar Farms"
+      },
+      "label": "PV Przykona 2 and 3 (Neo Solar Farms), 200 MW",
+      "parcels": [
+        "302706_2.0018.404/3",
+        "302706_2.0018.408/1",
+        "302706_2.0018.408/2",
+        "302706_2.0018.408/3",
+        "302706_2.0018.433/2",
+        "302706_2.0027.631/1",
+        "302706_2.0027.866",
+        "302706_2.0027.865",
+        "302706_2.0027.633/5",
+        "302706_2.0027.639",
+        "302706_2.0005.96/9",
+        "302706_2.0005.110/2",
+        "302706_2.0005.109/4",
+        "302706_2.0005.95/3",
+        "302706_2.0005.96/8",
+        "302706_2.0005.109/6",
+        "302706_2.0005.110/3",
+        "302706_2.0005.124/2",
+        "302706_2.0005.131/1",
+        "302706_2.0005.158",
+        "302706_2.0005.160",
+        "302706_2.0005.161"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in gmina Przykona of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-adamow-zepak",
+      "match": {
+        "grid": "pse",
+        "name": "PV Adamów",
+        "applicant": "ZE PAK"
+      },
+      "label": "PV Adamów (ZE PAK), 287 MW",
+      "parcels": [
+        "302706_2.0019.250/4",
+        "302706_2.0019.250/5",
+        "302706_2.0019.303/5",
+        "302706_2.0019.490",
+        "302706_2.0019.491",
+        "302706_2.0019.493",
+        "302706_2.0019.494",
+        "302706_2.0019.496",
+        "302706_2.0019.497",
+        "302706_2.0019.257/6",
+        "302706_2.0019.257/7",
+        "302706_2.0019.257/8",
+        "302706_2.0019.495",
+        "302706_2.0009.1/1",
+        "302706_2.0009.1/2",
+        "302706_2.0009.1/4",
+        "302706_2.0009.1/6",
+        "302706_2.0009.11",
+        "302706_2.0009.12",
+        "302706_2.0009.13",
+        "302706_2.0009.16",
+        "302706_2.0009.21/4",
+        "302706_2.0009.21/5",
+        "302706_2.0009.23/4",
+        "302706_2.0009.24",
+        "302706_2.0009.26/2",
+        "302706_2.0009.27/2",
+        "302706_2.0009.28",
+        "302706_2.0009.35/4",
+        "302706_2.0009.42",
+        "302706_2.0009.47/3",
+        "302706_2.0009.240/3",
+        "302706_2.0009.241",
+        "302706_2.0009.278",
+        "302706_2.0009.279",
+        "302706_2.0009.280/2",
+        "302706_2.0009.281",
+        "302706_2.0009.282",
+        "302706_2.0009.284",
+        "302706_2.0009.286",
+        "302706_2.0009.288",
+        "302706_2.0009.289",
+        "302706_2.0009.291",
+        "302706_2.0009.293",
+        "302706_2.0009.121/1",
+        "302706_2.0009.285",
+        "302706_2.0027.347",
+        "302706_2.0027.368",
+        "302706_2.0027.369/1",
+        "302706_2.0027.458/2",
+        "302706_2.0027.862/5",
+        "302706_2.0027.863/4",
+        "302706_2.0027.867",
+        "302706_2.0027.868",
+        "302706_2.0027.875",
+        "302706_2.0027.293/1",
+        "302706_2.0027.862/1",
+        "302706_2.0027.862/2",
+        "302706_2.0027.863/2",
+        "302706_2.0027.863/3",
+        "302706_2.0011.135/2",
+        "302706_2.0011.163/2",
+        "302706_2.0011.167/1",
+        "302706_2.0011.167/2",
+        "302706_2.0011.168",
+        "302706_2.0011.170",
+        "302706_2.0011.559",
+        "302706_2.0011.562",
+        "302706_2.0011.569",
+        "302706_2.0011.572",
+        "302706_2.0011.157/1",
+        "302706_2.0011.571",
+        "302706_2.0010.150/2",
+        "302706_2.0010.218",
+        "302706_2.0010.223",
+        "302706_2.0010.136/2",
+        "302706_2.0010.193",
+        "302706_2.0010.204/4",
+        "302706_2.0010.222"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The 79 parcels near Jeziorko (gmina Przykona) of building permit ST-WK-TU/WNIOSEK/15967/2023 (Starosta Powiatu Turek, decision of 28 May 2024: solar farm Przykona with internal roads, fencing and low-voltage works), in GUNB's register of building permits. That the permit is the queue's PV Adamów is our reading: same investor and area, ZE PAK's former Adamów mine",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-grabin",
+      "match": {
+        "grid": "pse",
+        "name": "PV Grabin-Niwnica",
+        "applicant": "Grand Solar 8"
+      },
+      "label": "PV Grabin-Niwnica (Grand Solar 8), 150 MW",
+      "parcels": [
+        "160907_5.0004.182/4"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parcel 182/4 at Grabin (gmina Niemodlin) of building permit ST-OP-OL/WNIOSEK/747/2025 (Starosta Powiatu Opole, decision of 19 Mar 2025: solar farm Grabin of up to 120 MW). Separate permits cover a 110/220 kV substation and a 220 kV cable at Regulice, in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-elblag",
+      "match": {
+        "grid": "pse",
+        "name": "PV Elbląg",
+        "applicant": "Better Energy Solar Park 221"
+      },
+      "label": "PV Elbląg (Better Energy), 280 MW",
+      "parcels": [
+        "280401_2.0009.482",
+        "280401_2.0009.481/2",
+        "280401_2.0009.480",
+        "280401_2.0009.308/2",
+        "280401_2.0009.305/2",
+        "280401_2.0009.304",
+        "280401_2.0009.303",
+        "280401_2.0009.268",
+        "280401_2.0009.11",
+        "280401_2.0009.10",
+        "280401_2.0009.9",
+        "280401_2.0009.8",
+        "280401_2.0009.7",
+        "280401_2.0009.4"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels near Janowo of building permit ST-WM-EL/WNIOSEK/6672/2024 (Starosta Powiatu Elbląg, decision of 20 May 2025: solar farm Elbląg Solar Park III), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-piotrowa",
+      "match": {
+        "grid": "pse",
+        "name": "PV Piotrowa",
+        "applicant": "PV Piotrowa"
+      },
+      "label": "PV Piotrowa, 300 MW",
+      "parcels": [
+        "160907_5.0015.148",
+        "160907_5.0015.150/1",
+        "160907_5.0015.131/2",
+        "160907_5.0018.297/2",
+        "160907_5.0018.160/9",
+        "160907_5.0018.292/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Piotrowa (gmina Niemodlin) of building permit ST-OP-OL/WNIOSEK/389/2023 (Starosta Powiatu Opole, decision of 17 Mar 2023: solar farm Piotrowa of up to 300 MW), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-mlodzikowo",
+      "match": {
+        "grid": "pse",
+        "name": "PV Młodzikowo",
+        "applicant": "Elektrownia PV Młodzikowo"
+      },
+      "label": "PV Młodzikowo, 150 MW",
+      "parcels": [
+        "302502_2.0004.70",
+        "302502_2.0004.73",
+        "302502_2.0004.74",
+        "302502_2.0004.75",
+        "302502_2.0004.68/2",
+        "302502_2.0004.47/4",
+        "302502_2.0004.68/3",
+        "302502_2.0004.68/4"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Młodzikowo (gmina Krzykosy) of building permit ST-WK-SW/WNIOSEK/31833/2021 (Starosta Powiatu Środa Wielkopolska, decision of 14 Sep 2021: solar plant Młodzikowo 1A), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-subkowy-polenergia",
+      "match": {
+        "grid": "energa",
+        "applicant": "Polenergia Farma Fotowoltaiczna 2",
+        "mw": 31.992
+      },
+      "label": "Polenergia solar farm at Rajkowy (Energa, GPZ Subkowy), 32 MW",
+      "parcels": [
+        "221404_5.0007.170/5",
+        "221404_5.0007.169/2",
+        "221404_5.0007.169/4",
+        "221404_5.0007.168/4",
+        "221404_5.0007.163/19",
+        "221404_5.0007.163/16",
+        "221404_5.0007.163/15",
+        "221405_2.0004.90/3",
+        "221405_2.0004.125/14",
+        "221405_2.0004.125/7"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Rajkowy and Radostowo of building permit WB.6740.1.2.2023 (Starosta Tczewski, solar farm of 35 MW), changed by ST-PM-TC/WNIOSEK/14181/2025 (Starosta Powiatu Tczew, decision of 30 Mar 2026: change of that permit), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-turosn-koscielna-2",
+      "match": {
+        "grid": "pse",
+        "name": "PV Turośń Kościelna",
+        "applicant": "PV 1320"
+      },
+      "label": "PV Turośń Kościelna 2 (PV 1320), 90 MW",
+      "parcels": [
+        "200214_5.0037.405",
+        "200214_5.0032.231"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "Parts of parcel 231, obręb Pawły, and parcel 405, obręb Ryboły (gmina Zabłudów), of building permit ST-PD-BI/WNIOSEK/4652/2025 (Starosta Powiatu Białystok, decision of 29 Sep 2025: solar plant of 68 MW, stage I of Turośń Kościelna 2). The same company holds three smaller permits at Ryboły (6, 13 and 19 MW, Aug 2025), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "pv-bochlewo",
+      "match": {
+        "grid": "pse",
+        "name": "PV+FW Bochlewo",
+        "applicant": "Solar Kazimierz Biskupi"
+      },
+      "label": "PV+FW Bochlewo (Solar Kazimierz Biskupi), 150 MW",
+      "parcels": [
+        "301003_2.0002.1/4",
+        "301003_2.0002.2/4",
+        "301003_2.0002.3/4",
+        "301003_2.0002.4/4",
+        "301003_2.0002.5/4",
+        "301003_2.0002.6/4",
+        "301003_2.0002.7/4",
+        "301003_2.0002.8/4",
+        "301003_2.0002.9/4",
+        "301003_2.0002.10/4",
+        "301003_2.0002.11/4",
+        "301003_2.0002.12/4",
+        "301003_2.0002.13/4",
+        "301003_2.0002.14/4",
+        "301003_2.0002.15/4",
+        "301003_2.0002.16/4",
+        "301003_2.0002.17/4",
+        "301003_2.0002.18/4",
+        "301003_2.0002.19/4",
+        "301003_2.0002.20/5",
+        "301003_2.0002.21",
+        "301003_2.0002.22/2",
+        "301003_2.0002.23/5",
+        "301003_2.0002.84/2",
+        "301003_2.0002.85/3",
+        "301003_2.0002.86/2",
+        "301003_2.0002.92/4",
+        "301003_2.0002.87",
+        "301003_2.0002.88",
+        "301003_2.0002.89",
+        "301003_2.0002.90",
+        "301003_2.0002.91",
+        "301003_2.0002.93",
+        "301003_2.0002.94",
+        "301003_2.0002.95",
+        "301003_2.0002.96",
+        "301003_2.0002.97",
+        "301003_2.0002.98",
+        "301003_2.0002.99",
+        "301003_2.0002.100",
+        "301003_2.0002.101/3",
+        "301003_2.0002.103/2",
+        "301003_2.0002.104/2",
+        "301003_2.0002.105",
+        "301003_2.0002.106",
+        "301003_2.0002.109",
+        "301003_2.0002.110",
+        "301003_2.0002.112",
+        "301003_2.0002.115",
+        "301003_2.0002.116",
+        "301003_2.0002.117",
+        "301003_2.0002.118",
+        "301003_2.0002.119",
+        "301003_2.0002.120",
+        "301003_2.0002.121",
+        "301003_2.0002.122",
+        "301003_2.0002.123",
+        "301003_2.0002.125",
+        "301003_2.0002.126",
+        "301003_2.0002.127",
+        "301003_2.0002.128/1",
+        "301003_2.0002.128/2",
+        "301003_2.0002.130/3",
+        "301003_2.0002.131",
+        "301003_2.0002.132",
+        "301003_2.0002.133/3",
+        "301003_2.0002.134/3",
+        "301003_2.0002.135/3",
+        "301003_2.0002.219/2",
+        "301003_2.0002.222/2",
+        "301003_2.0002.223/2",
+        "301003_2.0002.258/1"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Bochlewo (gmina Kazimierz Biskupi) of building permit ST-WK-KN/WNIOSEK/21089/2025 (Starosta Powiatu Konin, decision of 4 Feb 2026: solar plant). The company holds four more solar permits nearby (Kazimierz Biskupi, Nieświastów, Anielewo, Stefanowo; Jul 2025 to Feb 2026), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-pelplin-2",
+      "match": {
+        "grid": "pse",
+        "name": "FW Pelplin 2",
+        "applicant": "Radan Nordwind"
+      },
+      "label": "FW Pelplin 2 (Radan Nordwind), 104 MW",
+      "parcels": [
+        "221404_5.0009.62/34",
+        "221404_5.0009.62/33",
+        "221404_5.0009.62/35",
+        "221404_5.0009.62/36",
+        "221404_5.0009.66/1",
+        "221404_5.0009.68/6",
+        "221404_5.0009.69/2",
+        "221404_5.0009.69/3",
+        "221404_5.0009.70/5",
+        "221404_5.0009.70/6",
+        "221404_5.0009.70/7",
+        "221404_5.0009.70/8",
+        "221404_5.0009.70/9",
+        "221404_5.0009.71",
+        "221404_5.0009.75/2",
+        "221404_5.0009.146/9",
+        "221404_5.0009.149/3",
+        "221404_5.0009.150/1",
+        "221404_5.0009.150/2",
+        "221404_5.0009.151/2",
+        "221404_5.0009.152/10",
+        "221404_5.0009.166",
+        "221404_5.0009.167",
+        "221404_5.0009.168",
+        "221404_5.0009.169"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in obręb Ropuchy (gmina Pelplin) of PL-PM/WNIOSEK/97/2024 (Wojewoda Pomorski, decision of 18 Apr 2024: change of the 2013 permit for wind farm Pelplin 2, first stage of 28 turbines), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-bogatynia",
+      "match": {
+        "grid": "pse",
+        "name": "FW Mikułowa I",
+        "applicant": "Dolnośląskie Elektrownie"
+      },
+      "label": "FW Mikułowa I (Bogatynia wind farm, Dolnośląskie Elektrownie), 150 MW",
+      "parcels": [
+        "022503_4.0007.569/42",
+        "022503_4.0007.569/47",
+        "022503_4.0007.569/50",
+        "022503_4.0007.574",
+        "022503_4.0007.569/45",
+        "022503_4.0007.569/52",
+        "022503_4.0007.569/53",
+        "022503_4.0007.569/44"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in obręb Strzegomice (Bogatynia) of five changed building permits of the Wojewoda Dolnośląski for turbines 28, 31, 39, 42 and 45 of wind farm Bogatynia (Dec 2025 and Aug 2026, changing the 2019 permits). The farm's 220 kV cable has its own permits (2022, 2024), in GUNB's register of building permits. That the queue's FW Mikułowa I is this farm is our reading: same company, and Mikułowa is the 220 kV station the cable leads to",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-nowogrodek-pomorski",
+      "match": {
+        "grid": "enea",
+        "applicant": "Eurowind Polska II",
+        "mw": 28.6
+      },
+      "label": "Nowogródek Pomorski wind farm (Eurowind, ENEA Mostkowo), 28.6 MW",
+      "parcels": [
+        "321005_2.0006.501/1",
+        "321005_2.0006.502/2",
+        "321005_2.0006.505",
+        "321005_2.0006.506",
+        "321005_2.0006.507/6",
+        "321005_2.0006.507/8",
+        "321005_2.0006.508",
+        "321005_2.0006.511/22",
+        "321005_2.0008.174/3",
+        "321005_2.0008.175",
+        "321005_2.0008.180",
+        "321005_2.0008.181",
+        "321005_2.0008.186",
+        "321005_2.0008.220",
+        "321005_2.0008.221/1",
+        "321005_2.0008.227/1",
+        "321005_2.0008.232",
+        "321005_2.0008.235/2"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels in gmina Nowogródek Pomorski of building permit PL-ZP/WNIOSEK/7738/2024 (Wojewoda Zachodniopomorski, decision of 11 Apr 2024: wind farm of 13 Vestas V110 turbines of 2.2 MW, hub height 140 m), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-wyczechowo",
+      "match": {
+        "grid": "energa",
+        "applicant": "Nowa Energia Wyczechowo",
+        "mw": 36.0
+      },
+      "label": "Wyczechowo wind farm (Energa), 36 MW",
+      "parcels": [
+        "220505_2.0016.44/14",
+        "220505_2.0016.49/62",
+        "220505_2.0016.53/7",
+        "220505_2.0016.53/11",
+        "220505_2.0016.55/19",
+        "220505_2.0016.55/20",
+        "220505_2.0016.55/36"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Wyczechowo of PL-PM/WNIOSEK/17341/2020 (Wojewoda Pomorski, decision of 23 Nov 2021: change of the 2013 permit for wind farm Wyczechowo, 12 turbines), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
+    },
+    {
+      "key": "fw-miejska-gorka",
+      "match": {
+        "grid": "pse",
+        "name": "FW Miejska Górka",
+        "applicant": "Finadvice Polska 1"
+      },
+      "label": "FW Miejska Górka (Finadvice), 227 MW",
+      "parcels": [
+        "302203_5.0006.691",
+        "302203_5.0006.676",
+        "302203_5.0006.665",
+        "302203_5.0006.634",
+        "302203_5.0006.540",
+        "302203_5.0006.506",
+        "302203_5.0006.347",
+        "302203_5.0006.333",
+        "302203_5.0006.320",
+        "302203_5.0006.249",
+        "302203_5.0006.238"
+      ],
+      "location": {
+        "short": "GUNB building permit",
+        "text": "The parcels at Konary of building permit ST-WK-RA/WNIOSEK/4578/2022 (Starosta Powiatu Rawicz, decision of 11 Apr 2022: access roads to 12 turbines), in GUNB's register of building permits",
+        "url": "https://wyszukiwarka.gunb.gov.pl/"
+      }
     }
   ]
 }
