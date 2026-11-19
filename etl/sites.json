@@ -501,7 +501,6 @@
       "label": "PV Przykona 2 and 3 (Neo Solar Farms), 200 MW",
       "parcels": [
         "302706_2.0018.404/3",
-        "302706_2.0018.408/1",
         "302706_2.0018.408/2",
         "302706_2.0018.408/3",
         "302706_2.0018.433/2",
@@ -525,7 +524,7 @@
       ],
       "location": {
         "short": "GUNB building permit",
-        "text": "Parcels at Zimotki and Dąbrowa (gmina Przykona) of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits. Other solar farms (ZE PAK's, Energa's) lie next to them on the former Adamów mine land",
+        "text": "Parcels at Zimotki and Dąbrowa (gmina Przykona) of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits. Other solar farms (ZE PAK's, Energa's) lie next to them on the former Adamów mine land. Parcel 408/1, obręb Zimotki, 3 km south of the panels (probably the cable route), is left out",
         "url": "https://wyszukiwarka.gunb.gov.pl/"
       }
     },
