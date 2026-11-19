@@ -581,8 +581,8 @@
    "ortho_checked": "2026-11-19",
    "ortho": [
     {
-     "year": 2021,
-     "file": "ortho_2021.jpg",
+     "year": 2020,
+     "file": "ortho_2020.jpg",
      "md5": "6511752f6f37c3d28f8253152c0d7257"
     },
     {
@@ -2612,8 +2612,8 @@
      "md5": "2cbd3c61e541327106e3242dd420e2fa"
     },
     {
-     "year": 2023,
-     "file": "ortho_2023.jpg",
+     "year": 2022,
+     "file": "ortho_2022.jpg",
      "md5": "3777305470348e379bdedf49016cff97"
     },
     {
@@ -2872,11 +2872,6 @@
      "year": 2022,
      "file": "ortho_2022.jpg",
      "md5": "4171dba5081c0974a2c1c827255087c7"
-    },
-    {
-     "year": 2023,
-     "file": "ortho_2023.jpg",
-     "md5": "d77a1884f1622f85899de51d717e3ecd"
     },
     {
      "year": 2024,
@@ -3828,6 +3823,11 @@
      "md5": "fa19cac08907f3a6238aa7e85f0953a7"
     },
     {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "78c37aa71f86910bff6b17c32ee32098"
+    },
+    {
      "year": 2025,
      "file": "ortho_2025.jpg",
      "md5": "2951970b473e16300299c57d92992460"
@@ -4393,11 +4393,6 @@
      "md5": "de832456cc365329e68576eae0b6f27d"
     },
     {
-     "year": 2024,
-     "file": "ortho_2024.jpg",
-     "md5": "6686fe5e8c78e476e0afc8e041914892"
-    },
-    {
      "year": 2025,
      "file": "ortho_2025.jpg",
      "md5": "f510851cbafb9a371a74a5b200ce3e4c"
@@ -4627,6 +4622,16 @@
      "year": 2022,
      "file": "ortho_2022.jpg",
      "md5": "04d73b59bf14c2421eac62a38854f2b9"
+    },
+    {
+     "year": 2023,
+     "file": "ortho_2023.jpg",
+     "md5": "2500e6332e57c9341cb3812346e9104f"
+    },
+    {
+     "year": 2024,
+     "file": "ortho_2024.jpg",
+     "md5": "4f7ae04d70968cc8153681501e5d0d05"
     },
     {
      "year": 2025,
@@ -5403,8 +5408,8 @@
    "ortho_checked": "2026-11-19",
    "ortho": [
     {
-     "year": 2020,
-     "file": "ortho_2020.jpg",
+     "year": 2021,
+     "file": "ortho_2021.jpg",
      "md5": "5fdebade64631d02748d45aabd7743d4"
     },
     {
@@ -5854,6 +5859,11 @@
    },
    "ortho_checked": "2026-11-19",
    "ortho": [
+    {
+     "year": 2020,
+     "file": "ortho_2020.jpg",
+     "md5": "9c3bdb84c7684cafd9121e40b40aea43"
+    },
     {
      "year": 2021,
      "file": "ortho_2021.jpg",
@@ -11701,11 +11711,6 @@
      "md5": "bce83b26c62058defc7aa85d3a33f3c0"
     },
     {
-     "year": 2025,
-     "file": "ortho_2025.jpg",
-     "md5": "d157d0f01ba813ebea07206aa77cdd98"
-    },
-    {
      "year": 2026,
      "file": "ortho_2026_current.jpg",
      "md5": "1f2156ad92b546f21f5b3e9c71387aae",
@@ -13024,11 +13029,6 @@
      "md5": "535ef8c7926f9972492adb9c9a299011"
     },
     {
-     "year": 2025,
-     "file": "ortho_2025.jpg",
-     "md5": "41e3ba016a411675c2ed5ac568fa0ea7"
-    },
-    {
      "year": 2026,
      "file": "ortho_2026_current.jpg",
      "md5": "9d837039dec76bf271c4bb8f69785aa2",
@@ -13706,11 +13706,6 @@
    "ortho_checked": "2026-11-19",
    "ortho": [
     {
-     "year": 2020,
-     "file": "ortho_2020.jpg",
-     "md5": "947d0e22c2998249f9c2110c0e73ddd4"
-    },
-    {
      "year": 2021,
      "file": "ortho_2021.jpg",
      "md5": "c405c04fe62784fcdeaf182ba0cb90d7"
@@ -14274,11 +14269,6 @@
    },
    "ortho_checked": "2026-11-19",
    "ortho": [
-    {
-     "year": 2020,
-     "file": "ortho_2020.jpg",
-     "md5": "dfc9279eeda2d38400c899abfd7313c4"
-    },
     {
      "year": 2021,
      "file": "ortho_2021.jpg",
@@ -16695,6 +16685,11 @@
      "md5": "46867cb56dd36d8f054de4a8ac8f6349"
     },
     {
+     "year": 2025,
+     "file": "ortho_2025.jpg",
+     "md5": "850dde9b48490787056c795ea805ed00"
+    },
+    {
      "year": 2026,
      "file": "ortho_2026_current.jpg",
      "md5": "b6323a679f63399a35e9c52f9f5a643a",
@@ -16893,13 +16888,12 @@
     "applicant": "Neo Solar Farms"
    },
    "label": "PV Przykona 2 and 3 (Neo Solar Farms), 200 MW",
-   "lat": 51.985129,
-   "lon": 18.635269,
+   "lat": 51.99681,
+   "lon": 18.642272,
    "half_m": 900,
    "s2_half_m": 900,
    "parcels": [
     "302706_2.0018.404/3",
-    "302706_2.0018.408/1",
     "302706_2.0018.408/2",
     "302706_2.0018.408/3",
     "302706_2.0018.433/2",
@@ -16922,30 +16916,6 @@
     "302706_2.0005.161"
    ],
    "outline": {
-    "302706_2.0018.408/1": [
-     [
-      [
-       18.614818,
-       51.968756
-      ],
-      [
-       18.613002,
-       51.968726
-      ],
-      [
-       18.612995,
-       51.968604
-      ],
-      [
-       18.614837,
-       51.968602
-      ],
-      [
-       18.614818,
-       51.968756
-      ]
-     ]
-    ],
     "302706_2.0027.631/1": [
      [
       [
@@ -17705,7 +17675,7 @@
    },
    "location": {
     "short": "GUNB building permit",
-    "text": "Parcels at Zimotki and Dąbrowa (gmina Przykona) of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits. Other solar farms (ZE PAK's, Energa's) lie next to them on the former Adamów mine land",
+    "text": "Parcels at Zimotki and Dąbrowa (gmina Przykona) of building permits ST-WK-TU/WNIOSEK/35401/2021 (Starosta Powiatu Turek, decision of 14 Dec 2021: change of the 2020 permit for solar plant Przykona II) and ST-WK-TU/WNIOSEK/35404/2021 (Starosta Powiatu Turek, decision of 16 Dec 2021: change of the 2020 permit for solar plant Przykona III), in GUNB's register of building permits. Other solar farms (ZE PAK's, Energa's) lie next to them on the former Adamów mine land. Parcel 408/1, obręb Zimotki, 3 km south of the panels (probably the cable route), is left out",
     "url": "https://wyszukiwarka.gunb.gov.pl/"
    },
    "ortho_checked": "2026-11-19",
@@ -17713,32 +17683,27 @@
     {
      "year": 2020,
      "file": "ortho_2020.jpg",
-     "md5": "eb3e3e34d0b6bab80aae6a92a5ce5ea8"
+     "md5": "1970acbc9578994bb348b44b9286a394"
     },
     {
      "year": 2021,
      "file": "ortho_2021.jpg",
-     "md5": "8fbac095e8ffb74e415dc7352b80667b"
-    },
-    {
-     "year": 2023,
-     "file": "ortho_2023.jpg",
-     "md5": "aad8737eb36cc6892cc00c989952b8b0"
+     "md5": "6c15b3bfbf560d455cd1ace3a6f8b682"
     },
     {
      "year": 2024,
      "file": "ortho_2024.jpg",
-     "md5": "70989195410fb8a6fabe1011b596a6f3"
+     "md5": "cba7013c9b1fec3674cfab3cd73d1360"
     },
     {
      "year": 2025,
      "file": "ortho_2025.jpg",
-     "md5": "1b72b6183015c3a8ab497d8f801514c8"
+     "md5": "9e7c8916fa5a29820c09ac0d582db425"
     },
     {
      "year": 2026,
      "file": "ortho_2026_current.jpg",
-     "md5": "9e8dde887a7cecda9174e20400b2df1a",
+     "md5": "0ff16cccbc71cb5008d663d371bd39b8",
      "current": true
     }
    ],
@@ -17801,14 +17766,14 @@
     {
      "date": "2025-03-19",
      "file": "s2_2025-03-19.jpg",
-     "item": "S2A_33UYT_20250319_0_L2A",
-     "scene_cloud": 0.7
+     "item": "S2A_34UCC_20250319_0_L2A",
+     "scene_cloud": 0.5
     },
     {
-     "date": "2025-04-28",
-     "file": "s2_2025-04-28.jpg",
-     "item": "S2A_34UCC_20250428_0_L2A",
-     "scene_cloud": 16.1
+     "date": "2025-04-16",
+     "file": "s2_2025-04-16.jpg",
+     "item": "S2C_33UYT_20250416_0_L2A",
+     "scene_cloud": 11.6
     },
     {
      "date": "2025-06-15",
@@ -17817,10 +17782,10 @@
      "scene_cloud": 0.0
     },
     {
-     "date": "2025-08-12",
-     "file": "s2_2025-08-12.jpg",
-     "item": "S2B_33UYT_20250812_0_L2A",
-     "scene_cloud": 0.0
+     "date": "2025-08-16",
+     "file": "s2_2025-08-16.jpg",
+     "item": "S2A_34UCC_20250816_0_L2A",
+     "scene_cloud": 0.1
     },
     {
      "date": "2025-09-25",
@@ -17847,10 +17812,10 @@
      "scene_cloud": 0.0
     },
     {
-     "date": "2026-03-22",
-     "file": "s2_2026-03-22.jpg",
-     "item": "S2C_33UYT_20260322_0_L2A",
-     "scene_cloud": 1.3
+     "date": "2026-03-14",
+     "file": "s2_2026-03-14.jpg",
+     "item": "S2A_34UCC_20260314_0_L2A",
+     "scene_cloud": 0.2
     },
     {
      "date": "2026-05-26",
@@ -17865,10 +17830,10 @@
      "scene_cloud": 12.3
     },
     {
-     "date": "2026-07-30",
-     "file": "s2_2026-07-30.jpg",
-     "item": "S2C_33UYT_20260730_0_L2A",
-     "scene_cloud": 0.0
+     "date": "2026-07-02",
+     "file": "s2_2026-07-02.jpg",
+     "item": "S2A_34UCC_20260702_0_L2A",
+     "scene_cloud": 11.4
     },
     {
      "date": "2026-08-14",
@@ -17883,16 +17848,16 @@
      "scene_cloud": 0.0
     },
     {
-     "date": "2026-10-18",
-     "file": "s2_2026-10-18.jpg",
-     "item": "S2C_33UYT_20261018_0_L2A",
-     "scene_cloud": 17.6
+     "date": "2026-10-23",
+     "file": "s2_2026-10-23.jpg",
+     "item": "S2B_33UYT_20261023_0_L2A",
+     "scene_cloud": 0.0
     },
     {
-     "date": "2026-11-07",
-     "file": "s2_2026-11-07.jpg",
-     "item": "S2C_34UCC_20261107_0_L2A",
-     "scene_cloud": 1.0
+     "date": "2026-11-09",
+     "file": "s2_2026-11-09.jpg",
+     "item": "S2A_34UCC_20261109_0_L2A",
+     "scene_cloud": 0.0
     }
    ]
   },
