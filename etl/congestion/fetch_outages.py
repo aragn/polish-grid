@@ -82,6 +82,13 @@ def parse(root, domains):
         sd, st = text(ts, "{*}start_DateAndOrTime.date"), text(ts, "{*}start_DateAndOrTime.time") or "00:00:00Z"
         ed, et = text(ts, "{*}end_DateAndOrTime.date"), text(ts, "{*}end_DateAndOrTime.time") or "00:00:00Z"
         out["start"], out["end"] = f"{sd}T{st}", f"{ed}T{et}"
+        # what stays available during the outage (MW): 0 is a disconnection, more is a limit
+        qty = [float(q.text) for q in ts.findall(".//{*}Available_Period/{*}Point/{*}quantity") if q.text]
+        if qty:
+            out["available_min"], out["available_max"] = min(qty), max(qty)
+        nominal = text(ts, "{*}production_RegisteredResource.pSRType.powerSystemResources.nominalP")
+        if nominal:
+            out["nominal"] = float(nominal)
         for a in ts.findall("{*}Asset_RegisteredResource"):
             out["assets"].append({"mrid": text(a, "{*}mRID"), "name": text(a, "{*}name"),
                                   "type": PSR.get(text(a, "{*}asset_PSRType.psrType"), text(a, "{*}asset_PSRType.psrType")),

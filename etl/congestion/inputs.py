@@ -173,7 +173,9 @@ def main():
 
     def nearest_real(lat, lon, kv, name=None):
         cand = [i for i, b in enumerate(buses) if b["country"] == "PL" and b["kv"] == kv and not b.get("virtual")
-                and (name is None or (b["name"] or "").startswith(name))]
+                and (name is None or b["name"] == name)]
+        if not cand:  # no bus of that voltage (a model without 110 kV): the nearest real Polish bus
+            cand = [i for i, b in enumerate(buses) if b["country"] == "PL" and not b.get("virtual") and not b["boundary"]]
         return min(cand, key=lambda i: km(lat, lon, buses[i]["lat"], buses[i]["lon"]))
 
     # ---- weather cells inside Poland

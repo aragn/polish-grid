@@ -150,13 +150,24 @@ def main():
         for s0, s1, kv in json.load(open(a.prsp, encoding="utf-8")):
             prsp.add((frozenset((fold(s0), fold(s1))), int(kv)))
 
-    def name_of(bid):
+    # PSE's own station names (the queue page's stations, placed on OSM): by OSM id, else within 1.5 km
+    q = json.load(open(os.path.join(ROOT, "data", "queue.json"), encoding="utf-8"))["stations"]
+    pse_by_osm = {s["osm_id"]: n for n, s in q.items() if s.get("osm_id")}
+    pse_pos = [(n, s["lat"], s["lon"]) for n, s in q.items() if s.get("lat") is not None]
+
+    def name_of(bid, lat=None, lon=None, kv=None):
         osm = bid.rsplit("-", 1)[0]
+        if osm in pse_by_osm:
+            return pse_by_osm[osm]
+        if kv and kv >= 220 and lat is not None:
+            n, la, lo = min(pse_pos, key=lambda p: km(lat, lon, p[1], p[2]))
+            if km(lat, lon, la, lo) < 1.5:
+                return n
         return clean_name(sub_name.get(osm, "")) or None
 
     buses = {}
     for bid, r in pb.iterrows():
-        buses[bid] = {"id": bid, "name": name_of(bid), "kv": level(r.voltage), "lat": round(float(r.y), 5),
+        buses[bid] = {"id": bid, "name": name_of(bid, float(r.y), float(r.x), level(r.voltage)), "kv": level(r.voltage), "lat": round(float(r.y), 5),
                       "lon": round(float(r.x), 5), "country": "PL", "boundary": False,
                       "virtual": bid.startswith("virtual")}
 
@@ -336,9 +347,13 @@ def main():
             continue
         n = min(named, key=lambda c: km(b["lat"], b["lon"], c["lat"], c["lon"]))
         d = km(b["lat"], b["lon"], n["lat"], n["lon"])
-        b["name"] = f"{n['name']} tee" if d < 15 else f"Node {b['lat']:.3f},{b['lon']:.3f}"
+        if b["virtual"]:
+            b["name"] = f"{n['name']} tee" if d < 15 else f"Node {b['lat']:.3f},{b['lon']:.3f}"
+        else:
+            b["name"] = f"Substation near {n['name']}" if d < 15 else f"Substation {b['lat']:.3f},{b['lon']:.3f}"
+    lowest = 110 if any(b["country"] == "PL" and b["kv"] == 110 for b in out_buses) else 220  # 220: a test without 110 kV
     for b in out_buses:
-        b["load"] = b["country"] == "PL" and b["kv"] == 110 and not b["virtual"]
+        b["load"] = b["country"] == "PL" and b["kv"] <= max(lowest, 110) + (180 if lowest == 220 else 0) and not b["virtual"] and not b["boundary"]
     bname = {b["id"]: b["name"] for b in out_buses}
     # thermally limited lines: PSE's plan upgrades them (matched by end names and voltage)
     limited = 0

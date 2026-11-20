@@ -83,7 +83,8 @@ class Model:
                           shape=(self.nl, self.nb))
         B = (C.T @ sp.diags(b) @ C).tocsc()
         k = self.keep
-        lu = spl.splu(B[k][:, k].tocsc())
+        # a negligible shunt keeps islands (a stub left when the PST corridors are taken out) solvable
+        lu = spl.splu((B[k][:, k] + sp.identity(len(k)) * 1e-6).tocsc())
         R = (sp.diags(b[self.rows]) @ C[self.rows]).toarray()  # [rows, nb]
         X = np.zeros((len(self.rows), self.nb))
         X[:, k] = lu.solve(np.ascontiguousarray(R[:, k].T)).T
@@ -98,7 +99,9 @@ class Model:
             tr = base[:, self.f[M]] - base[:, self.t[M]]  # [rows, k]
             A = np.eye(len(M)) - tr[[rpos[m] for m in M], :]
             if np.linalg.cond(A) < 1e8:
-                return base + tr @ np.linalg.solve(A, base[[rpos[m] for m in M], :]), M
+                P = base + tr @ np.linalg.solve(A, base[[rpos[m] for m in M], :])
+                P[[rpos[m] for m in M], :] = 0.0  # the update formula holds for the other branches; these carry nothing
+                return P, M
             M = M[:-1]
         return base, []
 
