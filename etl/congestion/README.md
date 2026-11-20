@@ -58,7 +58,7 @@ contingency (437 branches in all).
 meets Poland only through its own tie lines. The measured border flow injected
 at its node therefore reaches Poland exactly, split between the tie lines by
 impedance. Loop flows through the neighbours (DE → CZ/SK → PL) are therefore
-in the data, not in the model. The phase shifters at Mikułowa and Krajnik,
+in the data, not in the model. The phase shifters at Mikułowa (PSE) and Vierraden (50Hertz),
 which set the split of German imports between the two, are not modelled.
 
 **Line parameters.** OSM has no electrical data, and PyPSA-Eur's defaults
@@ -199,7 +199,7 @@ Next steps, roughly in order of value:
    really does.
 2. **Neighbours' grids** (PyPSA-Eur's OSM network for DE, CZ, SK, with each
    country's measured net position), so loop flows and outages abroad are
-   physical, plus the Mikułowa and Krajnik phase shifters as controllable
+   physical, plus the Mikułowa and Vierraden phase shifters as controllable
    branches.
 3. **Line-specific ratings** from public sources (PSE's development plan and
    investment descriptions, TYNDP project sheets, conductor tags in OSM),
