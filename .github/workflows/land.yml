@@ -1,6 +1,7 @@
 # Fetches the land plots around the shortlisted substations (etl/land.py) from GUGiK's cadastre service,
-# which answers from GitHub's runners. Each run works through the substations not yet fetched (or older
-# than 90 days) for up to the budget, then commits data/land; the next run carries on.
+# which answers from GitHub's runners, then what lies on them from BDOT10k
+# (etl/land_constraints.py). Each run works through what is new or older than 90 days for up to the budgets,
+# then commits data/land; the next run carries on.
 name: Update land plots
 
 on:
@@ -9,8 +10,11 @@ on:
   workflow_dispatch:
     inputs:
       budget:
-        description: "minutes to spend fetching"
-        default: "300"
+        description: "minutes to spend fetching plots"
+        default: "60"
+      constraints_budget:
+        description: "minutes to spend on forest, water, roads and buildings (BDOT10k)"
+        default: "240"
       only:
         description: "only this group (e.g. energa-13) or substation id"
         default: ""
@@ -31,10 +35,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests
+      - run: pip install requests shapely pyproj pyogrio
       - name: Fetch
         run: |
-          python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '300' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+          python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '60' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+      - name: Forest, water, roads and buildings on each plot
+        run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"

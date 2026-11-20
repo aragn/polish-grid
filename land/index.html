@@ -103,6 +103,9 @@
           <div class="row" style="margin-top:10px" id="pv-inputs"><input class="input" id="mwp" type="number" min="0" step="1" value="20"> MWp at <input class="input" id="haper" type="number" min="0.3" step="0.1" value="1.2"> ha per MWp</div>
           <div class="row" style="margin-top:10px" id="bess-inputs" hidden><input class="input" id="mw" type="number" min="0" step="5" value="50"> MW / <input class="input" id="mwh" type="number" min="0" step="10" value="100"> MWh</div>
           <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha on one plot</div>
+          <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="usable" checked> Count only usable land: no forest, water, roads or buildings</label>
+          <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0">no limit</option><option value="30">30 m</option><option value="50" selected>50 m</option><option value="100">100 m</option></select> on average</div>
+          <div class="row" style="margin-top:10px">At least <select class="select" id="gap" style="width:auto"><option value="0">any distance</option><option value="50">50 m</option><option value="100">100 m</option><option value="250">250 m</option><option value="500">500 m</option></select> from the nearest building</div>
           <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2" class="on">2 km</button><button type="button" data-km="3">3 km</button></div> of a substation</div>
           <div class="count" id="need-note"></div>
         </div>
@@ -134,10 +137,20 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50 };
   let index, capacity, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {};
 
+  function areaOf(p) { return state.usable && p.u != null ? p.u : p.ha; }
+  function fits(p) { return areaOf(p) >= state.need && (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth); }
+  // Average width = 2 x area / perimeter (a long rectangle's width); old railway and road plots are long, thin strips.
+  function widthOf(p) {
+    let perimeter = 0;
+    const lat0 = p.geom[0][0][0][1] * Math.PI / 180, kx = 111320 * Math.cos(lat0), ky = 110574;
+    for (const poly of p.geom) for (const ring of poly) for (let i = 1; i < ring.length; i++)
+      perimeter += Math.hypot((ring[i][0] - ring[i - 1][0]) * kx, (ring[i][1] - ring[i - 1][1]) * ky);
+    return perimeter ? Math.round(2 * p.ha * 10000 / perimeter) : 0;
+  }
   async function get(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); }
 
   function needOf() {
@@ -156,7 +169,7 @@
     const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
     $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
       `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +
-      `Pick a group, say what you want to build, and the plots big enough within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
+      `Pick a group, say what you want to build, and the plots with enough usable land (forest, water, roads and buildings taken out) within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
     map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([52.1, 19.4], 6);
     const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" });
     const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "" });
@@ -184,7 +197,7 @@
     const seen = new Map();
     for (const s of stations) for (const p of cache[s.sid].plots) {
       const prev = seen.get(p.id);
-      if (!prev || p.km < prev.km) seen.set(p.id, { ...p, station: s.sid });
+      if (!prev || p.km < prev.km) seen.set(p.id, { ...p, station: s.sid, wm: prev ? prev.wm : widthOf(p) });
     }
     plots = [...seen.values()];
     const missing = area.stations.filter(st => st.lat != null).length - stations.length;
@@ -219,20 +232,23 @@
   function render() {
     state.need = +$("need").value || 0;
     const all = shown().filter(p => p.km <= state.km);
-    const ok = all.filter(p => p.ha >= state.need).sort((a, b) => state.sort === "ha" ? b.ha - a.ha : a.km - b.km);
+    const ok = all.filter(fits).sort((a, b) => state.sort === "ha" ? areaOf(b) - areaOf(a) : a.km - b.km);
+    const checked = all.filter(p => p.u != null).length;
     $("need-note").innerHTML = `${state.kind === "pv" ? "Ground-mounted PV takes about 1–1.5 ha per MWp, with spacing." : "A battery takes about 2 ha per 100 MWh with spacing, plus about 0.5 ha for its substation and access."} ` +
-      `<b>${ok.length}</b> plots of at least ${state.need} ha within ${state.km} km; ${all.length - ok.length} smaller ones are dashed (neighbouring plots can be combined).`;
+      `<b>${ok.length}</b> plots with at least ${state.need} ha${state.usable ? " of usable land" : ""}${state.gap ? ` and ${state.gap} m from the nearest building` : ""}${state.minWidth ? `, at least ${state.minWidth} m wide,` : ""} within ${state.km} km; the ${all.length - ok.length} others are dashed (neighbouring plots can be combined). ` +
+      (checked < all.length ? `${all.length - checked} plots haven't been checked for forest, water and buildings yet and count at their full area.` : "");
     $("list-title").textContent = `${ok.length} plots big enough`;
-    $("plots").innerHTML = ok.slice(0, 300).map(p => `<div class="plot ${state.plot === p.id ? "on" : ""}" data-id="${esc(p.id)}"><b>${p.ha.toFixed(1)} ha</b> · ${p.km.toFixed(1)} km · ${esc(p.obreb)} ${esc(p.nr)}<div class="sub">${esc(p.gmina)} · ${esc(p.id)}${p.klasy ? " · " + esc(p.klasy) : ""}</div></div>`).join("") ||
+    $("plots").innerHTML = ok.slice(0, 300).map(p => `<div class="plot ${state.plot === p.id ? "on" : ""}" data-id="${esc(p.id)}"><b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}` +
+      `<div class="sub">${esc(p.obreb)} ${esc(p.nr)} · ${esc(p.gmina)} · ${esc(p.id)}${p.klasy ? " · " + esc(p.klasy) : ""}</div></div>`).join("") ||
       `<div class="plot" style="cursor:default">No plot this big within ${state.km} km. Try a larger distance, a smaller project, or combine neighbouring plots.</div>`;
     plotLayer.clearLayers();
     const red = cssVar("--plot"), dim = cssVar("--plot-dim");
     for (const p of all) {
-      const big = p.ha >= state.need, sel = state.plot === p.id;
+      const big = fits(p), sel = state.plot === p.id;
       const latlngs = p.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon])));
       L.polygon(latlngs, { color: sel ? "#fff" : big ? red : dim, weight: sel ? 3.5 : big ? 2.2 : 1, opacity: big || sel ? 1 : 0.7, dashArray: big || sel ? null : "3 3",
         fillColor: big ? red : dim, fillOpacity: sel ? 0.25 : big ? 0.08 : 0.02 })
-        .bindTooltip(`${p.ha.toFixed(1)} ha · ${p.km.toFixed(1)} km · ${esc(p.obreb)} ${esc(p.nr)}`, { sticky: true })
+        .bindTooltip(`${p.u != null ? p.u.toFixed(1) + " ha usable of " : ""}${p.ha.toFixed(1)} ha · ${p.km.toFixed(1)} km · ${esc(p.obreb)} ${esc(p.nr)}`, { sticky: true })
         .on("click", () => selectPlot(p.id, false)).addTo(plotLayer);
     }
     renderCard();
@@ -256,6 +272,10 @@
       ["Identifier", esc(p.id)],
       ["Municipality", `${esc(p.gmina)} (precinct ${esc(p.obreb)})`],
       ["Area", `${p.ha.toFixed(2)} ha from its outline${p.ha_egib ? `; ${p.ha_egib} ha in the register` : ""}`],
+      ["Shape", `about ${p.wm} m wide on average${p.wm < 50 ? " (a narrow strip)" : ""}`],
+      ["Usable", p.u == null ? "not checked yet" : `<b>${p.u.toFixed(2)} ha</b> once forest, water, built-up and transport land are taken out`],
+      ["On the plot", p.u == null ? "–" : [["forest and wooded land", p.f], ["water", p.w], ["built-up land", p.b], ["roads and railways", p.r]].filter(([, v]) => v > 0).map(([k, v]) => `${v.toFixed(2)} ha ${k}`).join(", ") || "none of these"],
+      ["Buildings", p.u == null ? "–" : (p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"} away`)],
       ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
       ["Land and soil classes", p.klasy ? esc(p.klasy) : "not published by this county's service"],
       ["Owner group", p.grupa ? `group ${esc(p.grupa)} in the register (the kind of owner, not who)` : "not published by this county's service"],
@@ -273,6 +293,9 @@
       $("pv-inputs").hidden = state.kind !== "pv"; $("bess-inputs").hidden = state.kind !== "bess"; $("need").value = needOf(); render(); });
     for (const id of ["mwp", "haper", "mw", "mwh"]) $(id).addEventListener("input", () => { $("need").value = needOf(); render(); });
     $("need").addEventListener("input", render);
+    $("usable").addEventListener("change", e => { state.usable = e.target.checked; render(); });
+    $("gap").addEventListener("change", e => { state.gap = +e.target.value; render(); });
+    $("width").addEventListener("change", e => { state.minWidth = +e.target.value; render(); });
     $("radius").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.km = +b.dataset.km; [...$("radius").children].forEach(x => x.classList.toggle("on", x === b)); renderStations(); render(); });
     $("sort").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; [...$("sort").children].forEach(x => x.classList.toggle("on", x === b)); render(); });
     $("plots").addEventListener("click", e => { const d = e.target.closest(".plot[data-id]"); if (d) selectPlot(d.dataset.id, true); });
@@ -286,7 +309,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas and access, and the owner, before anything else.`;
   }
 

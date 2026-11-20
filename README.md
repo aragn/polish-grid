@@ -167,6 +167,15 @@ identifier, municipality, precinct, number, area computed from the outline, dist
 the substation, and where the county publishes them the land and soil classes and the
 owner group (the kind of owner, never a name). Outlines are simplified to about 1.5 m.
 
+`etl/land_constraints.py` then overlays GUGiK's topographic database BDOT10k on each
+plot: forest (OT_PTLZ_A), surface water (OT_PTWP_A), built-up land (OT_PTZB_A), transport
+land (OT_PTKM_A) and road and railway lines as 8 m strips, giving the usable hectares
+left (overlaps counted once), the distance to the nearest building (OT_BUBD_A) and the
+buildings on the plot. BDOT10k comes per county as a zip of GeoPackages from
+`opendata.geoportal.gov.pl/bdot10k/schemat2021/GPKG/<woj>/<county>_GPKG.zip` (runners
+only; about 70 s a county, 206 counties). The page filters on usable hectares, average
+width (2 x area / perimeter, to drop narrow strips) and distance from buildings.
+
 Substations are placed at the operator's coordinates (TAURON), else at an OpenStreetMap
 110 kV substation of that name (`etl/osm_substations.py` writes
 `etl/osm_substations_110.json` from the Overpass API, cleaning names like
