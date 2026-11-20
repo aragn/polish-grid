@@ -4,6 +4,8 @@
 name: Update land plots
 
 on:
+  push:                     # TEMPORARY: trial runs on the branch, removed before merging
+    branches: [land-step1]
   schedule:
     - cron: "15 1 * * 0"
   workflow_dispatch:
@@ -34,7 +36,7 @@ jobs:
       - run: pip install requests
       - name: Fetch
         run: |
-          python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '300' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+          python etl/land.py --budget-minutes "${{ github.event.inputs.budget || (github.event_name == 'push' && '25') || '300' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
