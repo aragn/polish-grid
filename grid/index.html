@@ -126,6 +126,9 @@
     .stations { columns:3; column-gap:18px; font-size:12.5px; line-height:1.7; margin:0; padding:0; list-style:none; }
     .stations li { break-inside:avoid; }
     .stations .muted { color:var(--muted); }
+    .timeline-wrap { padding:0 18px 8px; }
+    #timeline { height:220px; }
+    .list td.due-ok { color:var(--new); font-weight:650; }
     footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
     @media (max-width: 1150px) {
       .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -193,7 +196,7 @@
           <div class="box layers">
             <h3>Layers</h3>
             <label><input type="checkbox" id="layer-spokes" checked> Stations of each group</label>
-            <label><input type="checkbox" id="layer-new" checked> <span class="key-sq" style="border-color:var(--new);transform:rotate(45deg)"></span> PSE's planned stations for new demand</label>
+            <label><input type="checkbox" id="layer-new" checked> <span class="key-sq" style="border-color:var(--new);background:var(--new);transform:rotate(45deg)"></span> PSE's planned stations for new demand (filled once built by the year chosen)</label>
             <label><input type="checkbox" id="layer-sat"> <span class="key-sq" style="border-color:var(--sat-full)"></span> PSE switchyards with no free bays</label>
             <label><input type="checkbox" id="layer-lines" checked> 220 and 400 kV lines</label>
           </div>
@@ -203,6 +206,18 @@
           </div>
         </aside>
       </div>
+    </section>
+
+    <section class="panel" id="new-panel">
+      <div class="panel-head">
+        <div class="row" style="justify-content:space-between">
+          <div class="panel-title">PSE's planned stations for new demand, by year</div>
+          <div class="seg" id="plan"><button type="button" data-plan="draft" class="on" title="PSE's consultation draft of January 2026">Draft plan 2027–2036</button><button type="button" data-plan="plan" title="Agreed with URE on 20 December 2024">Agreed plan 2025–2034</button></div>
+        </div>
+        <div class="panel-sub" id="new-sub"></div>
+      </div>
+      <div class="timeline-wrap"><div id="timeline"></div></div>
+      <div style="padding:0 18px 16px"><div class="table-wrap" style="max-height:none"><table class="list" id="new-table"></table></div></div>
     </section>
 
     <section class="panel">
@@ -245,9 +260,11 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
 
-  const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, region: null, sort: "value" };
+  const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, region: null, sort: "value", plan: "draft" };
+  let timeline;
   let data, geo, gridLines, saturation, chart;
 
+  function dueOf(s) { return state.plan === "draft" ? (s.draft_end ?? s.plan_end ?? null) : (s.plan_end ?? s.draft_end ?? null); }
   function pseYear(year) { return year >= 2031 ? "2031" : "2026"; }
   function valueOf(area, kind, year) {
     const y = area.op === "pse" ? pseYear(year) : String(year);
@@ -353,9 +370,12 @@
       return { value: [a.lon, a.lat, v], name: a.name, area: a, symbol: "rect", symbolSize: v > 0 ? bubble(v) : 7,
         itemStyle: { color: v > 0 ? colorOf(v) : "transparent", borderColor: v > 0 ? cssVar("--panel") : cssVar("--pse"), borderWidth: 1.4 } };
     });
-    const newSt = state.newSt && (state.mode === "dem" || state.mode === "gen" || state.mode === "bess" || state.mode === "one") ? data.pse_new.filter(s => s.lat != null).map(s => ({
-      value: [s.lon, s.lat], name: s.name, st: s, symbol: "diamond", symbolSize: Math.max(10, Math.min(24, 6 + Math.sqrt(s.mw) * 0.6)),
-      itemStyle: { color: "transparent", borderColor: cssVar("--new"), borderWidth: 1.8, borderType: s.how === "near" ? "dashed" : "solid" } })) : [];
+    const newSt = state.newSt ? data.pse_new.filter(s => s.lat != null).map(s => {
+      const due = dueOf(s), ready = due != null && due <= state.year;
+      return { value: [s.lon, s.lat], name: s.name, st: s, symbol: "diamond", symbolSize: Math.max(10, Math.min(24, 6 + Math.sqrt(s.mw) * 0.6)),
+        itemStyle: { color: ready ? cssVar("--new") : "transparent", opacity: ready ? 0.9 : 0.75, borderColor: cssVar("--new"), borderWidth: ready ? 1 : 1.6, borderType: ready ? "solid" : "dashed" },
+        label: { show: !ready && due != null, formatter: String(due), position: "right", color: cssVar("--new"), fontSize: 9.5 } };
+    }) : [];
     const sat = state.sat ? (saturation.stations || []).filter(s => s.lat != null && s.now).map(s => ({ value: [s.lon, s.lat], name: s.name, sat: s,
       itemStyle: { color: "transparent", borderColor: cssVar("--sat-full"), borderWidth: 2, borderType: s.section === "full" ? "solid" : "dashed" } })) : [];
     const lines = [220, 400].map(kv => ({ type: "lines", coordinateSystem: "geo", polyline: true, silent: true, z: 1,
@@ -393,8 +413,12 @@
     const muted = cssVar("--tooltip-muted");
     if (params.seriesId === "new") {
       const s = params.data.st;
-      return `<div style="max-width:300px;white-space:normal"><b>${esc(s.code)} · ${esc(s.name)}</b><div style="margin-top:4px">Planned PSE station for new demand: <b>${fmtMw(s.mw)}</b> available</div>` +
-        `<div style="color:${muted};margin-top:4px">${s.how === "near" ? "Placed at the town it is named after: the site isn't published." : "Placed at the station it is named after."} Some of these stations are planned for after 2031.</div></div>`;
+      const due = dueOf(s);
+      return `<div style="max-width:320px;white-space:normal"><b>${esc(s.code)} · ${esc(s.name)}</b><div style="margin-top:4px">Planned PSE station for new demand: <b>${fmtMw(s.mw)}</b></div>` +
+        row("Due (draft plan 2027–2036)", s.draft_end ? `${s.draft_end} · ${esc(s.draft_item)}` : "not found") +
+        row("Due (agreed plan 2025–2034)", s.plan_end ? `${s.plan_end} · ${esc(s.plan_item)}` : "not found") +
+        `<div style="margin-top:4px">${due == null ? "No completion year found" : due <= state.year ? `<b>Built by ${state.year}</b> on the ${state.plan === "draft" ? "draft" : "agreed"} plan` : `Not yet built in ${state.year}: due ${due}`}</div>` +
+        `<div style="color:${muted};margin-top:4px">${s.how === "near" ? "Placed at the town it is named after: the site isn't published." : "Placed at the station it is named after."}</div></div>`;
     }
     if (params.seriesId === "sat") {
       const s = params.data.sat;
@@ -468,7 +492,38 @@
       `Squares are PSE's 220/400 kV stations (values for 2026 and 2031 only). The size and colour show the room for ${MODES[state.mode].label} in ${state.year}.`;
   }
 
-  function render(full) { renderSide(); renderTiles(); renderLegend(); renderRank(); draw(full); }
+  function renderNew() {
+    const plan = state.plan === "draft" ? "the draft plan 2027–2036" : "the agreed plan 2025–2034";
+    const rows = data.pse_new.map(s => ({ s, due: dueOf(s) })).sort((a, b) => (a.due ?? 9999) - (b.due ?? 9999) || b.s.mw - a.s.mw);
+    const ready = rows.filter(r => r.due != null && r.due <= state.year);
+    $("new-sub").innerHTML = `PSE lists ${data.pse_new.length} new 220/400 kV stations with room for new demand (${fmtMw(data.pse_new.reduce((x, s) => x + s.mw, 0))} in all), but not when each is built. ` +
+      `The year here is the completion year of the investment that builds it in PSE's development plan (<a href="${esc(data.operators.pse.plans?.draft || "")}" target="_blank" rel="noopener">draft 2027–2036</a>, ` +
+      `<a href="${esc(data.operators.pse.plans?.plan || "")}" target="_blank" rel="noopener">agreed 2025–2034</a>). On ${plan}, <b>${ready.length}</b> of them (${fmtMw(ready.reduce((x, r) => x + r.s.mw, 0))}) are built by <b>${state.year}</b>, the year chosen above. ` +
+      `The draft moved most of them one to three years later. The MW are PSE's figure for each station; using one may reduce its neighbours'.`;
+    const years = []; for (let y = 2026; y <= 2037; y++) years.push(y);
+    const byYear = years.map(y => rows.filter(r => r.due === y).reduce((x, r) => x + r.s.mw, 0));
+    let cum = 0; const cumul = byYear.map(v => (cum += v));
+    if (!timeline) timeline = echarts.init($("timeline"));
+    timeline.setOption({
+      animation: false, grid: { left: 52, right: 52, top: 26, bottom: 26 },
+      tooltip: { trigger: "axis", backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), textStyle: { color: cssVar("--text"), fontSize: 12 },
+        formatter: ps => { const y = +ps[0].axisValue, i = years.indexOf(y); const names = rows.filter(r => r.due === y).map(r => `${r.s.code} ${fmtMw(r.s.mw)}`).join("<br>"); return `<b>${y}</b>: ${fmtMw(byYear[i])} due, ${fmtMw(cumul[i])} in all<br>${names}`; } },
+      xAxis: { type: "category", data: years.map(String), axisLabel: { color: cssVar("--muted") }, axisLine: { lineStyle: { color: cssVar("--border") } } },
+      yAxis: [{ type: "value", name: "MW due", nameTextStyle: { color: cssVar("--muted") }, axisLabel: { color: cssVar("--muted") }, splitLine: { lineStyle: { color: cssVar("--border") } } },
+        { type: "value", name: "in all", nameTextStyle: { color: cssVar("--muted") }, axisLabel: { color: cssVar("--muted") }, splitLine: { show: false } }],
+      series: [
+        { type: "bar", data: byYear.map((v, i) => ({ value: v, itemStyle: { color: cssVar("--new"), opacity: years[i] <= state.year ? 0.95 : 0.35 } })), barWidth: "55%" },
+        { type: "line", yAxisIndex: 1, data: cumul, symbol: "circle", symbolSize: 5, lineStyle: { color: cssVar("--muted"), width: 1.4 }, itemStyle: { color: cssVar("--muted") },
+          markLine: { silent: true, symbol: "none", label: { formatter: String(state.year), color: cssVar("--text") }, lineStyle: { color: cssVar("--text"), type: "dashed" }, data: [{ xAxis: String(state.year) }] } },
+      ]
+    }, true);
+    $("new-table").innerHTML = `<thead><tr><th>Station</th><th class="num">MW for demand</th><th class="num">Due, draft 2027–2036</th><th class="num">Due, agreed 2025–2034</th><th>Plan items</th></tr></thead><tbody>` +
+      rows.map(({ s }) => `<tr><td><b>${esc(s.code)}</b> · ${esc(s.name)}<div class="sub">${esc(s.title || "")}${s.how === "near" ? " · placed at the town it's named after" : ""}</div></td>` +
+        `<td class="num">${fmtNum(s.mw)}</td><td class="num ${s.draft_end && s.draft_end <= state.year ? "due-ok" : ""}">${s.draft_end ?? "–"}</td>` +
+        `<td class="num ${s.plan_end && s.plan_end <= state.year ? "due-ok" : ""}">${s.plan_end ?? "–"}</td><td>${[s.draft_item ? "draft " + esc(s.draft_item) : "", s.plan_item ? "agreed " + esc(s.plan_item) : ""].filter(Boolean).join(" · ")}</td></tr>`).join("") + `</tbody>`;
+  }
+
+  function render(full) { renderSide(); renderTiles(); renderLegend(); renderRank(); renderNew(); draw(full); }
 
   function yearTable(a) {
     const years = data.years, sel = String(state.year);
@@ -563,7 +618,8 @@
     $("rank").addEventListener("mouseleave", () => highlight(null));
     $("d-close").addEventListener("click", () => $("detail").close());
     $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
-    window.addEventListener("resize", () => chart.resize());
+    $("plan").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.plan = b.dataset.plan; [...$("plan").children].forEach(x => x.classList.toggle("on", x === b)); renderNew(); draw(false); });
+    window.addEventListener("resize", () => { chart.resize(); if (timeline) timeline.resize(); });
     $("theme").addEventListener("click", () => {
       const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
       root.dataset.theme = dark ? "light" : "dark";

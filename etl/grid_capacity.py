@@ -27,6 +27,9 @@ Placing: TAURON gives coordinates; Energa's and PGE's station names go to an Ope
 (etl/dso_build.Places), PSE's to etl/stations.json.  Queue projects are assigned to a group by their
 station: TAURON by code, the others by name.
 
+PSE's planned demand stations get the completion year of the item that builds them in PSE's development
+plans (the agreed PRSP 2025-2034 and the 2027-2036 draft), from etl/pse_new_stations.json, kept by hand.
+
 Writes data/grid_capacity.json; keeps the source files in archive/grid_capacity/.
 """
 
@@ -53,6 +56,8 @@ ARCHIVE = os.path.join(ROOT, "archive", "grid_capacity")
 OUT = os.path.join(ROOT, "data", "grid_capacity.json")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36"}
 YEARS = list(range(2026, 2032))
+# Completion years of PSE's planned demand stations, from its development plans (matched by hand).
+PLAN_YEARS = json.load(open(os.path.join(HERE, "pse_new_stations.json"), encoding="utf-8"))
 TAURON_EVERY_DAYS = 7          # TAURON's map takes ~120 paced calls (and waits out its rate limit): read it weekly
 
 TAURON_PAGE = "https://www.tauron-dystrybucja.pl/przylaczenie-do-sieci/dostepne-moce/dla-wytworcow1"
@@ -529,7 +534,10 @@ def build(tauron, energa, pge, pse):
                 if place:
                     lat, lon, how = round(place[0], 5), round(place[1], 5), "near"
                     break
-        new.append({**s, "lat": lat, "lon": lon, "how": how})
+        years = PLAN_YEARS["stations"].get(s["code"], {})
+        new.append({**s, "lat": lat, "lon": lon, "how": how,
+                    **{f"{k}_{f}": years[k][f] for k in ("plan", "draft") if k in years for f in ("item", "end")},
+                    **({"title": years.get("draft", years.get("plan", {})).get("title")} if years else {})})
 
     operators = {
         "tauron": {"name": NAMES["tauron"], "asof": tauron.get("asof"), "page": TAURON_PAGE,
@@ -537,7 +545,8 @@ def build(tauron, energa, pge, pse):
         "energa": {"name": NAMES["energa"], "asof": energa["asof"], "asof_dem": energa.get("asof_dem"), "page": ENERGA_PAGE, "urls": energa["urls"],
                    "level": "groups of 110 kV stations (coherent nodes)"},
         "pge": {"name": NAMES["pge"], "asof": pge["asof"], "page": PGE_PAGE, "urls": pge["urls"], "level": "groups of 110 kV stations"},
-        "pse": {"name": NAMES["pse"], "asof": pse["asof"], "page": PSE_PAGE, "urls": pse["urls"], "level": "220/400 kV stations, 2026 and 2031 only"},
+        "pse": {"name": NAMES["pse"], "asof": pse["asof"], "page": PSE_PAGE, "urls": pse["urls"], "level": "220/400 kV stations, 2026 and 2031 only",
+                "plans": PLAN_YEARS["sources"]},
         "enea": {"name": "ENEA Operator", "page": ENEA_PAGE, "excluded": "asks for consent before its values are republished station by station"},
         "stoen": {"name": "Stoen Operator", "page": STOEN_PAGE, "excluded": "asks for consent before its values are republished station by station"},
     }

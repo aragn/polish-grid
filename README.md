@@ -134,6 +134,11 @@ with a five-year outlook since 30 April 2026. `etl/grid_capacity.py` reads:
 - PSE: one PDF, 220/400 kV stations, 2026 and 2031, step 1 and step 2 (the published
   one, 0 everywhere in 2026), and the demand capacity of PSE's planned stations.
 
+PSE's planned demand stations get the completion year of the investment that builds
+them in PSE's development plans (agreed PRSP 2025-2034 and the 2027-2036 draft),
+matched by hand in `etl/pse_new_stations.json`; the page fills them in once built by
+the chosen year and charts them by year.
+
 ENEA and Stoen ask for consent before their values are republished station by
 station, so they are left out. Groups are placed at their stations (TAURON's own
 coordinates; for the others the nearest OpenStreetMap substation or town of that
