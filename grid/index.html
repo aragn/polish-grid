@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polish Grid · Grid capacity</title>
+  <meta name="description" content="Where new generation, demand and battery storage can still connect in Poland: the available connection capacity each grid operator publishes for 2026 to 2031, by substation or group of substations, with the projects already queuing there.">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
+      --hover:#1a1f25; --accent:#5b9cff; --chip:#1c2127;
+      --tooltip-bg:#171b20; --tooltip-border:#30363e; --tooltip-muted:#9aa2ac;
+      --map-land:#171b21; --map-border:#2c323a; --map-faded:#121519;
+      --line-400:#4a5260; --line-220:#323843; --station:#7d8691;
+      --c0:#4a5058; --c1:#1d4a35; --c2:#216b47; --c3:#2b915a; --c4:#4fbb7b; --c5:#9fe3b3;
+      --pse:#9aa2ac; --new:#5b9cff; --sat-full:#ff5a5a; --warn:#ffa53d;
+      --shadow:rgba(0,0,0,.55);
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+        --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+        --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+        --map-land:#f0efea; --map-border:#d3d1c8; --map-faded:#f7f7f5;
+        --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
+        --c0:#c4c2ba; --c1:#cde8d4; --c2:#97cfa6; --c3:#56b073; --c4:#25864a; --c5:#0e5a2e;
+        --pse:#6b6a66; --new:#2a78d6; --sat-full:#d32f2f; --warn:#e07b00; --shadow:rgba(16,24,40,.14);
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+      --hover:#efeeea; --accent:#2a78d6; --chip:#f0efec;
+      --tooltip-bg:#ffffff; --tooltip-border:#e1e0d9; --tooltip-muted:#6b6a66;
+      --map-land:#f0efea; --map-border:#d3d1c8; --map-faded:#f7f7f5;
+      --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
+      --c0:#c4c2ba; --c1:#cde8d4; --c2:#97cfa6; --c3:#56b073; --c4:#25864a; --c5:#0e5a2e;
+      --pse:#6b6a66; --new:#2a78d6; --sat-full:#d32f2f; --warn:#e07b00; --shadow:rgba(16,24,40,.14);
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; }
+    a { color:var(--accent); }
+    button, input, select { font-family:inherit; }
+    .topbar { display:flex; align-items:center; gap:18px; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:5; flex-wrap:wrap; }
+    .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+    .brand span { color:var(--muted); font-weight:500; }
+    .nav { display:flex; gap:4px; flex-wrap:wrap; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; white-space:nowrap; }
+    .nav a.active { color:var(--text); background:var(--hover); }
+    .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    main { max-width:1480px; margin:0 auto; padding:20px 24px 40px; }
+    .intro h1 { font-size:22px; margin:0 0 6px; font-weight:650; }
+    .intro p { margin:0; color:var(--muted); line-height:1.55; max-width:1080px; }
+    .tiles { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:12px; margin:16px 0; }
+    .tile { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px; min-width:0; }
+    .tile .k { color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.5px; }
+    .tile .v { font-size:24px; font-weight:650; margin-top:6px; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .tile .v small { font-size:13px; color:var(--muted); font-weight:500; }
+    .tile .s { color:var(--muted); font-size:12.5px; margin-top:4px; line-height:1.4; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px; margin-top:16px; }
+    .panel-head { padding:14px 18px 10px; }
+    .panel-title { font-weight:650; font-size:15px; }
+    .panel-sub { color:var(--muted); font-size:12.5px; margin-top:3px; line-height:1.5; }
+    .map-layout { display:grid; grid-template-columns:minmax(0, 1fr) 480px; border-top:1px solid var(--border); }
+    .map-wrap { position:relative; min-height:680px; border-right:1px solid var(--border); }
+    #map { position:absolute; inset:0; }
+    .map-back { position:absolute; top:12px; left:12px; display:none; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; z-index:2; }
+    .map-hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted-2); font-size:11.5px; pointer-events:none; }
+    .legend { position:absolute; top:12px; right:12px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:11.5px; color:var(--muted); z-index:2; }
+    .legend div { display:flex; align-items:center; gap:6px; margin-top:3px; }
+    .legend i { width:11px; height:11px; border-radius:50%; display:inline-block; }
+    .map-side { padding:14px 16px; display:flex; flex-direction:column; gap:14px; min-width:0; }
+    .box h3 { margin:0 0 8px; font-size:12.5px; font-weight:650; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .count { margin-top:8px; color:var(--muted); font-size:12.5px; line-height:1.5; }
+    .count b { color:var(--text); }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; flex-wrap:wrap; }
+    .seg button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 10px; font-size:12.5px; cursor:pointer; }
+    .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
+    .year { display:flex; align-items:center; gap:10px; }
+    .year input { flex:1; }
+    .year b { font-variant-numeric:tabular-nums; min-width:40px; }
+    .input { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 8px; font-size:13px; width:80px; }
+    .layers label { display:flex; align-items:center; gap:8px; font-size:13px; padding:3px 0; cursor:pointer; }
+    .key-sq { display:inline-block; width:10px; height:10px; border:2px solid; box-sizing:border-box; }
+    .table-wrap { overflow:auto; border:1px solid var(--border); border-radius:10px; max-height:420px; }
+    table.list { border-collapse:collapse; width:100%; font-size:12.5px; }
+    .list th { text-align:left; color:var(--muted); font-weight:600; font-size:11.5px; padding:7px 8px; border-bottom:1px solid var(--border); white-space:nowrap; background:var(--panel-2); position:sticky; top:0; cursor:pointer; user-select:none; }
+    .list td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .list tr[data-id] { cursor:pointer; }
+    .list tr[data-id]:hover td { background:var(--hover); }
+    .list .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .list .sub { color:var(--muted); font-size:11.5px; margin-top:1px; }
+    .dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:0; }
+    .bars { display:inline-flex; gap:2px; align-items:flex-end; height:18px; vertical-align:middle; }
+    .bars span { width:5px; background:var(--c3); border-radius:1px; }
+    .bars span.zero { background:var(--c0); height:2px !important; }
+    .notes { padding:4px 18px 18px; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px 28px; }
+    .notes div { font-size:13px; line-height:1.55; }
+    .notes b { display:block; margin-bottom:2px; }
+    .notes p { margin:0; color:var(--muted); }
+    dialog { border:1px solid var(--border); border-radius:14px; background:var(--panel); color:var(--text); width:min(1000px, 94vw); padding:0; box-shadow:0 20px 60px var(--shadow); }
+    dialog::backdrop { background:rgba(0,0,0,.5); }
+    .d-head { display:flex; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .d-head h2 { margin:0; font-size:18px; }
+    .d-head p { margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+    .d-close { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:8px; width:34px; height:34px; cursor:pointer; font-size:18px; flex:none; }
+    .d-body { padding:16px 20px 20px; }
+    .d-body h4 { margin:18px 0 8px; font-size:13px; }
+    .d-body h4:first-child { margin-top:0; }
+    .callout { border:1px solid var(--border); background:var(--panel-2); border-radius:10px; padding:10px 12px; font-size:13px; line-height:1.55; margin-bottom:12px; }
+    .callout.warn { border-color:var(--warn); }
+    table.years { border-collapse:collapse; width:100%; font-size:12.5px; }
+    .years th, .years td { padding:6px 8px; border-bottom:1px solid var(--border); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .years th:first-child, .years td:first-child { text-align:left; white-space:normal; }
+    .years th { color:var(--muted); font-weight:600; }
+    .years td.sel { font-weight:700; }
+    .years td.flag { color:var(--warn); }
+    .facts { display:grid; grid-template-columns:200px 1fr; gap:6px 14px; font-size:13px; margin:0; }
+    .facts dt { color:var(--muted); }
+    .facts dd { margin:0; line-height:1.5; }
+    .stations { columns:3; column-gap:18px; font-size:12.5px; line-height:1.7; margin:0; padding:0; list-style:none; }
+    .stations li { break-inside:avoid; }
+    .stations .muted { color:var(--muted); }
+    footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
+    @media (max-width: 1150px) {
+      .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+      .map-layout { grid-template-columns:1fr; }
+      .map-wrap { border-right:0; border-bottom:1px solid var(--border); min-height:560px; }
+      .notes { grid-template-columns:1fr; }
+      .stations { columns:2; }
+    }
+    @media (max-width: 640px) {
+      .topbar, main { padding-left:16px; padding-right:16px; }
+      .nav { overflow-x:auto; min-width:0; flex-wrap:nowrap; scrollbar-width:none; }
+      .tiles { grid-template-columns:1fr; }
+      .map-wrap { min-height:420px; }
+      .facts { grid-template-columns:1fr; }
+      .stations { columns:1; }
+      .legend { display:none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
+    <nav class="nav"><a href="../">Connection queue (PSE)</a><a href="../output/">Unit output (JWCD)</a><a href="../capacity/">Capacity market</a><a class="active" href="./">Grid capacity</a></nav>
+    <button class="theme" type="button" id="theme">Theme</button>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>Where new projects can still connect</h1>
+      <p id="intro">Loading…</p>
+    </section>
+    <div class="tiles" id="tiles"></div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title" id="map-title">Available connection capacity</div>
+        <div class="panel-sub" id="map-sub"></div>
+      </div>
+      <div class="map-layout">
+        <div class="map-wrap">
+          <div id="map"></div>
+          <button class="map-back" type="button" id="map-back">← All of Poland</button>
+          <div class="legend" id="legend"></div>
+          <div class="map-hint" id="map-hint">Click a voivodeship to zoom in, a group to open it</div>
+        </div>
+        <aside class="map-side">
+          <div class="box">
+            <h3>For</h3>
+            <div class="seg" id="mode">
+              <button type="button" data-mode="gen" class="on" title="Capacity to feed into the grid: solar, wind, generators, battery discharge">Generation</button><button type="button" data-mode="dem" title="Capacity to take from the grid: demand, battery charging">Demand</button><button type="button" data-mode="bess" title="A battery needs both: the lower of the two">Battery (both ways)</button><button type="button" data-mode="one" title="Room in one direction but not the other: a flexible agreement limited one way could fit">One way only</button>
+            </div>
+            <div class="count" id="mode-note"></div>
+          </div>
+          <div class="box">
+            <h3>Year</h3>
+            <div class="year"><input type="range" id="year" min="2026" max="2031" value="2030" aria-label="Year"><b id="year-label">2030</b></div>
+            <div class="row" style="margin-top:10px"><label for="min" style="font-size:13px">At least</label><input class="input" id="min" type="number" min="0" step="5" value="50"><span style="font-size:13px;color:var(--muted)">MW in the group</span></div>
+          </div>
+          <div class="box">
+            <h3>Operator</h3>
+            <div class="seg" id="ops">
+              <button type="button" data-op="tauron" class="on">TAURON</button><button type="button" data-op="energa" class="on">ENERGA</button><button type="button" data-op="pge" class="on">PGE</button><button type="button" data-op="pse" class="on">PSE</button>
+            </div>
+            <div class="count" id="ops-note"></div>
+          </div>
+          <div class="box layers">
+            <h3>Layers</h3>
+            <label><input type="checkbox" id="layer-spokes" checked> Stations of each group</label>
+            <label><input type="checkbox" id="layer-new" checked> <span class="key-sq" style="border-color:var(--new);transform:rotate(45deg)"></span> PSE's planned stations for new demand</label>
+            <label><input type="checkbox" id="layer-sat"> <span class="key-sq" style="border-color:var(--sat-full)"></span> PSE switchyards with no free bays</label>
+            <label><input type="checkbox" id="layer-lines" checked> 220 and 400 kV lines</label>
+          </div>
+          <div class="box">
+            <h3 id="rank-title">Groups with the most room</h3>
+            <div class="table-wrap"><table class="list" id="rank"></table></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><div class="panel-title">How to read these figures</div>
+        <div class="panel-sub">What the operators publish, what it means for a project, and what it leaves out.</div></div>
+      <div class="notes" id="notes"></div>
+    </section>
+    <footer id="footer"></footer>
+  </main>
+
+  <dialog id="detail" aria-labelledby="d-title">
+    <div class="d-head"><div><h2 id="d-title"></h2><p id="d-sub"></p></div><button class="d-close" type="button" id="d-close" aria-label="Close">×</button></div>
+    <div class="d-body" id="d-body"></div>
+  </dialog>
+
+  <script>
+  "use strict";
+  /* Polish Grid: available connection capacity.  Data: data/grid_capacity.json (built by
+     etl/grid_capacity.py from TAURON's map data and Energa's, PGE's and PSE's PDFs), data/saturation.json,
+     geo/poland_voivodeships.json and geo/grid_lines.json. */
+  const OPS = {
+    tauron: { label: "TAURON Dystrybucja", short: "TAURON" },
+    energa: { label: "Energa-Operator", short: "ENERGA" },
+    pge: { label: "PGE Dystrybucja", short: "PGE" },
+    pse: { label: "PSE", short: "PSE" },
+  };
+  const MODES = {
+    gen: { label: "generation", long: "to feed in (generation, battery discharge)" },
+    dem: { label: "demand", long: "to take from the grid (demand, battery charging)" },
+    bess: { label: "a battery", long: "both ways: the lower of generation and demand" },
+    one: { label: "one way only", long: "in one direction but not the other" },
+  };
+  const BUCKETS = [[0, "--c0", "None"], [1, "--c1", "1–24 MW"], [25, "--c2", "25–49 MW"], [50, "--c3", "50–99 MW"], [100, "--c4", "100–199 MW"], [200, "--c5", "200 MW or more"]];
+  const TECH_LABEL = { solar: "Solar", wind: "Wind", storage: "Storage", hybrid: "Hybrid", gas: "Gas", demand: "Demand", distribution: "Distribution", other: "Other", offshore: "Offshore wind", coal: "Coal", nuclear: "Nuclear" };
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const fmtMw = v => v == null ? "–" : `${Math.round(v).toLocaleString("en")} MW`;
+  const fmtNum = v => v == null ? "–" : Math.round(v).toLocaleString("en");
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
+
+  const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, region: null, sort: "value" };
+  let data, geo, gridLines, saturation, chart;
+
+  function pseYear(year) { return year >= 2031 ? "2031" : "2026"; }
+  function valueOf(area, kind, year) {
+    const y = area.op === "pse" ? pseYear(year) : String(year);
+    if (kind === "bess") { const g = valueOf(area, "gen", year), d = valueOf(area, "dem", year); return g == null || d == null ? null : Math.min(g, d); }
+    const v = (area[kind] || {})[y];
+    return v == null ? null : v;
+  }
+  function modeValue(area, year = state.year) {
+    if (state.mode === "one") {
+      const g = valueOf(area, "gen", year), d = valueOf(area, "dem", year);
+      if (g == null || d == null) return null;
+      return (Math.max(g, d) >= state.min && Math.min(g, d) < state.min) ? Math.max(g, d) : 0;
+    }
+    return valueOf(area, state.mode, year);
+  }
+  function oneWay(area, year = state.year) {
+    const g = valueOf(area, "gen", year), d = valueOf(area, "dem", year);
+    if (g == null || d == null || Math.max(g, d) < state.min || Math.min(g, d) >= state.min) return null;
+    return g > d ? "generation" : "demand";
+  }
+  function bucket(v) { let b = BUCKETS[0]; for (const entry of BUCKETS) if (v != null && v >= entry[0]) b = entry; return v == null || v <= 0 ? BUCKETS[0] : b; }
+  function colorOf(v) { return cssVar(bucket(v)[1]); }
+  function shownAreas() { return data.areas.filter(a => state.ops.has(a.op) && (a.op !== "pse" || state.mode === "gen" || state.mode === "one")); }
+  function inRegion(a) { return !state.region || regionOf(a) === state.region; }
+
+  async function get(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); }
+
+  async function load() {
+    [data, geo, gridLines, saturation] = await Promise.all([get("../data/grid_capacity.json"), get("../geo/poland_voivodeships.json"),
+      get("../geo/grid_lines.json").catch(() => ({ lines: [] })), get("../data/saturation.json").catch(() => ({ stations: [] }))]);
+    echarts.registerMap("poland", geo);
+    chart = echarts.init($("map"), null, { renderer: "canvas" });
+    chart.on("click", params => {
+      if (params.componentType === "geo" || (params.componentType === "series" && params.seriesType === "map")) {
+        state.region = state.region ? null : params.name; draw(true); renderRank(); return;
+      }
+      const area = params.data && params.data.area;
+      if (area) openArea(area);
+    });
+    chart.on("mouseover", params => { if (params.data && params.data.area) highlight(params.data.area.id); });
+    chart.on("mouseout", () => highlight(null));
+    bind();
+    render(true);
+  }
+
+  // Point-in-polygon for the zoom by voivodeship.
+  const regionCache = {};
+  function regionOf(a) {
+    if (a.lat == null) return null;
+    if (a.id in regionCache) return regionCache[a.id];
+    let found = null;
+    for (const f of geo.features) {
+      const polys = f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates];
+      for (const poly of polys) {
+        const ring = poly[0]; let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const [xi, yi] = ring[i], [xj, yj] = ring[j];
+          if ((yi > a.lat) !== (yj > a.lat) && a.lon < (xj - xi) * (a.lat - yi) / (yj - yi) + xi) inside = !inside;
+        }
+        if (inside) { found = f.properties.name; break; }
+      }
+      if (found) break;
+    }
+    return (regionCache[a.id] = found);
+  }
+  function regionBounds(name) {
+    const feature = geo.features.find(f => f.properties.name === name);
+    let w = 180, e = -180, s = 90, n = -90;
+    const polys = feature.geometry.type === "MultiPolygon" ? feature.geometry.coordinates : [feature.geometry.coordinates];
+    polys.forEach(p => p[0].forEach(([lon, lat]) => { w = Math.min(w, lon); e = Math.max(e, lon); s = Math.min(s, lat); n = Math.max(n, lat); }));
+    const pad = Math.max(e - w, n - s) * 0.06;
+    return [[w - pad, n + pad], [e + pad, s - pad]];
+  }
+
+  function bubble(v) { return v == null || v <= 0 ? 7 : Math.max(9, Math.min(34, 6 + Math.sqrt(v) * 1.9)); }
+
+  let highlighted = null;
+  function highlight(id) { if (highlighted === id) return; highlighted = id; if (state.spokes) draw(false); }
+
+  function draw(full) {
+    const areas = shownAreas();
+    const groups = areas.filter(a => a.lat != null);
+    const spokes = [], stations = [];
+    if (state.spokes) {
+      for (const a of groups) {
+        if (a.level !== "group") continue;
+        const v = modeValue(a), on = highlighted === a.id, color = colorOf(v);
+        for (const s of a.stations) {
+          if (s.lat == null) continue;
+          spokes.push({ coords: [[a.lon, a.lat], [s.lon, s.lat]], lineStyle: { color, width: on ? 1.6 : 0.7, opacity: on ? 0.95 : 0.35 } });
+          stations.push({ value: [s.lon, s.lat], name: s.name, st: s, area: a, symbolSize: on ? 6 : 4, itemStyle: { color, opacity: on ? 1 : 0.75 } });
+        }
+      }
+    }
+    const bubbles = groups.filter(a => a.level === "group").map(a => {
+      const v = modeValue(a), meets = v != null && v >= state.min;
+      return { value: [a.lon, a.lat, v], name: a.name, area: a, symbolSize: bubble(v),
+        itemStyle: { color: colorOf(v), opacity: meets || state.min <= 0 ? 0.95 : 0.45, borderColor: highlighted === a.id ? cssVar("--text") : cssVar("--panel"), borderWidth: highlighted === a.id ? 2 : 0.8 },
+        label: { show: meets && v >= 50, formatter: () => fmtNum(v), color: v >= 100 ? cssVar("--panel") : cssVar("--text"), fontSize: 10, fontWeight: 600 } };
+    }).sort((x, y) => (x.value[2] || 0) - (y.value[2] || 0));
+    const pse = groups.filter(a => a.op === "pse").map(a => {
+      const v = modeValue(a);
+      return { value: [a.lon, a.lat, v], name: a.name, area: a, symbol: "rect", symbolSize: v > 0 ? bubble(v) : 7,
+        itemStyle: { color: v > 0 ? colorOf(v) : "transparent", borderColor: v > 0 ? cssVar("--panel") : cssVar("--pse"), borderWidth: 1.4 } };
+    });
+    const newSt = state.newSt && (state.mode === "dem" || state.mode === "gen" || state.mode === "bess" || state.mode === "one") ? data.pse_new.filter(s => s.lat != null).map(s => ({
+      value: [s.lon, s.lat], name: s.name, st: s, symbol: "diamond", symbolSize: Math.max(10, Math.min(24, 6 + Math.sqrt(s.mw) * 0.6)),
+      itemStyle: { color: "transparent", borderColor: cssVar("--new"), borderWidth: 1.8, borderType: s.how === "near" ? "dashed" : "solid" } })) : [];
+    const sat = state.sat ? (saturation.stations || []).filter(s => s.lat != null && s.now).map(s => ({ value: [s.lon, s.lat], name: s.name, sat: s,
+      itemStyle: { color: "transparent", borderColor: cssVar("--sat-full"), borderWidth: 2, borderType: s.section === "full" ? "solid" : "dashed" } })) : [];
+    const lines = [220, 400].map(kv => ({ type: "lines", coordinateSystem: "geo", polyline: true, silent: true, z: 1,
+      data: state.lines ? gridLines.lines.filter(l => l.kv === kv).map(l => ({ coords: l.c })) : [],
+      lineStyle: { color: cssVar(kv === 400 ? "--line-400" : "--line-220"), width: kv === 400 ? 1.1 : 0.8 } }));
+    const series = [
+      ...lines,
+      { id: "spokes", type: "lines", coordinateSystem: "geo", silent: true, z: 2, data: spokes },
+      { id: "stations", type: "scatter", coordinateSystem: "geo", z: 3, data: stations, emphasis: { scale: 1.6 } },
+      { id: "sat", type: "scatter", coordinateSystem: "geo", z: 3.5, symbol: "rect", symbolSize: 13, data: sat },
+      { id: "pse", type: "scatter", coordinateSystem: "geo", z: 4, data: pse, emphasis: { scale: 1.4 } },
+      { id: "new", type: "scatter", coordinateSystem: "geo", z: 4.5, data: newSt, emphasis: { scale: 1.3 } },
+      { id: "groups", type: "scatter", coordinateSystem: "geo", z: 5, data: bubbles, labelLayout: { hideOverlap: true }, emphasis: { scale: 1.15 } },
+    ];
+    if (!full) { chart.setOption({ series }, { replaceMerge: ["series"] }); return; }
+    chart.setOption({
+      animation: false, backgroundColor: "transparent",
+      tooltip: { trigger: "item", confine: true, backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), borderWidth: 1,
+        textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;", formatter: tooltip },
+      geo: { map: "poland", roam: false, aspectScale: 0.64, layoutCenter: ["50%", "50%"], layoutSize: "96%",
+        ...(state.region ? { boundingCoords: regionBounds(state.region) } : {}),
+        itemStyle: { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.9 },
+        regions: state.region ? geo.features.filter(f => f.properties.name !== state.region).map(f => ({ name: f.properties.name, itemStyle: { areaColor: cssVar("--map-faded"), opacity: 0.6 } })) : [],
+        emphasis: { label: { show: false }, itemStyle: { areaColor: cssVar("--hover") } }, select: { disabled: true }, tooltip: { show: false }, label: { show: false } },
+      series
+    }, true);
+    $("map-back").style.display = state.region ? "" : "none";
+    $("map-hint").textContent = (state.region ? `${state.region} · ` : "Click a voivodeship to zoom in · ") + "hover a group to see its stations, click it for every year and the queue there";
+  }
+
+  function row(label, value, color = "transparent") {
+    return `<div style="display:flex;gap:8px;align-items:center;margin-top:3px"><span style="width:9px;height:9px;border-radius:50%;background:${color};display:inline-block"></span><span style="color:${cssVar("--tooltip-muted")}">${esc(label)}</span><b style="margin-left:auto;padding-left:12px">${value}</b></div>`;
+  }
+  function tooltip(params) {
+    const muted = cssVar("--tooltip-muted");
+    if (params.seriesId === "new") {
+      const s = params.data.st;
+      return `<div style="max-width:300px;white-space:normal"><b>${esc(s.code)} · ${esc(s.name)}</b><div style="margin-top:4px">Planned PSE station for new demand: <b>${fmtMw(s.mw)}</b> available</div>` +
+        `<div style="color:${muted};margin-top:4px">${s.how === "near" ? "Placed at the town it is named after: the site isn't published." : "Placed at the station it is named after."} Some of these stations are planned for after 2031.</div></div>`;
+    }
+    if (params.seriesId === "sat") {
+      const s = params.data.sat;
+      return `<b>${esc(s.name)}</b> <span style="color:${muted}">${esc(s.code)}</span><div style="margin-top:3px">${s.section === "full" ? "No free connection bays at " + esc(s.switchyards.filter(y => y.now).map(y => y.kv + " kV").join(", ")) : "Planned switchyard: applications stay unexamined"}</div>`;
+    }
+    const a = params.data && params.data.area;
+    if (!a) return "";
+    if (params.seriesId === "stations") {
+      const s = params.data.st;
+      return `<b>${esc(s.name)}</b>${s.code ? ` <span style="color:${muted}">${esc(s.code)}</span>` : ""}<div style="color:${muted};margin-top:3px">In the group ${esc(a.name)} (${OPS[a.op].short})${s.how === "place" ? " · placed at the town of that name" : ""}</div>` +
+        (s.mv_gen ? row(`Its own medium-voltage room, ${state.year}`, `${fmtMw(s.mv_gen[state.year])} in · ${fmtMw((s.mv_dem || {})[state.year])} out`) : "");
+    }
+    const y = state.year, gen = valueOf(a, "gen", y), dem = valueOf(a, "dem", y), q = a.queue || {};
+    const title = a.op === "pse" ? `${esc(a.name)} <span style="color:${muted}">PSE station, group ${esc(a.group || "")}</span>` : `${esc(a.name)} <span style="color:${muted}">${OPS[a.op].short} group${a.no ? " " + a.no : ""} · ${a.stations.length} stations</span>`;
+    return `<div style="max-width:320px;white-space:normal"><div style="font-weight:650">${title}</div>` +
+      row(`Generation ${a.op === "pse" ? pseYear(y) : y}`, fmtMw(gen), colorOf(gen)) +
+      (a.op === "pse" ? "" : row(`Demand ${y}`, fmtMw(dem), colorOf(dem)) + row(`Battery (lower of the two)`, fmtMw(valueOf(a, "bess", y)), colorOf(valueOf(a, "bess", y)))) +
+      (oneWay(a) ? `<div style="margin-top:4px;color:${cssVar("--warn")}">Room for ${state.min} MW only for ${oneWay(a)}</div>` : "") +
+      (q.n_pending ? row("Applications not yet decided", `${fmtMw(q.pending_in)} in · ${fmtMw(q.pending_out)} out`) : "") +
+      `<div style="color:${muted};margin-top:6px">Click for every year, the stations and the queue</div></div>`;
+  }
+
+  function sumMode(areas, kind) { return areas.filter(a => a.op !== "pse").reduce((s, a) => s + (valueOf(a, kind, state.year) || 0), 0); }
+
+  function renderTiles() {
+    const areas = shownAreas().filter(a => a.op !== "pse").filter(inRegion), y = state.year;
+    const groupsBess = areas.filter(a => (valueOf(a, "bess", y) || 0) >= state.min);
+    const one = areas.filter(a => oneWay(a));
+    const pse = data.areas.filter(a => a.op === "pse"), pseRoom = pse.filter(a => (valueOf(a, "gen", y) || 0) > 0);
+    const pending = areas.reduce((s, a) => s + (a.queue?.pending_in || 0), 0);
+    const where = state.region ? ` in ${state.region}` : "";
+    $("tiles").innerHTML = [
+      ["Generation", fmtNum(sumMode(areas, "gen")), "MW", `room to feed in, ${y}, in ${areas.length} distribution groups${where}`],
+      ["Demand", fmtNum(sumMode(areas, "dem")), "MW", `room to take from the grid, ${y}`],
+      ["Battery, both ways", fmtNum(sumMode(areas, "bess")), "MW", `${groupsBess.length} groups with at least ${state.min} MW both ways`],
+      ["One way only", String(one.length), "groups", `room for ${state.min} MW in one direction but not the other, ${y}`],
+      ["PSE, 220/400 kV", fmtNum(pse.reduce((s, a) => s + (valueOf(a, "gen", y) || 0), 0)), "MW", `for new generation at ${pse.length} stations (${pseRoom.length} with any), ${pseYear(y)}: the 110 kV conditions already agreed take all of it`],
+    ].map(([k, v, unit, s]) => `<div class="tile"><div class="k">${k}</div><div class="v">${v} <small>${unit}</small></div><div class="s">${esc(s)}</div></div>`).join("");
+    void pending;
+  }
+
+  function renderLegend() {
+    $("legend").innerHTML = `<b style="color:var(--text)">${state.mode === "one" ? "Larger direction" : "Room in " + state.year}</b>` +
+      BUCKETS.map(([, v, label]) => `<div><i style="background:var(${v})"></i>${label}</div>`).join("") +
+      `<div><i style="border:1.4px solid var(--pse);border-radius:0"></i>PSE station, none</div>`;
+  }
+
+  function renderRank() {
+    const y = state.year;
+    const areas = shownAreas().filter(a => a.op !== "pse").filter(inRegion)
+      .map(a => ({ a, v: modeValue(a), pend: state.mode === "dem" ? a.queue?.pending_out || 0 : a.queue?.pending_in || 0 }))
+      .filter(r => r.v != null && r.v > 0);
+    areas.sort((x, z) => state.sort === "pending" ? z.pend - x.pend : state.sort === "name" ? x.a.name.localeCompare(z.a.name) : z.v - x.v);
+    const max = Math.max(1, ...data.areas.filter(a => a.op !== "pse").flatMap(a => data.years.map(yy => modeValue(a, yy) || 0)));
+    $("rank-title").textContent = `${areas.length} groups with room for ${MODES[state.mode].label}${state.region ? " in " + state.region : ""}, ${y}`;
+    $("rank").innerHTML = `<thead><tr><th data-sort="name">Group</th><th class="num" data-sort="value">${y}</th><th>2026–2031</th><th class="num" data-sort="pending" title="Applications not yet decided (MW in the same direction): they would come off the room if granted">Pending</th></tr></thead><tbody>` +
+      areas.slice(0, 150).map(({ a, v, pend }) => {
+        const bars = data.years.map(yy => { const vv = modeValue(a, yy) || 0; return `<span class="${vv > 0 ? "" : "zero"}" style="height:${Math.max(2, 18 * vv / max)}px;${yy === y ? "background:var(--c5)" : ""}" title="${yy}: ${fmtMw(vv)}"></span>`; }).join("");
+        return `<tr data-id="${esc(a.id)}"><td><span class="dot" style="background:${colorOf(v)}"></span>${esc(a.name)}<div class="sub">${OPS[a.op].short} · ${a.stations.length} stations${oneWay(a) ? " · " + oneWay(a) + " only" : ""}</div></td>` +
+          `<td class="num">${fmtNum(v)}</td><td><span class="bars">${bars}</span></td><td class="num">${pend ? fmtNum(pend) : "–"}</td></tr>`;
+      }).join("") + `</tbody>`;
+  }
+
+  function renderSide() {
+    $("year-label").textContent = state.year;
+    $("mode-note").innerHTML = `Room ${esc(MODES[state.mode].long)}.` + (state.mode === "bess" ? " A battery needs both directions, so the figure is the lower of the two." : "") +
+      (state.mode === "one" ? ` Since 30 April 2026 an operator may offer a flexible connection agreement that limits one direction while its grid is reinforced.` : "");
+    const ops = ["energa", "pge", "pse"].map(op => `${OPS[op].short} ${fmtDate(data.operators[op]?.asof)}`).join(" · ");
+    $("ops-note").innerHTML = `As of: ${esc(ops)}; TAURON's map gives no date: read ${fmtDate(data.operators.tauron?.read)}, unchanged since ${fmtDate(data.operators.tauron?.asof)}. ENEA and Stoen are not shown: both ask for consent before their values are republished station by station (<a href="${esc(data.operators.enea.page)}" target="_blank" rel="noopener">ENEA's map</a>, <a href="${esc(data.operators.stoen.page)}" target="_blank" rel="noopener">Stoen's</a>).`;
+    $("map-sub").textContent = `Each bubble is a group of 110 kV substations whose operator gives one total for the group (TAURON, Energa, PGE); the lines lead to its substations. ` +
+      `Squares are PSE's 220/400 kV stations (values for 2026 and 2031 only). The size and colour show the room for ${MODES[state.mode].label} in ${state.year}.`;
+  }
+
+  function render(full) { renderSide(); renderTiles(); renderLegend(); renderRank(); draw(full); }
+
+  function yearTable(a) {
+    const years = data.years, sel = String(state.year);
+    const cell = (v, y) => `<td class="${String(y) === sel ? "sel" : ""}">${v == null ? "–" : fmtNum(v)}</td>`;
+    const rows = [];
+    if (a.op === "pse") {
+      rows.push(`<tr><td>Generation, step 2 (published)</td>${years.map(y => cell(y === 2026 || y === 2031 ? valueOf(a, "gen", y) : null, y)).join("")}</tr>`);
+      rows.push(`<tr><td>Generation, step 1 (transmission grid alone)</td>${years.map(y => cell(y === 2026 || y === 2031 ? (a.gen_step1 || {})[y] : null, y)).join("")}</tr>`);
+      return `<table class="years"><thead><tr><th>MW</th>${years.map(y => `<th>${y}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    }
+    const extra = a.op === "energa";
+    rows.push(`<tr><td>Generation (feed in)</td>${years.map(y => cell(valueOf(a, "gen", y), y)).join("")}${extra ? `<td>${fmtNum(a.gen_2035)}</td>` : ""}</tr>`);
+    if (a.gen_alt && years.some(y => a.gen_alt[y] !== a.gen[y]))
+      rows.push(`<tr><td>Generation, the expert-assessment approach (Energa's table 2.4)</td>${years.map(y => cell(a.gen_alt[y], y)).join("")}${extra ? "<td></td>" : ""}</tr>`);
+    rows.push(`<tr><td>Demand (take from the grid)</td>${years.map(y => cell(valueOf(a, "dem", y), y)).join("")}${extra ? `<td>${fmtNum(a.dem_2035)}</td>` : ""}</tr>`);
+    rows.push(`<tr><td><b>Battery, both ways</b> (the lower)</td>${years.map(y => cell(valueOf(a, "bess", y), y)).join("")}${extra ? "<td></td>" : ""}</tr>`);
+    return `<table class="years"><thead><tr><th>MW for the whole group</th>${years.map(y => `<th>${y}</th>`).join("")}${extra ? "<th>2035</th>" : ""}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  }
+
+  function stationsTable(a) {
+    if (a.op !== "tauron") {
+      return `<ul class="stations">${a.stations.map(s => `<li>${esc(s.name)}${s.own === false ? ' <span class="muted">(not the operator\'s)</span>' : ""}${s.how === "place" ? ' <span class="muted">· at the town</span>' : s.how ? "" : ' <span class="muted">· not placed</span>'}</li>`).join("")}</ul>`;
+    }
+    const years = data.years;
+    return `<div style="overflow-x:auto"><table class="years"><thead><tr><th>GPZ</th>${years.map(y => `<th>${y}</th>`).join("")}</tr></thead><tbody>` +
+      a.stations.map(s => `<tr><td>${esc(s.name)} <span style="color:var(--muted)">${esc(s.code)}</span>${s.own === false ? ' <span style="color:var(--muted)">(external)</span>' : ""}</td>` +
+        years.map(y => `<td class="${String(y) === String(state.year) ? "sel" : ""}">${fmtNum((s.mv_gen || {})[y])} / ${fmtNum((s.mv_dem || {})[y])}</td>`).join("") + `</tr>`).join("") +
+      `</tbody></table></div><div class="count">Each GPZ's own room at medium voltage (generation / demand, MW), from TAURON's map. The 110 kV figures above are for the whole group.</div>`;
+  }
+
+  function queueBlock(a) {
+    const q = a.queue || {};
+    if (!q.n_pending && !q.n_held) return `<div class="count">No live project in our queue data names a station of this group.${a.op === "tauron" ? "" : " Matching is by station name, so projects that describe their point in other words are missed."}</div>`;
+    const tech = Object.entries(q.by_tech || {}).filter(([, mw]) => mw >= 0.5).sort((x, y) => y[1] - x[1]).map(([t, mw]) => `${TECH_LABEL[t] || t} ${fmtMw(mw)}`).join(" · ");
+    return `<dl class="facts">` +
+      (q.n_pending ? `<dt>Not yet decided</dt><dd><b>${q.n_pending}</b> applications (filed or under study): ${fmtMw(q.pending_in)} to feed in, ${fmtMw(q.pending_out)} to take out. These are not yet subtracted: each one granted takes room from the figures above.</dd>` : `<dt>Not yet decided</dt><dd>No application waiting in our data.</dd>`) +
+      `<dt>Conditions or agreement</dt><dd><b>${q.n_held}</b> projects: ${fmtMw(q.held_in)} in, ${fmtMw(q.held_out)} out. Already subtracted from the figures above.</dd>` +
+      `<dt>By technology</dt><dd>${esc(tech)}</dd></dl>` +
+      `<div class="count"><a href="../">Open the connection queue</a> for the projects themselves. ${a.op === "tauron" ? "Matched by the GPZ code in TAURON's list." : "Matched by station name."}</div>`;
+  }
+
+  function openArea(a) {
+    const op = data.operators[a.op], y = state.year;
+    $("d-title").textContent = a.op === "pse" ? `${a.name} (PSE)` : `${a.name} · ${OPS[a.op].label}`;
+    const src = op.urls ? Object.values(op.urls).map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">${Object.keys(op.urls).length > 1 ? (i ? "demand" : "generation") + " PDF" : "PDF"}</a>`).join(", ") : `<a href="${esc(op.page)}" target="_blank" rel="noopener">map</a>`;
+    $("d-sub").innerHTML = (a.op === "pse" ? `220/400 kV station in PSE's group ${esc(a.group || "")}, area ${esc(a.area || "")}${a.future ? " · planned station" : ""}` :
+      `Group ${a.no ? a.no + " " : ""}of ${a.stations.length} 110 kV stations`) + (a.op === "tauron" ? ` · ${esc(op.name)}, read ${fmtDate(op.read)} (${src})` : ` · ${esc(op.name)} as of ${fmtDate(op.asof)} (${src})`);
+    const g = valueOf(a, "gen", y), d = valueOf(a, "dem", y), one = oneWay(a);
+    let call = "";
+    if (a.op === "pse") call = `<div class="callout">PSE publishes the room for new generation at its own stations for 2026 and 2031. Step 1 counts the transmission grid alone; step 2, the published value, subtracts the connection conditions PSE has agreed for the 110 kV grid, and is 0 at every station. New generation at 220/400 kV therefore has no published room until 2031.</div>`;
+    else if (one) call = `<div class="callout warn">In ${y} this group has room for ${state.min} MW of ${one} (${fmtMw(Math.max(g, d))}) but not of ${one === "generation" ? "demand" : "generation"} (${fmtMw(Math.min(g, d))}). A battery could still fit with a flexible connection agreement that limits ${one === "generation" ? "charging" : "discharging"} until the grid is reinforced (possible since 30 April 2026, for at most three years).</div>`;
+    else if ((valueOf(a, "bess", y) || 0) >= state.min) call = `<div class="callout">In ${y} the group has room for ${fmtMw(valueOf(a, "bess", y))} both ways, enough for a ${state.min} MW battery, before the applications not yet decided.</div>`;
+    $("d-body").innerHTML = call +
+      `<h4>Available connection capacity</h4>${yearTable(a)}` +
+      (a.changes ? `<div class="count">Changes to the group in later years: ${esc(a.changes)}</div>` : "") +
+      (a.op === "pse" ? "" : `<h4>Stations in the group</h4>${stationsTable(a)}`) +
+      `<h4>Queue at these stations</h4>${queueBlock(a)}` +
+      (a.op !== "pse" ? `<div class="count" style="margin-top:12px">The transmission grid above: PSE publishes 0 MW for new generation at every one of its stations (step 2, ${fmtDate(data.operators.pse.asof)}), so the distribution figures already allow for what PSE has agreed.</div>` : "");
+    $("detail").showModal();
+  }
+
+  function renderNotes() {
+    const notes = [
+      ["What the figure is", "The operator's estimate of how much more capacity can connect to a substation or a group of substations, already net of the connection conditions it has issued. It is indicative: only connection conditions are binding."],
+      ["A group shares one figure", "Energa, PGE, TAURON (at 110 kV) and PSE give one total for a group of substations that load the same lines. Connecting 50 MW at any of them uses up 50 MW of the group, so the figures can't be added across its stations."],
+      ["Batteries need both directions", "A battery feeds in and takes out, so the room that matters is the lower of the generation and demand figures. Where only one direction has room, a flexible connection agreement that limits the other may fit: the Energy Law allows them since 30 April 2026 where firm connection needs reinforcement already planned, with limits for at most three years."],
+      ["Who publishes, and how often", "Every operator, under art. 7 ust. 8l of the Energy Law (as amended by Dz.U. 2026 poz. 516): a five-year outlook for its whole grid above 1 kV, by station or group at 110 kV and above. Distribution operators update it at least once a quarter, PSE once a month. This page checks every morning."],
+      ["PSE's two steps", "Step 1 is the room in the transmission grid alone (300 MW nationally in 2026, 500 MW in 2031). Step 2, the published value, subtracts the conditions PSE has agreed for the 110 kV grid, and is 0 everywhere. PSE also plans about 25 new stations for large new demand, with 100–1,000 MW each."],
+      ["The queue beside it", "Applications filed or under study are not yet subtracted: each one granted takes room. The queue column shows how much is waiting in each group, from the operators' lists of applicants (the Connection queue tab). Projects are matched to a group by their station's name or TAURON's code, so some are missed."],
+      ["An expert assessment above 2 MW", "Whatever the published room, a source or storage of more than 2 MW needs an assessment of its effect on the grid (art. 7 ust. 8e) before conditions are issued, so the answer for a real project can be more or less than the figure here."],
+      ["What isn't here", "ENEA (western Poland) and Stoen (Warsaw) publish their figures too, but ask for consent before they are republished station by station; follow the links to their own maps. Methods differ between operators: PGE gives step values for large groups, so its eastern figures look low."],
+    ];
+    $("notes").innerHTML = notes.map(([t, p]) => `<div><b>${esc(t)}</b><p>${esc(p)}</p></div>`).join("");
+  }
+
+  function bind() {
+    $("mode").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.mode = b.dataset.mode; [...$("mode").children].forEach(x => x.classList.toggle("on", x === b)); render(false); });
+    $("ops").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; const op = b.dataset.op;
+      if (state.ops.has(op) && state.ops.size > 1) state.ops.delete(op); else state.ops.add(op); b.classList.toggle("on", state.ops.has(op)); render(false); });
+    $("year").addEventListener("input", e => { state.year = +e.target.value; render(false); });
+    $("min").addEventListener("input", e => { state.min = Math.max(0, +e.target.value || 0); render(false); });
+    $("layer-spokes").addEventListener("change", e => { state.spokes = e.target.checked; draw(false); });
+    $("layer-new").addEventListener("change", e => { state.newSt = e.target.checked; draw(false); });
+    $("layer-sat").addEventListener("change", e => { state.sat = e.target.checked; draw(false); });
+    $("layer-lines").addEventListener("change", e => { state.lines = e.target.checked; draw(false); });
+    $("map-back").addEventListener("click", () => { state.region = null; render(true); });
+    $("rank").addEventListener("click", e => {
+      const th = e.target.closest("th[data-sort]"); if (th) { state.sort = th.dataset.sort; renderRank(); return; }
+      const tr = e.target.closest("tr[data-id]"); if (tr) openArea(data.areas.find(a => a.id === tr.dataset.id));
+    });
+    $("rank").addEventListener("mouseover", e => { const tr = e.target.closest("tr[data-id]"); if (tr) highlight(tr.dataset.id); });
+    $("rank").addEventListener("mouseleave", () => highlight(null));
+    $("d-close").addEventListener("click", () => $("detail").close());
+    $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
+    window.addEventListener("resize", () => chart.resize());
+    $("theme").addEventListener("click", () => {
+      const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("pg-theme", root.dataset.theme); } catch (e) { /* private mode */ }
+      render(true);
+    });
+    const dso = data.areas.filter(a => a.op !== "pse");
+    $("intro").innerHTML = `How much more generation, demand or battery storage each grid operator says can still connect, by substation or group of substations, for every year from 2026 to 2031. ` +
+      `TAURON, Energa and PGE cover southern, northern and eastern Poland with ${dso.length} groups of 110 kV substations; PSE's 220/400 kV stations have no room for new generation. ` +
+      `Pick what you want to connect and a year: the map shows where there is room, and each group shows how many projects are already waiting there.`;
+    renderNotes();
+    const op = data.operators;
+    $("footer").innerHTML = `Data: <a href="${esc(op.tauron.page)}" target="_blank" rel="noopener">TAURON Dystrybucja, dostępne moce</a> (its map), ` +
+      `<a href="${esc(op.energa.page)}" target="_blank" rel="noopener">Energa-Operator, informacja o wartości łącznej dostępnej mocy przyłączeniowej</a>, ` +
+      `<a href="${esc(op.pge.page)}" target="_blank" rel="noopener">PGE Dystrybucja, informacja o łącznej dostępnej mocy przyłączeniowej</a> and ` +
+      `<a href="${esc(op.pse.page)}" target="_blank" rel="noopener">PSE, informacja o dostępności mocy przyłączeniowej do sieci przesyłowej</a>, published under art. 7 ust. 8l of the Energy Law. ` +
+      `Substation positions from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors (ODbL) where the operator gives none; ${data.unplaced.length} station names could not be placed. ` +
+      `The battery figure, the one-way flag and the queue matching are this site's. Values are the operators' estimates and only connection conditions are binding. Data updated ${fmtDate(data.updated)}.`;
+  }
+
+  (function initTheme() { try { const s = localStorage.getItem("pg-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) { /* private mode */ } })();
+  load().catch(e => { $("intro").textContent = `Could not load the data: ${e.message}`; console.error(e); });
+  </script>
+</body>
+</html>
