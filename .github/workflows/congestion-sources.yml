@@ -1,0 +1,31 @@
+# Documents the congestion screening model reads that pse.pl serves unreliably
+# to home connections (large PDFs stop part way): fetched here and kept as an
+# artifact.  PSE's agreed development plan 2025-2034 lists the lines it upgrades.
+name: Congestion screening sources
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: PSE development plan 2025-2034
+        run: |
+          mkdir -p out
+          curl -sSL --retry 5 --max-time 600 -o out/PRSP_2025_2034.pdf \
+            "https://www.pse.pl/documents/20182/21595261/PRSP_2025_2034_dokument_glowny_2024_12_20.pdf"
+          ls -la out
+          head -c 5 out/PRSP_2025_2034.pdf | grep -q "%PDF" && tail -c 1024 out/PRSP_2025_2034.pdf | grep -q "%%EOF"
+      - name: OpenStreetMap power features, Poland, 1 January 2026 (Geofabrik)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+          curl -sSL --retry 5 -C - -o poland.osm.pbf https://download.geofabrik.de/europe/poland-260101.osm.pbf && ls -la poland.osm.pbf
+          osmium tags-filter poland.osm.pbf nwr/power=line,cable,substation,transformer,circuit,plant \
+            nwr/construction:power nwr/route=power -o out/poland-260101-power.osm.pbf
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sources
+          path: out/

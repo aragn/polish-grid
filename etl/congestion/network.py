@@ -1,49 +1,70 @@
 """
-A DC power-flow model of Poland's 220/400 kV grid, built from OpenStreetMap:
+A DC power-flow model of Poland's grid from 110 kV up, with its neighbours'
+220/400 kV grids, built from OpenStreetMap:
 
-    python etl/congestion/network.py --osm <dir with buses.csv, lines.csv, transformers.csv, links.csv> --work D:/Power/pl-congestion
+    python etl/congestion/network.py --work W \
+        --pl <PyPSA-Eur run>/resources/plgrid/osm/build      # Poland, raw OSM at 1 July 2025, 110 kV and up
+        --raw W/cache/osm_raw/PL                              # the raw Overpass files (names, conductor tags, transformers)
+        --osm <PyPSA-Eur>/data/osm/archive/0.7                # neighbours and tie lines (prebuilt OSM network 0.7)
+        --prsp W/cache/prsp_lines.json                        # lines PSE's development plan upgrades (prsp.py)
 
-<osm> is PyPSA-Eur's prebuilt OSM transmission network, release 0.7 ("Prebuilt
-electricity network for PyPSA-Eur based on OpenStreetMap data" on Zenodo,
-ODbL; PyPSA-Eur downloads it to data/osm/archive/0.7).  It is already cleaned into substations
-per voltage level, lines between them (merged ways, circuits counted) and
-transformers between voltage levels of one substation.
+Poland comes from PyPSA-Eur's OSM pipeline run on raw OSM data (osm_overpass.py
+fetches it as of a date; config/plgrid.yaml in the PyPSA-Eur workspace runs
+clean_osm_data and build_osm_network down to 110 kV).  The neighbours DE,
+CZ, SK and LT are their 220 kV and higher grids from PyPSA-Eur's prebuilt
+network 0.7, cut at their other borders, so loop flows through Germany, the
+Czech Republic and Slovakia, and outages abroad, follow the physics.  Ukraine
+stays one boundary node; SwePol is an injection at its converter's bus.
 
-Kept: every Polish bus at 220 kV and above, every line with an end in Poland
-and the 400/220 kV transformers.  The far end of every cross-border line is
-replaced by one boundary node per neighbour (X_DE, X_CZ, X_SK, X_LT, X_UA),
-and SwePol (HVDC, Słupsk) becomes X_SE.  Each neighbour therefore meets
-Poland only through its own tie lines: a measured border flow injected at its
-node reaches Poland exactly, split between the tie lines by impedance.
+Every Polish line of n circuits becomes n parallel branches.  Line parameters
+come from one conductor class per line: voltage and OSM's `wires` (bundle)
+tag, with lines that PSE's development plan schedules for an upgrade treated
+as thermally limited (60 instead of 80 degrees C design temperature).  The
+rating given here is at 30 degrees C air; flows.py scales it every hour with
+the line's air temperature.  Transformers take OSM's unit ratings where
+tagged.  The neighbours' lines keep PyPSA-Eur's types.
 
-Impedances and ratings are not OSM's: they are typical values for PSE's
-standard conductors (README, "Line parameters"), so every line of one voltage
-has the same reactance per km and the same rating per circuit.
-
-Writes <work>/out/network.json.
+Writes W/out/network.json.
 """
 
 import argparse
+import collections
 import json
 import math
-import re
 import os
+import re
+import unicodedata
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
-
-# Typical PSE conductors (see README): reactance per circuit [ohm/km] and continuous rating per circuit [MVA].
-LINE_TYPES = {
-    220: {"x_ohm_km": 0.41, "s_mva": 380.0, "conductor": "AFL-8 525 mm2, single, ~1.0 kA"},
-    400: {"x_ohm_km": 0.33, "s_mva": 1390.0, "conductor": "2 x AFL-8 525 mm2, ~2.0 kA"},
-}
-TRAFO_X_PU = 0.12            # on the transformer's rating
-TRAFO_S_MVA = (500.0, 1000.0)  # clip OSM-derived ratings into this range
 BASE_MVA = 100.0
-NEIGHBOURS = {"DE", "CZ", "SK", "LT", "UA", "SE", "BY"}
+EXTERNAL = ["DE", "CZ", "SK", "LT"]
+BOUNDARY = {"UA", "BY", "SE"}
+T_REF, T_DESIGN, T_LIMITED = 30.0, 80.0, 60.0
+
+# Conductor classes, per circuit: reactance (ohm/km) and rating at 30 C air, 80 C conductor (MVA).
+CLASSES = {
+    (110, 1): {"x": 0.40, "s": 115.0, "label": "AFL-6 240"},
+    (110, 2): {"x": 0.30, "s": 230.0, "label": "2 x AFL-6 240"},
+    (220, 1): {"x": 0.41, "s": 380.0, "label": "AFL-8 525"},
+    (220, 2): {"x": 0.31, "s": 760.0, "label": "2 x AFL-8 525"},
+    (400, 2): {"x": 0.33, "s": 1390.0, "label": "2 x AFL-8 525"},
+    (400, 3): {"x": 0.29, "s": 1660.0, "label": "3 x AFL-8 350"},
+    (400, 4): {"x": 0.27, "s": 2000.0, "label": "4 x AFL-8 350"},
+}
+DEFAULT_BUNDLE = {110: 1, 220: 1, 400: 2}
+WIRES = {"single": 1, "double": 2, "triple": 3, "quad": 4, "quadruple": 4}
+TRAFO_UNIT = {(400, 220): 500.0, (400, 110): 330.0, (220, 110): 160.0}  # MVA per unit when OSM has no rating
+TRAFO_UNITS_DEFAULT = 2
+TRAFO_X_PU = 0.12
+# The neighbours' substations at the far end of the tie lines (the prebuilt network has no names)
+FOREIGN_NAMES = [("Vierraden", 53.098, 14.269), ("Hagenwerder", 51.060, 14.950), ("Nošovice", 49.670, 18.430),
+                 ("Dětmarovice", 49.900, 18.470), ("Albrechtice", 49.790, 18.520), ("Liskovec", 49.710, 18.320),
+                 ("Lemešany", 48.860, 21.260), ("Alytus", 54.440, 23.970)]
 
 
 def read(path):
@@ -51,105 +72,299 @@ def read(path):
 
 
 def level(v):
-    return 400 if v >= 300 else 220
+    v = float(v)
+    return 400 if v >= 300 else 220 if v >= 200 else 110
 
 
-def names(work_root):
-    """OSM id -> (name, code) from the queue page's PSE stations, then OSM's named substations by position."""
-    q = json.load(open(os.path.join(ROOT, "data", "queue.json"), encoding="utf-8"))["stations"]
-    by_osm = {}
-    for name, s in q.items():
-        if s.get("osm_id"):
-            by_osm[s["osm_id"]] = {"name": name, "code": s.get("code", ""), "kv": s.get("kv", ""), "lat": s["lat"], "lon": s["lon"]}
-    places = json.load(open(os.path.join(ROOT, "etl", "osm_places.json"), encoding="utf-8"))["substations"]
-    ehv = [p for p in places if any(v in str(p[3]) for v in ("220000", "400000", "380000"))]
-    return by_osm, [s for s in q.items() if s[1].get("lat") is not None], ehv
+def fold(s):
+    s = unicodedata.normalize("NFKD", str(s or "").replace("ł", "l").replace("Ł", "L")).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]", " ", s)).strip()
 
 
 def km(lat1, lon1, lat2, lon2):
     x = math.radians(lon2 - lon1) * math.cos(math.radians((lat1 + lat2) / 2))
-    y = math.radians(lat2 - lat1)
-    return 6371 * math.hypot(x, y)
+    return 6371 * math.hypot(x, math.radians(lat2 - lat1))
 
 
 def clean_name(s):
-    for w in ("Stacja Elektroenergetyczna", "Stacja elektroenergetyczna", "Rozdzielnia", "Stacja", "SE "):
-        s = s.replace(w, "")
-    s = re.sub(r"\b\d{2,3}(/\d{2,3})*\s*kV\b", "", s)
-    return re.sub(r"\s+", " ", s.replace('"', "").replace("„", "").replace("”", "")).strip(" -,")
+    s = str(s or "")
+    s = re.sub(r"(?i)\b(stacja|rozdzielnia|elektroenergetyczna|transformatorowa|GPZ|RPZ|SE|PSE|GSZ|RS)\b\.?", " ", s)
+    s = re.sub(r"\b\d{1,3}(/\d{1,3})*\s*kV\b", "", s)
+    s = s.replace('"', "").replace("„", "").replace("”", "")
+    return re.sub(r"\s+", " ", s).strip(" -,")
+
+
+def geom(wkt, kv):
+    """Simplified [[lon, lat], ...] of a 220/400 kV line, for the map; None below 220 kV."""
+    if kv < 220 or not isinstance(wkt, str) or "LINESTRING" not in wkt:
+        return None
+    from shapely import wkt as W
+    g = W.loads(wkt).simplify(0.003)
+    return [[round(x, 4), round(y, 4)] for x, y in g.coords]
+
+
+def raw_elements(raw, name):
+    path = os.path.join(raw, f"{name}.json")
+    return json.load(open(path, encoding="utf-8"))["elements"] if os.path.exists(path) else []
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--osm", required=True)
     ap.add_argument("--work", required=True)
+    ap.add_argument("--pl", required=True)
+    ap.add_argument("--raw", required=True)
+    ap.add_argument("--osm", required=True)
+    ap.add_argument("--prsp", help="JSON list of [station A, station B, kV] that PSE's plan upgrades")
+    ap.add_argument("--x110", type=float, default=1.0,
+                    help="multiplier on 110 kV reactances: the distribution operators run the 110 kV grid with open points, "
+                         "which OSM does not show, so it is a weaker parallel path than its lines suggest")
     a = ap.parse_args()
 
-    buses = read(os.path.join(a.osm, "buses.csv"))
-    lines = read(os.path.join(a.osm, "lines.csv"))
-    trafos = read(os.path.join(a.osm, "transformers.csv"))
-    links = read(os.path.join(a.osm, "links.csv"))
-    country = buses.set_index("bus_id")["country"]
-    pl = buses[(buses.country == "PL") & (buses.dc == "f") & (buses.voltage >= 200)].set_index("bus_id")
-    ids = set(pl.index)
+    # ---------------------------------------------------------------- Poland
+    pb = read(os.path.join(a.pl, "buses.csv"))
+    pl_ = read(os.path.join(a.pl, "lines.csv"))
+    pt = read(os.path.join(a.pl, "transformers.csv"))
+    pk = read(os.path.join(a.pl, "links.csv")) if os.path.exists(os.path.join(a.pl, "links.csv")) else pd.DataFrame()
+    # nothing under construction: the model is the grid in service
+    built = lambda df: df[df["under_construction"].astype(str) != "t"] if "under_construction" in df.columns else df
+    pb, pl_ = built(pb), built(pl_)
+    pb = pb[(pb.country == "PL") & (pb.dc == "f") & (pb.voltage >= 100)].set_index("bus_id")
+    # Geofabrik's extract reaches over the border (Dětmarovice, Hagenwerder, Lemešany...): only buses on Polish
+    # territory, so the Polish build never shares a bus with the neighbours' network but at the tie lines.
+    from shapely.geometry import Point, shape
+    from shapely.ops import unary_union
+    geo = json.load(open(os.path.join(ROOT, "geo", "poland_voivodeships.json"), encoding="utf-8"))
+    poland = unary_union([shape(f["geometry"]).buffer(0) for f in geo["features"]]).buffer(0.003)
+    inside = np.array([poland.contains(Point(x, y)) for x, y in zip(pb.x, pb.y)])
+    pb = pb[inside]
+    ids = set(pb.index)
 
-    def end(bus):
-        if bus in ids:
-            return bus
-        c = country.get(bus, "")
-        return f"X_{c}" if c in NEIGHBOURS else None
+    # raw OSM: names of substations, tags of line ways, transformer units
+    sub_name = {}
+    for el in raw_elements(a.raw, "substations_way") + raw_elements(a.raw, "substations_relation"):
+        if el.get("tags", {}).get("name"):
+            sub_name[f"{el['type']}/{el['id']}"] = el["tags"]["name"]
+    way_tags = {f"way/{el['id']}": el.get("tags", {}) for el in raw_elements(a.raw, "lines_way") + raw_elements(a.raw, "cables_way")}
+    units = []
+    for el in raw_elements(a.raw, "transformers"):
+        t = el.get("tags", {})
+        if el["type"] == "node":
+            lat, lon = el["lat"], el["lon"]
+        else:
+            g = el.get("geometry") or []
+            if not g:
+                continue
+            lat, lon = np.mean([p["lat"] for p in g]), np.mean([p["lon"] for p in g])
+        mva = None
+        m = re.search(r"([\d.,]+)\s*(MVA|kVA)?", t.get("rating", ""))
+        if m:
+            mva = float(m.group(1).replace(",", ".")) / (1000 if m.group(2) == "kVA" else 1)
+        volts = sorted({level(int(v) / 1000) for v in re.findall(r"\d{5,6}", t.get("voltage", ""))}, reverse=True)
+        if len(volts) >= 2:
+            units.append({"lat": lat, "lon": lon, "hv": volts[0], "lv": volts[-1], "mva": mva})
+
+    prsp = set()
+    if a.prsp and os.path.exists(a.prsp):
+        for s0, s1, kv in json.load(open(a.prsp, encoding="utf-8")):
+            prsp.add((frozenset((fold(s0), fold(s1))), int(kv)))
+
+    # PSE's own station names (the queue page's stations, placed on OSM): by OSM id, else within 1.5 km
+    q = json.load(open(os.path.join(ROOT, "data", "queue.json"), encoding="utf-8"))["stations"]
+    pse_by_osm = {s["osm_id"]: n for n, s in q.items() if s.get("osm_id")}
+    pse_pos = [(n, s["lat"], s["lon"]) for n, s in q.items() if s.get("lat") is not None]
+
+    def name_of(bid, lat=None, lon=None, kv=None):
+        osm = bid.rsplit("-", 1)[0]
+        if osm in pse_by_osm:
+            return pse_by_osm[osm]
+        if kv and kv >= 220 and lat is not None:
+            n, la, lo = min(pse_pos, key=lambda p: km(lat, lon, p[1], p[2]))
+            if km(lat, lon, la, lo) < 1.5:
+                return n
+        return clean_name(sub_name.get(osm, "")) or None
+
+    buses = {}
+    for bid, r in pb.iterrows():
+        buses[bid] = {"id": bid, "name": name_of(bid, float(r.y), float(r.x), level(r.voltage)), "kv": level(r.voltage), "lat": round(float(r.y), 5),
+                      "lon": round(float(r.x), 5), "country": "PL", "boundary": False,
+                      "virtual": bid.startswith("virtual")}
 
     branches = []
-    sel = lines[lines.bus0.isin(ids) | lines.bus1.isin(ids)]
-    for r in sel.itertuples():
-        b0, b1 = end(r.bus0), end(r.bus1)
-        if b0 is None or b1 is None or b0 == b1:
+
+    def line_class(kv, tags_list):
+        bundles = [WIRES.get(str(way_tags.get(t, {}).get("wires", "")).lower()) for t in tags_list]
+        bundles = [b for b in bundles if b]
+        bundle = collections.Counter(bundles).most_common(1)[0][0] if bundles else DEFAULT_BUNDLE[kv]
+        key = (kv, bundle) if (kv, bundle) in CLASSES else (kv, DEFAULT_BUNDLE[kv])
+        return key, bool(bundles)
+
+    for r in pl_.itertuples():
+        if r.bus0 not in ids or r.bus1 not in ids or r.bus0 == r.bus1:
             continue
         kv = level(r.voltage)
-        t = LINE_TYPES[kv]
-        length = r.length / 1000.0
-        circuits = int(r.circuits)
-        x_ohm = t["x_ohm_km"] * max(length, 0.5) / circuits
-        branches.append({"id": r.line_id, "kind": "line", "bus0": b0, "bus1": b1, "kv": kv, "length_km": round(length, 2),
-                         "circuits": circuits, "x_pu": x_ohm / (kv ** 2 / BASE_MVA), "s_nom": t["s_mva"] * circuits,
-                         "tie": b0.startswith("X_") or b1.startswith("X_"), "osm": r.tags})
-    for r in trafos[trafos.bus0.isin(ids) & trafos.bus1.isin(ids)].itertuples():
-        if level(r.voltage_bus0) == level(r.voltage_bus1):
+        tags = [t for t in re.split(r"[;,]", str(r.tags)) if t.startswith("way/")]
+        key, tagged = line_class(kv, tags)
+        c = CLASSES[key]
+        n = max(1, int(r.circuits))
+        length = float(r.length) / 1000.0
+        branches.append({"id": r.line_id, "kind": "line", "bus0": r.bus0, "bus1": r.bus1, "kv": kv, "country": "PL",
+                         "length_km": round(length, 2), "circuits": n,
+                         "x_pu": c["x"] * max(length, 0.3) / n / (kv ** 2 / BASE_MVA) * (a.x110 if kv == 110 else 1.0),
+                         "s_nom": c["s"] * n,
+                         "conductor": c["label"], "bundle_tagged": tagged, "t_design": T_DESIGN,
+                         "underground": str(r.underground) == "t", "tie": False, "osm": ";".join(tags),
+                         "geom": geom(r.geometry, kv)})
+    # transformers: units from OSM's power=transformer within 400 m of the substation
+    for r in pt.itertuples():
+        if r.bus0 not in ids or r.bus1 not in ids:
             continue
-        s = min(max(float(r.s_nom), TRAFO_S_MVA[0]), TRAFO_S_MVA[1])
-        branches.append({"id": r.transformer_id, "kind": "trafo", "bus0": r.bus0, "bus1": r.bus1, "kv": 400, "length_km": 0,
-                         "circuits": 1, "x_pu": TRAFO_X_PU * BASE_MVA / s, "s_nom": s, "tie": False, "osm": ""})
-    # SwePol: the Polish converter end of the HVDC link becomes the boundary node's connection.
-    converters = read(os.path.join(a.osm, "converters.csv"))
-    ac_of = {}
-    for r in converters.itertuples():
-        ac_of[r.bus0] = r.bus1
-    hvdc = []
-    for r in links.itertuples():
-        for here, there in ((r.bus0, r.bus1), (r.bus1, r.bus0)):
-            if country.get(here) == "PL" and country.get(there) in NEIGHBOURS:
-                hvdc.append({"id": r.link_id, "pl_dc_bus": here, "pl_ac_bus": ac_of.get(here),
-                             "neighbour": f"X_{country.get(there)}", "p_nom": float(r.p_nom)})
+        hv, lv = sorted((level(r.voltage_bus0), level(r.voltage_bus1)), reverse=True)
+        if hv == lv:
+            continue
+        b0 = buses[r.bus0]
+        near = [u for u in units if u["hv"] == hv and u["lv"] == lv and km(b0["lat"], b0["lon"], u["lat"], u["lon"]) < 0.4]
+        default = TRAFO_UNIT.get((hv, lv), 300.0)
+        if near:
+            mvas = [u["mva"] or default for u in near]
+            how = f"{len(near)} OSM unit(s)" + ("" if all(u["mva"] for u in near) else ", untagged ones at default")
+        else:
+            mvas = [default] * TRAFO_UNITS_DEFAULT
+            how = "default units"
+        s = float(sum(mvas))
+        branches.append({"id": r.transformer_id, "kind": "trafo", "bus0": r.bus0, "bus1": r.bus1, "kv": hv, "lv": lv,
+                         "country": "PL", "length_km": 0, "circuits": 1, "x_pu": TRAFO_X_PU * BASE_MVA / s, "s_nom": s,
+                         "units": len(mvas), "rating_source": how, "tie": False, "osm": ""})
 
-    # Largest connected component (OSM leaves a few islands: plant switchyards with a missing line, etc.).
+    # ---------------------------------------------------------------- neighbours (0.7) and ties
+    ob = built(read(os.path.join(a.osm, "buses.csv")))
+    ol = built(read(os.path.join(a.osm, "lines.csv")))
+    ot = read(os.path.join(a.osm, "transformers.csv"))
+    ok = read(os.path.join(a.osm, "links.csv"))
+    oc = read(os.path.join(a.osm, "converters.csv"))
+    ctry = ob.set_index("bus_id")["country"]
+    ext = ob[ob.country.isin(EXTERNAL) & (ob.dc == "f")].set_index("bus_id")
+    ext_ids = set(ext.index)
+    for bid, r in ext.iterrows():
+        buses[bid] = {"id": bid, "name": None, "kv": level(r.voltage), "lat": round(float(r.y), 5), "lon": round(float(r.x), 5),
+                      "country": r.country, "boundary": False, "virtual": bid.startswith("virtual")}
+    pl_by_level = collections.defaultdict(list)
+    for b in buses.values():
+        if b["country"] == "PL":
+            pl_by_level[b["kv"]].append(b)
+
+    def to_pl(old_bus):
+        """A 0.7 Polish bus -> the nearest bus of the same voltage in the 2025 build."""
+        r = ob.set_index("bus_id").loc[old_bus]
+        kv = level(r.voltage)
+        cand = min(pl_by_level[kv], key=lambda b: km(float(r.y), float(r.x), b["lat"], b["lon"]))
+        d = km(float(r.y), float(r.x), cand["lat"], cand["lon"])
+        return cand["id"] if d < 3.0 else None
+
+    ties_skipped = []
+    for r in ol.itertuples():
+        c0, c1 = ctry.get(r.bus0), ctry.get(r.bus1)
+        if c0 in EXTERNAL and c1 in EXTERNAL:
+            b0, b1, tie = r.bus0, r.bus1, False
+        elif "PL" in (c0, c1) and ({c0, c1} - {"PL"}) & (set(EXTERNAL) | BOUNDARY):
+            other = c1 if c0 == "PL" else c0
+            pl_old = r.bus0 if c0 == "PL" else r.bus1
+            pl_new = to_pl(pl_old)
+            if pl_new is None:
+                ties_skipped.append(r.line_id)
+                continue
+            far = (r.bus1 if c0 == "PL" else r.bus0) if other in EXTERNAL else f"X_{other}"
+            b0, b1, tie = pl_new, far, True
+        else:
+            continue
+        if b0 == b1:
+            continue
+        kv = level(r.voltage)
+        n = max(1, int(r.circuits))
+        length = float(r.length) / 1000.0
+        if tie:
+            c = CLASSES[(kv, DEFAULT_BUNDLE[kv])]
+            x_pu, s_nom, label = c["x"] * length / n / (kv ** 2 / BASE_MVA), c["s"] * n, c["label"]
+        else:
+            x_pu, s_nom, label = float(r.x) / (r.voltage ** 2 / BASE_MVA), float(r.s_nom), str(r.type)
+        branches.append({"id": r.line_id, "kind": "line", "bus0": b0, "bus1": b1, "kv": kv,
+                         "country": "PL" if tie else (c0 if c0 == c1 else f"{c0}-{c1}"), "length_km": round(length, 2),
+                         "circuits": n, "x_pu": x_pu, "s_nom": s_nom, "conductor": label, "t_design": T_DESIGN,
+                         "geom": geom(r.geometry, kv) if tie else None,
+                         "tie": tie, "osm": r.tags})
+    for r in ot.itertuples():
+        if r.bus0 in ext_ids and r.bus1 in ext_ids and level(r.voltage_bus0) != level(r.voltage_bus1):
+            s = min(max(float(r.s_nom), 500.0), 2000.0)
+            branches.append({"id": r.transformer_id, "kind": "trafo", "bus0": r.bus0, "bus1": r.bus1, "kv": 400, "lv": 220,
+                             "country": ctry.get(r.bus0), "length_km": 0, "circuits": 1, "x_pu": TRAFO_X_PU * BASE_MVA / s,
+                             "s_nom": s, "tie": False, "osm": ""})
+    for x in {b["bus1"] for b in branches if str(b["bus1"]).startswith("X_")}:
+        buses[x] = {"id": x, "name": {"UA": "Ukraine", "BY": "Belarus", "SE": "Sweden"}.get(x[2:], x[2:]) + " (boundary)", "kv": 0, "lat": None, "lon": None, "country": x[2:],
+                    "boundary": True, "virtual": False}
+    # SwePol: the AC bus of the Polish converter
+    ac_of = dict(zip(oc.bus0, oc.bus1))
+    hvdc = []
+    for r in ok.itertuples():
+        for here, there in ((r.bus0, r.bus1), (r.bus1, r.bus0)):
+            if ctry.get(here) == "PL" and ctry.get(there) in BOUNDARY | {"SE"}:
+                ac = to_pl(ac_of[here]) if here in ac_of else None
+                hvdc.append({"id": r.link_id, "pl_ac_bus": ac, "neighbour": f"X_{ctry.get(there)}", "p_nom": float(r.p_nom)})
+
+    # A tie whose foreign end is a dead end (OSM's split point at the border with nothing behind it, as at
+    # Krajnik-Vierraden) goes to the nearest foreign substation of that voltage within 2 km that is connected.
+    deg = collections.Counter()
+    for b in branches:
+        if not b["tie"]:
+            deg[b["bus0"]] += 1
+            deg[b["bus1"]] += 1
+    reattached = []
+    for b in branches:
+        if not b["tie"]:
+            continue
+        side = "bus1" if b["bus1"] in ext_ids else "bus0" if b["bus0"] in ext_ids else None
+        if side is None or deg[b[side]] > 0:
+            continue
+        f = buses[b[side]]
+        cand = [x for x in buses.values() if x["country"] == f["country"] and x["kv"] == f["kv"] and deg[x["id"]] > 0]
+        if not cand:
+            continue
+        best = min(cand, key=lambda x: km(f["lat"], f["lon"], x["lat"], x["lon"]))
+        if km(f["lat"], f["lon"], best["lat"], best["lon"]) < 2.0:
+            reattached.append((b["id"], b[side], best["id"]))
+            b[side] = best["id"]
+
+    # ---------------------------------------------------------------- the connected grid around Poland
     g = nx.MultiGraph()
     for b in branches:
         g.add_edge(b["bus0"], b["bus1"])
-    main_cc = max(nx.connected_components(g), key=len)
-    dropped = sorted(set(g.nodes) - main_cc)
+    start = next(b["id"] for b in buses.values() if b["country"] == "PL" and b["kv"] == 400)
+    main_cc = nx.node_connected_component(g, start)
+    dropped = collections.Counter(buses[n]["country"] for n in set(g.nodes) - main_cc if n in buses)
     branches = [b for b in branches if b["bus0"] in main_cc]
-
-    # Series reduction: OSM's virtual buses (tee points, line splits) with exactly two lines of one voltage
-    # and nothing else are pass-through points; the two lines become one (reactances add, the rating is the lower).
     keep = {h["pl_ac_bus"] for h in hvdc}
+
+    def join_geom(p, q, node):
+        """Geometry of two lines merged at `node`, in the order of the merged branch."""
+        if not p.get("geom") or not q.get("geom"):
+            return p.get("geom") or q.get("geom")
+        b = buses[node]
+        def near_end(g):  # orient g so that it ends at the node
+            d0 = km(b["lat"], b["lon"], g[0][1], g[0][0])
+            d1 = km(b["lat"], b["lon"], g[-1][1], g[-1][0])
+            return g[::-1] if d0 < d1 else g
+        gp = near_end(p["geom"])
+        gq = near_end(q["geom"])[::-1]
+        return gp + gq[1:]
+
+    # series reduction of pass-through virtual buses
     while True:
-        deg = {}
+        deg = collections.defaultdict(list)
         for i, b in enumerate(branches):
-            for e in (b["bus0"], b["bus1"]):
-                deg.setdefault(e, []).append(i)
+            deg[b["bus0"]].append(i)
+            deg[b["bus1"]].append(i)
         node = next((n for n, ix in deg.items() if n.startswith("virtual") and n not in keep and len(ix) == 2
                      and all(branches[i]["kind"] == "line" for i in ix)
                      and branches[ix[0]]["kv"] == branches[ix[1]]["kv"]
+                     and branches[ix[0]]["circuits"] == branches[ix[1]]["circuits"]
                      and {branches[ix[0]]["bus0"], branches[ix[0]]["bus1"]} != {branches[ix[1]]["bus0"], branches[ix[1]]["bus1"]}), None)
         if node is None:
             break
@@ -158,59 +373,62 @@ def main():
         a0 = p["bus1"] if p["bus0"] == node else p["bus0"]
         a1 = q["bus1"] if q["bus0"] == node else q["bus0"]
         merged = dict(p, id=p["id"] + "|" + q["id"], bus0=a0, bus1=a1, length_km=round(p["length_km"] + q["length_km"], 2),
-                      circuits=min(p["circuits"], q["circuits"]), x_pu=p["x_pu"] + q["x_pu"], s_nom=min(p["s_nom"], q["s_nom"]),
-                      tie=p["tie"] or q["tie"], osm=f"{p['osm']};{q['osm']}")
+                      x_pu=p["x_pu"] + q["x_pu"], s_nom=min(p["s_nom"], q["s_nom"]), tie=p["tie"] or q["tie"],
+                      osm=f"{p['osm']};{q['osm']}", geom=join_geom(p, q, node), bundle_tagged=p.get("bundle_tagged", False) or q.get("bundle_tagged", False))
         branches = [b for k, b in enumerate(branches) if k not in (i, j)] + [merged]
         main_cc.discard(node)
 
-    by_osm, stations, ehv = names(a.work)
-    out_buses = []
-    for bid in sorted(main_cc):
-        if bid.startswith("X_"):
-            out_buses.append({"id": bid, "name": f"Boundary {bid[2:]}", "code": bid, "kv": 0, "lat": None, "lon": None,
-                              "feeds110": False, "boundary": True})
-            continue
-        r = pl.loc[bid]
-        osm = bid.rsplit("-", 1)[0]
-        lat, lon = float(r.y), float(r.x)
-        hit = by_osm.get(osm)
-        name, code, feeds = None, "", None
-        if hit:
-            name, code, feeds = clean_name(hit["name"]), hit["code"], "110" in hit["kv"]
-        else:
-            near = min(stations, key=lambda s: km(lat, lon, s[1]["lat"], s[1]["lon"]))
-            if km(lat, lon, near[1]["lat"], near[1]["lon"]) < 1.5:
-                name, code, feeds = clean_name(near[0]), near[1].get("code", ""), "110" in near[1].get("kv", "")
-        if name is None and ehv:
-            p = min(ehv, key=lambda p: km(lat, lon, p[1], p[2]))
-            if km(lat, lon, p[1], p[2]) < 1.5:
-                name, feeds = clean_name(p[0]), "110000" in str(p[3])
-        if name is None:
-            name = f"{'Tee' if osm.startswith('virtual') else 'Node'} {lat:.3f},{lon:.3f}"
-            feeds = False
-        out_buses.append({"id": bid, "name": name, "code": code, "kv": level(int(r.voltage)), "lat": round(lat, 5),
-                          "lon": round(lon, 5), "feeds110": bool(feeds), "boundary": False})
-    # Tee points take the name of the nearest named substation ("Byczyna tee").
-    named = [b for b in out_buses if not b["boundary"] and not b["name"].startswith(("Tee ", "Node "))]
+    out_buses = [buses[n] for n in sorted(main_cc) if n in buses]
+    # names: own substation name, else "<nearest named> tee" for virtual points
+    named = [b for b in out_buses if b["name"] and b["country"] == "PL"]
     for b in out_buses:
-        if b["name"].startswith(("Tee ", "Node ")) and named:
-            n = min(named, key=lambda c: km(b["lat"], b["lon"], c["lat"], c["lon"]))
-            b["name"] = f"{n['name']} tee" if km(b["lat"], b["lon"], n["lat"], n["lon"]) < 25 else b["name"]
+        if b["name"] or b["boundary"]:
+            continue
+        if b["country"] != "PL":
+            fn = min(FOREIGN_NAMES, key=lambda x: km(b["lat"], b["lon"], x[1], x[2]))
+            b["name"] = (f"{fn[0]} ({b['country']})" if km(b["lat"], b["lon"], fn[1], fn[2]) < 6
+                         else f"{b['country']} {b['kv']} kV {b['lat']:.2f},{b['lon']:.2f}")
+            continue
+        n = min(named, key=lambda c: km(b["lat"], b["lon"], c["lat"], c["lon"]))
+        d = km(b["lat"], b["lon"], n["lat"], n["lon"])
+        if b["virtual"]:
+            b["name"] = f"{n['name']} tee" if d < 15 else f"Node {b['lat']:.3f},{b['lon']:.3f}"
+        else:
+            b["name"] = f"Substation near {n['name']}" if d < 15 else f"Substation {b['lat']:.3f},{b['lon']:.3f}"
+    lowest = 110 if any(b["country"] == "PL" and b["kv"] == 110 for b in out_buses) else 220  # 220: a test without 110 kV
+    for b in out_buses:
+        b["load"] = b["country"] == "PL" and b["kv"] <= max(lowest, 110) + (180 if lowest == 220 else 0) and not b["virtual"] and not b["boundary"]
     bname = {b["id"]: b["name"] for b in out_buses}
+    # thermally limited lines: PSE's plan upgrades them (matched by end names and voltage)
+    limited = 0
     for b in branches:
-        n0, n1 = bname[b["bus0"]], bname[b["bus1"]]
-        b["name"] = f"{n0} – {n1} {b['kv']} kV" if b["kind"] == "line" else f"{n0} {'400/220'} kV transformer"
+        if b["kind"] == "line" and b["country"] == "PL" and b["kv"] >= 220:
+            ends = frozenset((fold(re.sub(r" tee$", "", bname[b["bus0"]])).split(" ")[0],
+                              fold(re.sub(r" tee$", "", bname[b["bus1"]])).split(" ")[0]))
+            if any(len(ends) == 2 and kv == b["kv"] and all(any(e.startswith(p.split(" ")[0]) for p in key) for e in ends)
+                   for key, kv in prsp):
+                b["t_design"] = T_LIMITED
+                b["s_nom"] *= math.sqrt((T_LIMITED - T_REF) / (T_DESIGN - T_REF))
+                b["prsp_upgrade"] = True
+                limited += 1
+        b["name"] = (f"{bname[b['bus0']]} – {bname[b['bus1']]} {b['kv']} kV" if b["kind"] == "line"
+                     else f"{bname[b['bus0']]} {b['kv']}/{b.get('lv', '')} kV transformer")
+        b["monitored"] = b["country"] == "PL" and b["kv"] >= 220 and (b["kind"] == "line" or b.get("lv") == 220)
 
+    out = {"source": "OpenStreetMap contributors (ODbL): raw OSM at 2025-07-01 for Poland via PyPSA-Eur's OSM pipeline; "
+                     "PyPSA-Eur's prebuilt OSM network 0.7 for DE, CZ, SK, LT",
+           "base_mva": BASE_MVA, "classes": {f"{k[0]}|{k[1]}": v for k, v in CLASSES.items()},
+           "t_ref": T_REF, "t_design": T_DESIGN, "t_limited": T_LIMITED,
+           "buses": out_buses, "branches": branches, "hvdc": hvdc, "ties_skipped": ties_skipped, "ties_reattached": reattached,
+           "dropped_islands": dict(dropped)}
     os.makedirs(os.path.join(a.work, "out"), exist_ok=True)
-    out = {"source": "OpenStreetMap contributors (ODbL), via PyPSA-Eur's prebuilt OSM network 0.7",
-           "base_mva": BASE_MVA, "line_types": LINE_TYPES, "trafo_x_pu": TRAFO_X_PU,
-           "buses": out_buses, "branches": branches, "hvdc": hvdc, "dropped_islands": dropped}
-    json.dump(out, open(os.path.join(a.work, "out", "network.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=0)
-    nl = sum(b["kind"] == "line" for b in branches)
-    print(f"{len(out_buses)} buses, {nl} lines ({sum(b['tie'] for b in branches)} ties), "
-          f"{len(branches) - nl} transformers, {len(hvdc)} HVDC; dropped {len(dropped)} island buses")
-    print("unnamed:", sum(b["name"].startswith(("Tee", "Node")) for b in out_buses),
-          "feeding 110 kV:", sum(b["feeds110"] for b in out_buses))
+    json.dump(out, open(os.path.join(a.work, "out", "network.json"), "w", encoding="utf-8"), ensure_ascii=False)
+    pl_lines = [b for b in branches if b["kind"] == "line" and b["country"] == "PL"]
+    print(f"{len(out_buses)} buses ({sum(b['country'] == 'PL' for b in out_buses)} in Poland), {len(branches)} branches; "
+          f"PL lines by kV {collections.Counter(b['kv'] for b in pl_lines)}, ties {sum(b['tie'] for b in branches)}, "
+          f"bundle tagged {sum(b.get('bundle_tagged', False) for b in pl_lines)}, plan-limited {limited}, "
+          f"transformers PL {sum(b['kind'] == 'trafo' and b['country'] == 'PL' for b in branches)}; "
+          f"ties skipped {len(ties_skipped)}; dropped islands {dict(dropped)}")
 
 
 if __name__ == "__main__":

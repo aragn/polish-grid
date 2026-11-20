@@ -2,13 +2,14 @@
 "What if" screening: add a plant at one substation and see how the year's N-0
 and N-1 loading changes on the lines it affects.
 
-    python etl/congestion/whatif.py --work D:/Power/pl-congestion --bus "Mokre" --tech solar --mw 100 200 400
-    python etl/congestion/whatif.py --work D:/Power/pl-congestion --bus "Dunowo" --tech battery --mw 100 --hours 2
+    python etl/congestion/whatif.py --work W --bus "Mokre" --tech solar --mw 100 300
+    python etl/congestion/whatif.py --work W --bus "Dunowo" --tech battery --mw 100 --hours 2
 
-  --bus     a substation name (or code, or bus id) from network.json; with two
-            voltages the 400 kV bus is taken unless --kv 220
-  --tech    solar | wind  hourly profile from the 2025 weather cell of the
-                          substation (atlite capacity factor, as in inputs.py)
+  --bus     a substation name (or bus id) from network.json; with several
+            voltages the highest is taken unless --kv is given
+  --tech    solar | wind  hourly profile from the substation's weather cell
+                          (atlite capacity factor scaled so the 2025 fleet's
+                          modelled energy equals PSE's; inputs.py k_wind/k_solar)
             battery       daily arbitrage on Poland's day-ahead price: charges in
                           the --hours cheapest hours of every Polish day and
                           discharges in the --hours dearest (losses ignored)
@@ -16,13 +17,11 @@ and N-1 loading changes on the lines it affects.
 
 Every MW the new plant produces displaces the JWCD thermal units in proportion
 to their output that hour (when none run, the load takes it); battery
-charging is supplied the same way.  This is a screening rule, not a market
-model: the real redispatch depends on prices and on where the displaced
-units are.
+charging is supplied the same way.  Border flows and the neighbours stay as
+measured.  The year is screened again with the same outages, ratings and
+contingencies as flows.py.
 
-Prints and writes <work>/out/whatif_<bus>_<tech>.json: for every size, the
-branches whose N-1 hours above 100% grow, with the contingency, the change in
-hours and the worst loading.
+Prints and writes W/out/whatif_<bus>_<tech>.json.
 """
 
 import argparse
@@ -39,23 +38,36 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 from core import Model  # noqa: E402
-from flows import branch_label  # noqa: E402
+from flows import branch_label, outage_groups, screen_year  # noqa: E402
 
 NOT_THERMAL = ("Hydro", "Solar", "wind", "Wind")
 
 
-def find_bus(m, key, kv):
+def find_bus(m, key, kv=None):
     key_f = key.strip().lower()
-    hits = [i for i, b in enumerate(m.buses) if not b["boundary"] and
-            (b["id"] == key or (b["code"] or "").lower() == key_f or b["name"].lower() == key_f)]
+    pl = [i for i, b in enumerate(m.buses) if b["country"] == "PL" and not b["boundary"] and not b.get("virtual")]
+    hits = [i for i in pl if m.buses[i]["id"] == key or (m.buses[i]["name"] or "").lower() == key_f]
     if not hits:
-        hits = [i for i, b in enumerate(m.buses) if not b["boundary"] and key_f in b["name"].lower()]
+        hits = [i for i in pl if key_f in (m.buses[i]["name"] or "").lower()]
     if not hits:
         raise SystemExit(f"no substation matches {key!r}")
     if kv:
         hits = [i for i in hits if m.buses[i]["kv"] == kv] or hits
-    hits.sort(key=lambda i: (-m.buses[i]["kv"], m.buses[i]["id"].startswith("virtual")))
+    hits.sort(key=lambda i: -m.buses[i]["kv"])
     return hits[0]
+
+
+def prices(year, hours):
+    price = pd.Series(np.nan, index=hours)
+    for month in range(1, 13):
+        path = os.path.join(ROOT, "data", "prices", "PL", f"{year}-{month:02d}.json")
+        if not os.path.exists(path):
+            continue
+        d = json.load(open(path, encoding="utf-8"))
+        idx = pd.to_datetime(d["start"] + np.arange(len(d["v"])) * d["step"], unit="ms", utc=True)
+        s = pd.Series(d["v"], index=idx, dtype="float64").resample("h").mean()  # 15-minute prices since October 2025
+        price.update(s[s.index.isin(hours)])
+    return price.interpolate(limit_direction="both")
 
 
 def profile(work, m, bus, tech, hours, duration, year, scale=1.0):
@@ -65,19 +77,8 @@ def profile(work, m, bus, tech, hours, duration, year, scale=1.0):
         w = np.load(os.path.join(work, "cache", "weather_pl.npz"))
         cell = int(np.argmin((w["y"] - b["lat"]) ** 2 + ((w["x"] - b["lon"]) * math.cos(math.radians(b["lat"]))) ** 2))
         t = pd.to_datetime(w["time"], unit="s", utc=True)
-        # scaled so the existing fleet's modelled energy matches PSE's (inputs.py, k_wind / k_solar)
         return np.clip(w[tech][pd.Index(t).get_indexer(hours), cell].astype("float64") * scale, 0, 1)
-    price = pd.Series(np.nan, index=hours)
-    for month in range(1, 13):
-        path = os.path.join(ROOT, "data", "prices", "PL", f"{year}-{month:02d}.json")
-        if not os.path.exists(path):
-            continue
-        d = json.load(open(path, encoding="utf-8"))
-        idx = pd.to_datetime(d["start"] + np.arange(len(d["v"])) * d["step"], unit="ms", utc=True)
-        s = pd.Series(d["v"], index=idx, dtype="float64")
-        s = s.resample("h").mean()  # 15-minute prices since October 2025
-        price.update(s[s.index.isin(hours)])
-    price = price.interpolate(limit_direction="both")
+    price = prices(year, hours)
     p = np.zeros(len(hours))
     local_day = hours.tz_convert("Europe/Warsaw").date
     for day in np.unique(local_day):
@@ -88,72 +89,141 @@ def profile(work, m, bus, tech, hours, duration, year, scale=1.0):
     return p
 
 
+class WhatIf:
+    """Everything one screening needs, loaded once (whatif runs many sizes and buses)."""
+
+    def __init__(self, work, year, outages=None):
+        self.work, self.year = work, year
+        self.m = Model(work)
+        self.inj = np.load(os.path.join(work, "out", f"injections_{year}.npz"))
+        base = np.load(os.path.join(work, "out", f"flows_{year}.npz"))
+        self.hours = pd.to_datetime(self.inj["hours"], unit="s", utc=True)
+        self.F0, self.n1_0, self.R = base["F"], base["n1"], base["R"]
+        self.groups, _ = outage_groups(self.m, outages, self.hours, self.inj["border"], list(self.inj["neighbours"]))
+        plants = json.load(open(os.path.join(ROOT, "output", "plants.json"), encoding="utf-8"))["plants"]
+        thermal = np.array([not any(w in plants.get(str(pl), {}).get("source", "") for w in NOT_THERMAL)
+                            for pl in self.inj["jwcd_plants"]])
+        out_units = np.clip(self.inj["jwcd_units"][:, thermal], 0, None).astype("float64")
+        self.sink_buses = np.unique(self.inj["jwcd_bus"][thermal])
+        sink = np.zeros((len(self.hours), len(self.sink_buses)))
+        for j, ub in enumerate(self.inj["jwcd_bus"][thermal]):
+            sink[:, np.searchsorted(self.sink_buses, ub)] += out_units[:, j]
+        tot = sink.sum(1, keepdims=True)
+        self.sink = sink / np.where(tot > 1, tot, 1)
+        self.no_thermal = tot[:, 0] <= 1
+        self.pop_share = self.inj["pop_share"]
+
+    def run(self, bus, p, mw, min_share=0.05):
+        m = self.m
+
+        def extra(tt, Pr):
+            # flow change per MW: PTDF of the bus less the PTDF of the sink, that hour
+            d = Pr[:, bus][None, :] - self.sink[tt] @ Pr[:, self.sink_buses].T
+            if self.no_thermal[tt].any():
+                d[self.no_thermal[tt]] = Pr[:, bus][None, :] - (self.pop_share @ Pr.T)[None, :]
+            self._sens = np.maximum(getattr(self, "_sens", 0), np.abs(d).max(0))
+            return d * (p[tt] * mw)[:, None]
+
+        # lines that carry min_share of the plant's output in some hour (base topology): only those are screened
+        Pr = m.state(frozenset())[0]
+        d = Pr[:, bus][None, :] - self.sink @ Pr[:, self.sink_buses].T
+        subset = np.where(np.abs(d).max(0) >= min_share)[0]
+        self._sens = np.zeros(len(m.rows))
+        inj = self.inj
+        F, n1, arg, _, _ = screen_year(m, inj["P"], inj["gsk"].astype("float64"), list(inj["neighbours"]),
+                                       inj["border"].astype("float64"), self.R, self.groups, extra=extra, subset=subset)
+        n1 = np.where(np.isin(np.arange(len(m.rows)), subset)[None, :], n1, self.n1_0)
+        n0, n0_base = np.abs(F) / self.R, np.abs(self.F0) / self.R
+        rows = []
+        for j, r in enumerate(m.rows):
+            if self._sens[j] < min_share:
+                continue
+            h0, h1 = int((self.n1_0[:, j] > 1).sum()), int((n1[:, j] > 1).sum())
+            d0 = int((n0[:, j] > 1).sum()) - int((n0_base[:, j] > 1).sum())
+            if h1 == h0 and d0 == 0 and abs(float(n1[:, j].max() - self.n1_0[:, j].max())) < 0.01:
+                continue
+            over = n1[:, j] > 1
+            cont = np.bincount(arg[over, j]).argmax() if over.any() else None
+            rows.append({"j": j, "name": branch_label(m, r), "kv": m.branches[r]["kv"], "kind": m.branches[r]["kind"],
+                         "n1_hours_before": h0, "n1_hours_after": h1, "n0_hours_change": d0,
+                         "n1_max_before": round(float(self.n1_0[:, j].max()), 3), "n1_max_after": round(float(n1[:, j].max()), 3),
+                         "contingency": branch_label(m, int(cont)) if cont is not None else None,
+                         "share_of_output_max": round(float(self._sens[j]), 3)})
+        rows.sort(key=lambda r: (-(r["n1_hours_after"] - r["n1_hours_before"]), -(r["n1_max_after"] - r["n1_max_before"])))
+        added = sum(max(0, r["n1_hours_after"] - r["n1_hours_before"]) for r in rows)
+        return {"mw": mw, "added_n1_overload_hours": added, "branches": rows}
+
+
+def batch(a):
+    """Every Polish 220/400 kV substation (highest voltage of each), 100 MW of each technology:
+    W/out/whatif_batch_<year>.json, written as it goes (a rerun resumes)."""
+    w = WhatIf(a.work, a.year, a.outages)
+    path = os.path.join(a.work, "out", f"whatif_batch_{a.year}.json")
+    done = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    seen, stations = set(), []
+    for i in sorted(range(len(w.m.buses)), key=lambda i: -w.m.buses[i]["kv"]):
+        b = w.m.buses[i]
+        if b["country"] != "PL" or b["kv"] < 220 or b.get("virtual") or not b["name"] or b["name"] in seen:
+            continue
+        seen.add(b["name"])
+        stations.append(i)
+    if a.limit:
+        stations = stations[:a.limit]
+    for n, bus in enumerate(stations):
+        b = w.m.buses[bus]
+        if b["id"] in done:
+            continue
+        entry = {"name": b["name"], "kv": b["kv"], "lat": b["lat"], "lon": b["lon"], "tech": {}}
+        for tech in ("solar", "wind", "battery"):
+            scale = float(w.inj[f"k_{tech}"]) if tech in ("solar", "wind") else 1.0
+            p = profile(a.work, w.m, bus, tech, w.hours, 2, a.year, scale)
+            r = w.run(bus, p, a.batch_mw, a.min_share)
+            entry["tech"][tech] = {"full_load_hours": round(float(np.clip(p, 0, None).sum())),
+                                   "added_n1_overload_hours": r["added_n1_overload_hours"], "branches": r["branches"][:8]}
+        done[b["id"]] = entry
+        json.dump(done, open(path, "w", encoding="utf-8"), ensure_ascii=False)
+        print(f"{n + 1}/{len(stations)} {b['name']} {b['kv']} kV: " +
+              ", ".join(f"{t} +{v['added_n1_overload_hours']} h" for t, v in entry["tech"].items()), flush=True)
+    print(path)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
-    ap.add_argument("--bus", required=True)
+    ap.add_argument("--batch", action="store_true", help="every 220/400 kV substation, --batch-mw of each technology")
+    ap.add_argument("--batch-mw", type=float, default=100.0)
+    ap.add_argument("--limit", type=int, help="batch: only the first N substations (a test)")
+    ap.add_argument("--bus")
     ap.add_argument("--kv", type=int)
-    ap.add_argument("--tech", choices=["solar", "wind", "battery"], required=True)
-    ap.add_argument("--mw", type=float, nargs="+", required=True)
+    ap.add_argument("--tech", choices=["solar", "wind", "battery"])
+    ap.add_argument("--mw", type=float, nargs="+")
     ap.add_argument("--hours", type=int, default=2, help="battery: hours of charging and of discharging a day")
     ap.add_argument("--year", type=int, default=2025)
+    ap.add_argument("--outages", help="the outages JSON flows.py used")
     ap.add_argument("--top", type=int, default=12)
     ap.add_argument("--min-share", type=float, default=0.05,
                     help="list only branches that carry at least this share of the new plant's output in some hour")
     a = ap.parse_args()
-
-    m = Model(a.work)
-    inj = np.load(os.path.join(a.work, "out", f"injections_{a.year}.npz"))
-    base = np.load(os.path.join(a.work, "out", f"flows_{a.year}.npz"))
-    hours = pd.to_datetime(inj["hours"], unit="s", utc=True)
-    F0, n1_0 = base["F"].astype("float64"), base["n1"]
-    bus = find_bus(m, a.bus, a.kv)
-    scale = float(inj[f"k_{a.tech}"]) if a.tech in ("solar", "wind") else 1.0
-    p = profile(a.work, m, bus, a.tech, hours, a.hours, a.year, scale)
-
-    # The sink: JWCD thermal units in proportion to their output that hour, else the load.
-    plants = json.load(open(os.path.join(ROOT, "output", "plants.json"), encoding="utf-8"))["plants"]
-    thermal = np.array([not any(w in plants.get(str(pl), {}).get("source", "") for w in NOT_THERMAL) for pl in inj["jwcd_plants"]])
-    out_units = np.clip(inj["jwcd_units"][:, thermal], 0, None).astype("float64")  # [T, units]
-    ubus = inj["jwcd_bus"][thermal]
-    sink = np.zeros((len(hours), len(m.buses)))
-    for j, ub in enumerate(ubus):
-        sink[:, ub] += out_units[:, j]
-    tot = sink.sum(1, keepdims=True)
-    sink = np.where(tot > 1, sink / np.where(tot > 1, tot, 1), inj["pop_share"][None, :])
-    # Flow change per MW of the new plant, every hour: PTDF of the bus less the PTDF of the sink.
-    dF_per_mw = m.ptdf[:, bus][None, :] - sink @ m.ptdf.T  # [T, branch]
-
-    n0_base = np.abs(F0) / m.s
-    result = {"bus": m.buses[bus], "tech": a.tech, "battery_hours": a.hours if a.tech == "battery" else None,
+    if a.batch:
+        return batch(a)
+    if not (a.bus and a.tech and a.mw):
+        ap.error("--bus, --tech and --mw (or --batch)")
+    w = WhatIf(a.work, a.year, a.outages)
+    bus = find_bus(w.m, a.bus, a.kv)
+    scale = float(w.inj[f"k_{a.tech}"]) if a.tech in ("solar", "wind") else 1.0
+    p = profile(a.work, w.m, bus, a.tech, w.hours, a.hours, a.year, scale)
+    b = w.m.buses[bus]
+    result = {"bus": b, "tech": a.tech, "battery_hours": a.hours if a.tech == "battery" else None,
               "full_load_hours": round(float(np.clip(p, 0, None).sum()), 1), "min_share": a.min_share, "sizes": []}
-    print(f"{m.buses[bus]['name']} {m.buses[bus]['kv']} kV, {a.tech}: {result['full_load_hours']} full-load hours")
+    print(f"{b['name']} {b['kv']} kV, {a.tech}: {result['full_load_hours']} full-load hours")
     for mw in a.mw:
-        F = F0 + dF_per_mw * (p * mw)[:, None]
-        n1, arg = m.screen(F)
-        n0 = np.abs(F) / m.s
-        rows = []
-        for i, br in enumerate(m.branches):
-            h0, h1 = int((n1_0[:, i] > 1).sum()), int((n1[:, i] > 1).sum())
-            d0 = int((n0[:, i] > 1).sum()) - int((n0_base[:, i] > 1).sum())
-            sens = float(np.abs(dF_per_mw[:, i]).max())
-            if sens < a.min_share or (h1 == h0 and d0 == 0 and abs(float(n1[:, i].max() - n1_0[:, i].max())) < 0.01):
-                continue
-            over = n1[:, i] > 1
-            cont = np.bincount(arg[over, i], minlength=len(m.branches)).argmax() if over.any() else None
-            rows.append({"name": branch_label(m, i), "kv": br["kv"], "kind": br["kind"],
-                         "n1_hours_before": h0, "n1_hours_after": h1, "n0_hours_change": d0,
-                         "n1_max_before": round(float(n1_0[:, i].max()), 3), "n1_max_after": round(float(n1[:, i].max()), 3),
-                         "contingency": branch_label(m, int(cont)) if cont is not None else None,
-                         "share_of_output_max": round(sens, 3)})
-        rows.sort(key=lambda r: (-(r["n1_hours_after"] - r["n1_hours_before"]), -(r["n1_max_after"] - r["n1_max_before"])))
-        new_hours = sum(max(0, r["n1_hours_after"] - r["n1_hours_before"]) for r in rows)
-        result["sizes"].append({"mw": mw, "added_n1_overload_hours": new_hours, "branches": rows})
-        print(f"\n+{mw:g} MW: N-1 overload hours added on branches carrying {a.min_share:.0%}+ of its output: {new_hours}")
-        for r in rows[:a.top]:
-            print(f"  {r['n1_hours_before']:5d} -> {r['n1_hours_after']:5d} h  max {r['n1_max_before']:.2f} -> {r['n1_max_after']:.2f}"
-                  f"  {r['name']}  [{r['contingency']}]")
-    slug = re.sub(r"\W+", "_", m.buses[bus]["name"]).strip("_").lower()
+        r = w.run(bus, p, mw, a.min_share)
+        result["sizes"].append(r)
+        print(f"\n+{mw:g} MW: N-1 overload hours added on branches carrying {a.min_share:.0%}+ of its output: {r['added_n1_overload_hours']}")
+        for x in r["branches"][:a.top]:
+            print(f"  {x['n1_hours_before']:5d} -> {x['n1_hours_after']:5d} h  max {x['n1_max_before']:.2f} -> {x['n1_max_after']:.2f}"
+                  f"  {x['name']}  [{x['contingency']}]")
+    slug = re.sub(r"\W+", "_", b["name"]).strip("_").lower()
     path = os.path.join(a.work, "out", f"whatif_{slug}_{a.tech}.json")
     json.dump(result, open(path, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("\n" + path)

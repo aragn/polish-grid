@@ -39,9 +39,11 @@ def main():
     w = wind.transpose("time", "y", "x").values.reshape(len(wind.time), -1).astype("float32")
     s = solar.transpose("time", "y", "x").values.reshape(len(solar.time), -1).astype("float32")
     p = pop.transpose("y", "x").values.reshape(-1)
+    # 2 m air temperature (ERA5, kelvin in the cutout) for the lines' thermal ratings
+    temp = (cutout.data["temperature"].transpose("time", "y", "x").values.reshape(len(wind.time), -1) - 273.15).astype("float32")
     os.makedirs(os.path.join(a.work, "cache"), exist_ok=True)
     np.savez_compressed(os.path.join(a.work, "cache", "weather_pl.npz"), x=x.reshape(-1), y=y.reshape(-1),
-                        time=wind.time.values.astype("datetime64[s]").astype("int64"), wind=w, solar=s, pop=p)
+                        time=wind.time.values.astype("datetime64[s]").astype("int64"), wind=w, solar=s, pop=p, temp=temp)
     print(w.shape, float(w.mean()), float(s.mean()), float(np.nansum(p)))
 
 
