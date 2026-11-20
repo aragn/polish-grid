@@ -28,6 +28,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spl
 
+SHUNT = 1e-6
 PST_CORRIDORS = (("mikulowa", "DE"), ("krajnik", "DE"))
 
 
@@ -84,7 +85,7 @@ class Model:
         B = (C.T @ sp.diags(b) @ C).tocsc()
         k = self.keep
         # a negligible shunt keeps islands (a stub left when the PST corridors are taken out) solvable
-        lu = spl.splu((B[k][:, k] + sp.identity(len(k)) * 1e-6).tocsc())
+        lu = spl.splu((B[k][:, k] + sp.identity(len(k)) * SHUNT).tocsc())
         R = (sp.diags(b[self.rows]) @ C[self.rows]).toarray()  # [rows, nb]
         X = np.zeros((len(self.rows), self.nb))
         X[:, k] = lu.solve(np.ascontiguousarray(R[:, k].T)).T

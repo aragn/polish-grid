@@ -31,6 +31,28 @@ def base_name(name):
     return re.sub(r" \(circuit \d+/\d+\)$", "", name)
 
 
+def summary(v):
+    """A substation's what-if, lines only (the page leaves transformers out: their ratings are mostly a default)."""
+    lines = [x for x in v["branches"] if x.get("kind", "line") == "line"]
+    worst = max(lines, key=lambda x: x["n1_max_after"]) if lines else None
+    return {"full_load_hours": v["full_load_hours"],
+            "added_hours": sum(max(0, x["n1_hours_after"] - x["n1_hours_before"]) for x in lines),
+            "worst_after": worst["n1_max_after"] if worst else None,
+            "worst_line": base_name(worst["name"]) if worst else None,
+            "lines": dedupe(lines)[:5]}
+
+
+def dedupe(branches):
+    """One row per line (its worst circuit), in whatif.py's order."""
+    out = {}
+    for x in branches:
+        k = base_name(x["name"])
+        if k not in out or x["n1_hours_after"] - x["n1_hours_before"] > out[k]["after"] - out[k]["before"]:
+            out[k] = {"name": k, "before": x["n1_hours_before"], "after": x["n1_hours_after"], "max_before": x["n1_max_before"],
+                      "max_after": x["n1_max_after"], "outage": x["contingency"], "share": x["share_of_output_max"]}
+    return list(out.values())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
@@ -40,6 +62,8 @@ def main():
     net = json.load(open(os.path.join(out, "network.json"), encoding="utf-8"))
     scr = json.load(open(os.path.join(out, f"screening_{a.year}.json"), encoding="utf-8"))
     inj = json.load(open(os.path.join(out, f"injections_{a.year}.json"), encoding="utf-8"))
+    sens_path = os.path.join(out, f"sensitivity_{a.year}.json")
+    sens = json.load(open(sens_path, encoding="utf-8")) if os.path.exists(sens_path) else None
     batch_path = os.path.join(out, f"whatif_batch_{a.year}.json")
     batch = json.load(open(batch_path, encoding="utf-8")) if os.path.exists(batch_path) else {}
     geom = {b["id"]: b.get("geom") for b in net["branches"]}
@@ -67,18 +91,13 @@ def main():
     stations = []
     for bid, s in batch.items():
         stations.append({"name": s["name"], "kv": s["kv"], "lat": s["lat"], "lon": s["lon"],
-                         "tech": {t: {"full_load_hours": v["full_load_hours"], "added_hours": v["added_n1_overload_hours"],
-                                      "lines": [{"name": base_name(x["name"]), "before": x["n1_hours_before"],
-                                                 "after": x["n1_hours_after"], "max_before": x["n1_max_before"],
-                                                 "max_after": x["n1_max_after"], "outage": x["contingency"],
-                                                 "share": x["share_of_output_max"]} for x in v["branches"][:5]]}
-                                  for t, v in s["tech"].items()}})
+                         "tech": {t: summary(v) for t, v in s["tech"].items()}})
     stations.sort(key=lambda s: s["name"])
 
     res = {
         "year": a.year,
         "meta": {"monitored": len(lines), "contingencies": scr["contingencies"], "outage_hours": scr["outage_hours"],
-                 "outage_elements": scr["outages_matched"], "pst_mode": scr["pst_mode"],
+                 "outage_elements": scr["outages_matched"], "pst_mode": scr["pst_mode"], "sensitivity": sens,
                  "twh": inj["twh"], "weather_scale": inj["weather_scale"], "load_buses": inj["load_buses"],
                  "classes": net["classes"], "t_ref": net["t_ref"], "t_design": net["t_design"], "t_limited": net["t_limited"],
                  "sources": ["OpenStreetMap contributors (ODbL): Geofabrik extract of 1 January 2026 (Poland, 110 kV and up), "

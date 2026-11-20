@@ -1,12 +1,13 @@
 """
 Markdown tables of a screening run (public data only):
 
-    python etl/congestion/report.py --work D:/Power/pl-congestion --year 2025 > report.md
+    python etl/congestion/report.py --work W --year 2025 > report.md
 """
 
 import argparse
 import json
 import os
+import re
 
 SOLAR = range(10, 16)   # 10:00-15:59 Polish time
 EVENING = range(17, 22)  # 17:00-21:59
@@ -20,23 +21,24 @@ def main():
     a = ap.parse_args()
     s = json.load(open(os.path.join(a.work, "out", f"screening_{a.year}.json"), encoding="utf-8"))
     inj = json.load(open(os.path.join(a.work, "out", f"injections_{a.year}.json"), encoding="utf-8"))
-    rows = [r for r in s["rows"] if r["kind"] == "line"]
+    rows = [r for r in s["rows_detail"] if r["kind"] == "line"]
     print(f"## Screening {a.year}\n")
-    print(f"{s['branches']} branches (each circuit counted), {s['contingencies']} single-circuit and transformer "
-          f"contingencies, {s['bridges']} radial branches not screened as outages. Lines above 100% in N-0 at least once: "
-          f"{s['lines_n0_over']}; after a contingency: {s['lines_n1_over']}.\n")
+    print(f"{s['rows']} monitored branches (Polish 220/400 kV circuits, tie lines, 400/220 kV transformers), "
+          f"{s['contingencies']} single outages screened, phase shifters {s['pst_mode']}; {s['outage_topologies']} outage "
+          f"topologies from ENTSO-E over {s['outage_hours']} hours ({len(s['outages_matched'])} elements matched). "
+          f"Lines above 100% with nothing out at least once: {s['lines_n0_over']}; after an outage: {s['lines_n1_over']}.\n")
     t = inj["twh"]
     print(f"Energy in the year (TWh): demand {t['demand']}, JWCD units {t['jwcd']}, wind {t['wind']}, solar {t['solar']}, "
           f"other generation {t['other']}, net import {t['net_import_sections']} (PSE's balance: {t['net_import_swm']}). "
-          f"Balance closed on the load: mean {inj['mismatch_mw']['mean']} MW, mean absolute {inj['mismatch_mw']['mean_abs']} MW.\n")
-    print("| N-1 h > 100% | N-0 h > 100% | N-1 p95 | Line | Rating MVA | Main contingency (hours) | Solar hours | Evening peak |")
+          f"Balance closed on the load: mean {inj['mismatch_mw']['mean']} MW, mean absolute {inj['mismatch_mw']['mean_abs']} MW. "
+          f"Neighbours' mean net injection (MW): {s['neighbour_injection_mean_mw']}.\n")
+    print("| N-1 h > 100% | N-0 h > 100% | N-1 p95 | Line | Rating MVA (30 °C) | Main outage (hours) | Solar hours | Evening peak |")
     print("|---:|---:|---:|---|---:|---|---:|---:|")
-    seen = set()
-    n = 0
-    for r in sorted(rows, key=lambda r: -r["n1_hours"]):
-        if r["n1_hours"] == 0 or n >= a.top:
+    seen, n = set(), 0
+    for r in sorted(rows, key=lambda r: (-r["n1_hours"], -r["n1_p95"])):
+        if n >= a.top:
             break
-        key = r["name"].split(" (circuit")[0]
+        key = re.sub(r" \(circuit \d+/\d+\)$", "", r["name"])
         if key in seen:
             continue
         seen.add(key)
@@ -45,19 +47,21 @@ def main():
         sol = sum(r["n1_by_hour"][h] for h in SOLAR) / tot
         eve = sum(r["n1_by_hour"][h] for h in EVENING) / tot
         c = r["n1_contingencies"][0] if r["n1_contingencies"] else {"name": "", "hours": 0}
-        if r["n0_hours"] >= 0.9 * r["n1_hours"]:
+        if r["n1_hours"] and r["n0_hours"] >= 0.9 * r["n1_hours"]:
             c = {"name": "already above 100% with nothing out (N-0)", "hours": r["n0_hours"]}
-        print(f"| {r['n1_hours']} | {r['n0_hours']} | {r['n1_p95']:.2f} | {r['name']} | {r['s_nom']} | {c['name']} ({c['hours']}) "
-              f"| {sol:.0%} | {eve:.0%} |")
-    print("\nSolar hours are 10:00-16:00 and the evening peak 17:00-22:00, Polish time (6 and 5 of the 24 hours).\n")
+        print(f"| {r['n1_hours']} | {r['n0_hours']} | {r['n1_p95']:.2f} | {key}{' (plan)' if r['prsp_upgrade'] else ''} | {r['s_nom']} "
+              f"| {c['name']} ({c['hours']}) | {sol:.0%} | {eve:.0%} |")
+    print("\nSolar hours are 10:00-16:00 and the evening peak 17:00-22:00, Polish time. \"(plan)\": in PSE's modernisation plan, "
+          "rated for a 60 °C conductor.\n")
     print("## Borders\n")
-    print("Each neighbour's measured flow (PSE, przeplywy-mocy) is injected at its boundary node, so the border totals are "
-          "inputs; the model only splits them between the tie lines.\n")
-    print("| Boundary | Mean import MW | Tie line | Mean MW | Share |")
-    print("|---|---:|---|---:|---:|")
-    for x, b in sorted(s["border"].items()):
+    print("The neighbours' injections are solved every hour so that each border carries PSE's metered flow; the split "
+          "between a border's lines is the network's.\n")
+    print("| Border | Model MW | Measured MW | Max error MW | Line | Mean MW | Share |")
+    print("|---|---:|---:|---:|---|---:|---:|")
+    for c, b in sorted(s["border"].items()):
         for ln in b["lines"]:
-            print(f"| {x[2:]} | {b['mean_import_mw']} | {ln['name']} | {ln['mean_mw']} | {ln['share']:.2f} |")
+            print(f"| {c} | {b['model_mean_mw']} | {b['measured_mean_mw']} | {b['max_abs_error_mw']} | {ln['name']}{' (PST)' if ln['pst'] else ''} "
+                  f"| {ln['mean_mw']} | {ln['share']:.2f} |")
 
 
 if __name__ == "__main__":

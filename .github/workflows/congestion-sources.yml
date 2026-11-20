@@ -5,9 +5,6 @@ name: Congestion screening sources
 
 on:
   workflow_dispatch:
-  push:
-    branches: [congestion-public]
-    paths: [.github/workflows/congestion-sources.yml]
 
 jobs:
   sources:

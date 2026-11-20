@@ -99,7 +99,7 @@ class WhatIf:
         base = np.load(os.path.join(work, "out", f"flows_{year}.npz"))
         self.hours = pd.to_datetime(self.inj["hours"], unit="s", utc=True)
         self.F0, self.n1_0, self.R = base["F"], base["n1"], base["R"]
-        self.groups, _ = outage_groups(self.m, outages, self.hours)
+        self.groups, _ = outage_groups(self.m, outages, self.hours, self.inj["border"], list(self.inj["neighbours"]))
         plants = json.load(open(os.path.join(ROOT, "output", "plants.json"), encoding="utf-8"))["plants"]
         thermal = np.array([not any(w in plants.get(str(pl), {}).get("source", "") for w in NOT_THERMAL)
                             for pl in self.inj["jwcd_plants"]])
@@ -167,6 +167,8 @@ def batch(a):
             continue
         seen.add(b["name"])
         stations.append(i)
+    if a.limit:
+        stations = stations[:a.limit]
     for n, bus in enumerate(stations):
         b = w.m.buses[bus]
         if b["id"] in done:
@@ -190,6 +192,7 @@ def main():
     ap.add_argument("--work", required=True)
     ap.add_argument("--batch", action="store_true", help="every 220/400 kV substation, --batch-mw of each technology")
     ap.add_argument("--batch-mw", type=float, default=100.0)
+    ap.add_argument("--limit", type=int, help="batch: only the first N substations (a test)")
     ap.add_argument("--bus")
     ap.add_argument("--kv", type=int)
     ap.add_argument("--tech", choices=["solar", "wind", "battery"])

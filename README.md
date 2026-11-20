@@ -102,6 +102,8 @@ output/index.html             the unit output page (no build step, no stored dat
 output/plants.json            fuel, operator and place per PSE plant name
 grid/index.html               the grid capacity page
 data/grid_capacity.json       available connection capacity by group, 2026-2031 (etl/grid_capacity.py)
+etl/congestion/               the screening model behind the page's modelled line loading (its README)
+data/congestion/              the model's 2025 results the page draws (etl/congestion/export.py)
 archive/grid_capacity/        the operators' capacity PDFs and TAURON's map data
 land/index.html               the land page
 data/land/                    plots around the shortlisted substations (etl/land.py)
@@ -140,6 +142,16 @@ PSE's planned demand stations get the completion year of the investment that bui
 them in PSE's development plans (agreed PRSP 2025-2034 and the 2027-2036 draft),
 matched by hand in `etl/pse_new_stations.json`; the page fills them in once built by
 the chosen year and charts them by year.
+
+**Modelled line loading in 2025.** A second map on the page comes from
+`etl/congestion/`. That is a DC power-flow model of the 110-400 kV grid, built
+from OpenStreetMap with the neighbours' 220/400 kV grids, run for every hour of
+2025 with PSE's metered unit output, demand, wind, solar and border flows and
+ENTSO-E's outages. It shows how often each 220/400 kV line would have gone over
+its estimated rating after a single outage, and what 100 MW of solar, wind or a
+battery at each 220/400 kV substation would change. These are estimates from
+public data: no operator publishes ratings or internal flows. The method and the
+caveats are in `etl/congestion/README.md`.
 
 ENEA and Stoen ask for consent before their values are republished station by
 station, so they are left out. Groups are placed at their stations (TAURON's own

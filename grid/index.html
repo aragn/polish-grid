@@ -222,6 +222,47 @@
       </div>
     </section>
 
+    <section class="panel" id="cong-panel" hidden>
+      <div class="panel-head">
+        <div class="panel-title">Modelled line loading in 2025: where the grid is tight</div>
+        <div class="panel-sub" id="cong-sub"></div>
+      </div>
+      <div class="map-layout">
+        <div class="map-wrap">
+          <div id="cong-map" style="position:absolute;inset:0"></div>
+          <div class="legend" id="cong-legend"></div>
+          <div class="map-hint" id="cong-hint">Click a line for its hours and the outages behind them, a substation for what a new 100 MW plant there would do</div>
+        </div>
+        <aside class="map-side">
+          <div class="box">
+            <h3>Colour lines by</h3>
+            <div class="seg" id="cong-metric">
+              <button type="button" data-metric="n1" class="on" title="Hours in 2025 when the line would be above its rating after the worst single outage">Hours over 100% after an outage</button><button type="button" data-metric="p95" title="The line's loading after the worst outage, exceeded in 5% of the hours">Loading after an outage (95th pct)</button><button type="button" data-metric="n0" title="Hours above the rating with every element in service">Hours over 100%, nothing out</button>
+            </div>
+            <div class="count" id="cong-metric-note"></div>
+          </div>
+          <div class="box">
+            <h3>Hours of the day</h3>
+            <div class="seg" id="cong-hours">
+              <button type="button" data-hours="all" class="on">All</button><button type="button" data-hours="solar" title="10:00 to 16:00, Polish time">Solar hours</button><button type="button" data-hours="evening" title="17:00 to 22:00, Polish time">Evening peak</button><button type="button" data-hours="night" title="22:00 to 06:00, Polish time">Night</button>
+            </div>
+          </div>
+          <div class="box">
+            <h3>Substations: what 100 MW more would do</h3>
+            <div class="seg" id="cong-tech">
+              <button type="button" data-tech="none">Off</button><button type="button" data-tech="solar" class="on">Solar</button><button type="button" data-tech="wind">Wind</button><button type="button" data-tech="battery" title="A 100 MW, 2-hour battery charging in the cheapest and discharging in the dearest hours of each day">Battery</button>
+            </div>
+            <div class="count" id="cong-tech-note"></div>
+          </div>
+          <div class="box">
+            <h3 id="cong-rank-title">Lines most often over 100% after an outage</h3>
+            <div class="table-wrap"><table class="list" id="cong-rank"></table></div>
+          </div>
+        </aside>
+      </div>
+      <div class="curt-notes" id="cong-notes"></div>
+    </section>
+
     <section class="panel" id="new-panel">
       <div class="panel-head">
         <div class="row" style="justify-content:space-between">
@@ -745,6 +786,211 @@
 
   (function initTheme() { try { const s = localStorage.getItem("pg-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) { /* private mode */ } })();
   load().catch(e => { $("intro").textContent = `Could not load the data: ${e.message}`; console.error(e); });
+  </script>
+  <script>
+  "use strict";
+  /* Modelled line loading: data/congestion/screening_2025.json, built by etl/congestion/ (a DC power-flow
+     model of the grid from OpenStreetMap, run hour by hour through 2025 with PSE's metered data). */
+  const CONG = { metric: "n1", hours: "all", tech: "solar", data: null, chart: null, mini: [] };
+  const HOUR_SETS = { all: null, solar: [10, 11, 12, 13, 14, 15], evening: [17, 18, 19, 20, 21], night: [22, 23, 0, 1, 2, 3, 4, 5] };
+  const HOUR_LABEL = { all: "all hours", solar: "solar hours (10:00–16:00)", evening: "the evening peak (17:00–22:00)", night: "the night (22:00–06:00)" };
+  const TECH_NAME = { solar: "100 MW of solar", wind: "100 MW of wind", battery: "a 100 MW, 2-hour battery" };
+  // hours over 100%: 0, 1-49, 50-199, 200-499, 500-999, 1000+
+  const H_BUCKETS = [[0, "--c0", "None"], [1, "--cg1", "1–49 h"], [50, "--cg2", "50–199 h"], [200, "--cg3", "200–499 h"], [500, "--cg4", "500–999 h"], [1000, "--cg5", "1,000 h or more"]];
+  const P_BUCKETS = [[0, "--c0", "below 70%"], [0.7, "--cg1", "70–85%"], [0.85, "--cg2", "85–100%"], [1.0, "--cg3", "100–115%"], [1.15, "--cg4", "115–130%"], [1.3, "--cg5", "130% or more"]];
+  // substations: the worst loading after an outage on the lines a new plant there feeds (null: none moves noticeably)
+  const S_BUCKETS = [[0, "--c0", "below 70%, or no line moved"], ...P_BUCKETS.slice(1)];
+
+  function congStyle() {
+    const s = document.documentElement.style, dark = getComputedStyle(document.documentElement).colorScheme.includes("dark");
+    const pal = dark ? ["#5c4a1f", "#8a6a1c", "#c98500", "#e8642f", "#ff4d4d"] : ["#f3dfa6", "#eab84d", "#d98a00", "#d4552a", "#b3261e"];
+    pal.forEach((c, i) => s.setProperty(`--cg${i + 1}`, c));
+  }
+  function hoursOf(line) {
+    const set = HOUR_SETS[CONG.hours];
+    if (CONG.metric === "n0") return set ? null : line.n0_hours;
+    return set ? set.reduce((s, h) => s + line.by_hour[h], 0) : line.n1_hours;
+  }
+  function valueOfLine(line) { return CONG.metric === "p95" ? line.n1_p95 : hoursOf(line); }
+  function bucketOf(v, buckets) { let b = buckets[0]; for (const e of buckets) if (v != null && v >= e[0]) b = e; return (v == null || v <= 0) ? buckets[0] : b; }
+  function lineColor(line) { return cssVar(bucketOf(valueOfLine(line), CONG.metric === "p95" ? P_BUCKETS : H_BUCKETS)[1]); }
+  function stationValue(s) { const t = s.tech[CONG.tech]; return t ? t.worst_after : null; }
+
+  function congDraw(full) {
+    const d = CONG.data;
+    const lines = d.lines.filter(l => l.kind === "line" && l.geom && l.geom.length >= 2)
+      .map(l => ({ l, v: valueOfLine(l) })).sort((a, b) => (a.v || 0) - (b.v || 0));
+    const lineData = lines.map(({ l, v }) => ({ coords: l.geom, line: l,
+      lineStyle: { color: lineColor(l), width: (l.kv === 400 ? 2.2 : 1.5) + ((v || 0) > 0 ? 0.8 : 0), opacity: (v || 0) > 0 ? 0.95 : 0.55 } }));
+    const stations = CONG.tech === "none" ? [] : d.stations.map(s => {
+      const v = stationValue(s);
+      return { value: [s.lon, s.lat], name: s.name, st: s, symbol: "circle", symbolSize: s.kv === 400 ? 9 : 7,
+        itemStyle: { color: cssVar(bucketOf(v, S_BUCKETS)[1]), borderColor: cssVar("--panel"), borderWidth: 1 } };
+    });
+    const series = [
+      { id: "cong-lines", type: "lines", coordinateSystem: "geo", polyline: true, z: 2, data: lineData, emphasis: { lineStyle: { width: 4 } } },
+      { id: "cong-st", type: "scatter", coordinateSystem: "geo", z: 4, data: stations, emphasis: { scale: 1.5 } },
+    ];
+    if (!full) { CONG.chart.setOption({ series }, { replaceMerge: ["series"] }); }
+    else CONG.chart.setOption({
+      animation: false, backgroundColor: "transparent",
+      tooltip: { trigger: "item", confine: true, backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), borderWidth: 1,
+        textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;", formatter: congTooltip },
+      geo: { map: "poland", roam: true, scaleLimit: { min: 1, max: 8 }, aspectScale: 0.64, layoutCenter: ["50%", "50%"], layoutSize: "96%",
+        itemStyle: { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.9 },
+        emphasis: { disabled: true }, select: { disabled: true }, tooltip: { show: false }, label: { show: false } },
+      series
+    }, true);
+    const buckets = CONG.metric === "p95" ? P_BUCKETS : H_BUCKETS;
+    $("cong-legend").innerHTML = `<b style="color:var(--text)">${CONG.metric === "p95" ? "Loading after the worst outage" : "Hours over 100%"}</b>` +
+      buckets.map(b => `<div><i style="background:var(${b[1]});border-radius:2px;height:4px;width:16px"></i>${b[2]}</div>`).join("") +
+      (CONG.tech === "none" ? "" : `<b style="color:var(--text);display:block;margin-top:6px">With ${TECH_NAME[CONG.tech]}: worst loading<br>after an outage on its lines</b>` +
+        S_BUCKETS.map(b => `<div><i style="background:var(${b[1]})"></i>${b[2]}</div>`).join(""));
+    congRank();
+  }
+
+  function row2(label, value) { return `<div style="display:flex;gap:10px;margin-top:3px"><span style="color:${cssVar("--tooltip-muted")}">${esc(label)}</span><b style="margin-left:auto">${value}</b></div>`; }
+  function congTooltip(p) {
+    if (p.data && p.data.line) {
+      const l = p.data.line;
+      return `<div style="max-width:340px;white-space:normal"><b>${esc(l.name)}</b>` +
+        row2("Hours over 100% after an outage", fmtNum(l.n1_hours)) + row2("Hours over 100%, nothing out", fmtNum(l.n0_hours)) +
+        row2("Loading after an outage, 95th pct", `${Math.round(l.n1_p95 * 100)}%`) +
+        (l.outages.length && l.n1_hours ? row2("Mostly after", esc(l.outages[0].name)) : "") +
+        `<div style="color:${cssVar("--tooltip-muted")};margin-top:4px">Rating ${fmtNum(l.rating_mva)} MVA at 30 °C (${esc(l.conductor || "")}${l.plan_upgrade ? ", thermally limited: in PSE's modernisation plan" : ""})</div></div>`;
+    }
+    if (p.data && p.data.st) {
+      const s = p.data.st, t = s.tech[CONG.tech];
+      return `<div style="max-width:340px;white-space:normal"><b>${esc(s.name)}</b> <span style="color:${cssVar("--tooltip-muted")}">${s.kv} kV</span>` +
+        (t ? row2(`With ${TECH_NAME[CONG.tech]}: worst loading after an outage`, t.worst_after == null ? "–" : `${Math.round(t.worst_after * 100)}%`) +
+          (t.worst_line ? row2("On", esc(t.worst_line)) : "") + row2("Extra hours over 100%", fmtNum(t.added_hours)) : "") +
+        `<div style="color:${cssVar("--tooltip-muted")};margin-top:4px">Click for all three technologies</div></div>`;
+    }
+    return "";
+  }
+
+  function congRank() {
+    const d = CONG.data, set = HOUR_SETS[CONG.hours];
+    const rows = d.lines.filter(l => l.kind === "line").map(l => ({ l, v: valueOfLine(l) })).filter(x => (x.v || 0) > 0)
+      .sort((a, b) => b.v - a.v).slice(0, 40);
+    $("cong-rank-title").textContent = CONG.metric === "p95" ? "Lines most loaded after an outage" :
+      CONG.metric === "n0" ? "Lines over 100% with nothing out" : `Lines most often over 100% after an outage${set ? ", " + HOUR_LABEL[CONG.hours] : ""}`;
+    $("cong-rank").innerHTML = `<tr><th>Line</th><th class="num">${CONG.metric === "p95" ? "95th pct" : "Hours"}</th><th>Mostly after</th><th>By hour</th></tr>` +
+      (rows.length ? rows.map(({ l, v }, i) => {
+        const mx = Math.max(1, ...l.by_hour);
+        const bars = l.by_hour.map(h => `<span class="${h ? "" : "zero"}" style="height:${Math.max(2, Math.round(h / mx * 18))}px;background:var(--cg3)"></span>`).join("");
+        return `<tr data-line="${d.lines.indexOf(l)}"><td>${esc(l.name)}<div class="sub">${l.kv} kV${l.tie ? " · tie line" : ""}${l.plan_upgrade ? " · in PSE's modernisation plan" : ""}</div></td>` +
+          `<td class="num">${CONG.metric === "p95" ? Math.round(v * 100) + "%" : fmtNum(v)}</td><td>${esc((l.outages[0] || {}).name || "–")}</td><td><span class="bars" style="gap:1px">${bars.replace(/width:5px/g, "")}</span></td></tr>`;
+      }).join("") : `<tr><td colspan="4" style="color:var(--muted)">None</td></tr>`);
+  }
+
+  function miniChart(el, labels, values, color) {
+    const c = echarts.init(el); CONG.mini.push(c);
+    c.setOption({ animation: false, grid: { left: 36, right: 8, top: 10, bottom: 24 }, tooltip: { trigger: "axis" },
+      xAxis: { type: "category", data: labels, axisLabel: { color: cssVar("--muted"), fontSize: 10 }, axisLine: { lineStyle: { color: cssVar("--border") } } },
+      yAxis: { type: "value", minInterval: 1, axisLabel: { color: cssVar("--muted"), fontSize: 10 }, splitLine: { lineStyle: { color: cssVar("--border") } } },
+      series: [{ type: "bar", data: values, itemStyle: { color }, barMaxWidth: 18 }] });
+  }
+
+  function openLine(l) {
+    CONG.mini.forEach(c => c.dispose()); CONG.mini = [];
+    $("d-title").textContent = l.name;
+    $("d-sub").textContent = `${l.kv} kV ${l.kind === "line" ? "line" : "transformer"}${l.tie ? ", tie line" : ""}${l.pst ? " (phase-shifter controlled)" : ""} · modelled, 2025`;
+    $("d-body").innerHTML =
+      `<dl class="facts"><dt>Hours over 100% after an outage</dt><dd><b>${fmtNum(l.n1_hours)}</b> of 8,760</dd>` +
+      `<dt>Hours over 100%, nothing out</dt><dd>${fmtNum(l.n0_hours)}</dd>` +
+      `<dt>Loading after the worst outage</dt><dd>${Math.round(l.n1_p95 * 100)}% at the 95th percentile, ${Math.round(l.n1_max * 100)}% at most</dd>` +
+      (l.kind === "line"
+        ? `<dt>Rating</dt><dd>${fmtNum(l.rating_mva)} MVA at 30 °C air${l.circuits > 1 ? ` per circuit (${l.circuits} circuits)` : ""}; ${esc(l.conductor || "")}` +
+          `${l.plan_upgrade ? "; <b>in PSE's 2025–2034 modernisation plan</b>, so taken as built for a 60 °C conductor" : ", 80 °C conductor"}; scaled every hour with the air temperature</dd>` +
+          `<dt>Length</dt><dd>${l.length_km ? l.length_km.toFixed(0) + " km" : "–"}</dd></dl>`
+        : `<dt>Rating</dt><dd>${fmtNum(l.rating_mva)} MVA (${esc(l.rating_source || "")})</dd></dl>`) +
+      (l.n1_hours ? `<h4>The outages behind those hours</h4><table class="years"><tr><th>Outage (single circuit or transformer)</th><th>Hours</th></tr>` +
+        l.outages.map(o => `<tr><td>${esc(o.name)}</td><td>${fmtNum(o.hours)}</td></tr>`).join("") + `</table>` +
+        `<div class="curt-charts" style="padding:12px 0 0"><div class="curt-box"><div class="curt-title">By hour of the day</div><div class="curt-sub">Hours over 100% after an outage, Polish time</div><div id="cong-h" style="height:200px"></div></div>` +
+        `<div class="curt-box"><div class="curt-title">By month</div><div class="curt-sub">Hours over 100% after an outage</div><div id="cong-m" style="height:200px"></div></div></div>` : "") +
+      `<div class="callout" style="margin-top:14px">A screening model's estimate from public data, not PSE's: see “How the model works” below the map.</div>`;
+    $("detail").showModal();
+    if (l.n1_hours) {
+      miniChart($("cong-h"), [...Array(24).keys()].map(String), l.by_hour, cssVar("--cg3"));
+      miniChart($("cong-m"), MONTHS, l.by_month, cssVar("--cg3"));
+    }
+  }
+
+  function openStation(s) {
+    CONG.mini.forEach(c => c.dispose()); CONG.mini = [];
+    $("d-title").textContent = s.name;
+    $("d-sub").textContent = `${s.kv} kV substation · what a new 100 MW plant here would have done in 2025 (modelled)`;
+    const block = t => {
+      const v = s.tech[t];
+      if (!v) return "";
+      return `<h4>${TECH_NAME[t].replace(/^./, c => c.toUpperCase())}: ${fmtNum(v.added_hours)} more hours over 100% after an outage` +
+        `${t === "battery" ? "" : ` · ${fmtNum(v.full_load_hours)} full-load hours`}</h4>` +
+        (v.lines.length ? `<table class="years"><tr><th>Line</th><th>Hours before</th><th>Hours after</th><th>Worst loading</th><th>Share of the plant's output</th><th>Mostly after</th></tr>` +
+          v.lines.map(x => `<tr><td>${esc(x.name)}</td><td>${fmtNum(x.before)}</td><td>${fmtNum(x.after)}</td><td>${Math.round(x.max_before * 100)}% → ${Math.round(x.max_after * 100)}%</td>` +
+            `<td>${Math.round(x.share * 100)}%</td><td style="text-align:left">${esc(x.outage || "–")}</td></tr>`).join("") + `</table>`
+          : `<div style="color:var(--muted);font-size:13px">No line that carries 5% or more of its output gets more hours over 100%.</div>`);
+    };
+    $("d-body").innerHTML = block("solar") + block("wind") + block("battery") +
+      `<div class="callout" style="margin-top:14px">Each MW the new plant produces replaces output of PSE's centrally dispatched thermal units in proportion to what they produce that hour; ` +
+      `the battery charges in the two cheapest and discharges in the two dearest hours of each day on Poland's day-ahead price. Border flows stay as measured. ` +
+      `This is not a connection study: the operator's conditions decide.</div>`;
+    $("detail").showModal();
+  }
+
+  async function congLoad() {
+    try {
+      const r = await fetch("../data/congestion/screening_2025.json", { cache: "no-cache" });
+      if (!r.ok) return;
+      CONG.data = await r.json();
+    } catch (e) { return; }
+    const wait = () => new Promise(res => { const t = setInterval(() => { if (window.echarts && echarts.getMap && echarts.getMap("poland")) { clearInterval(t); res(); } }, 100); });
+    await wait();
+    congStyle();
+    $("cong-panel").hidden = false;
+    CONG.chart = echarts.init($("cong-map"), null, { renderer: "canvas" });
+    CONG.chart.on("click", p => { if (p.data && p.data.line) openLine(p.data.line); else if (p.data && p.data.st) openStation(p.data.st); });
+    const d = CONG.data, m = d.meta, lines = d.lines.filter(l => l.kind === "line");
+    const over = lines.filter(l => l.n1_hours > 0).length;
+    $("cong-sub").innerHTML = `A DC power-flow model of the 110–400 kV grid built from OpenStreetMap, run for each of the 8,760 hours of 2025 with PSE's metered unit output, demand, wind, solar and border flows. ` +
+      `<b>${over}</b> of ${lines.length} Polish 220/400 kV lines would have gone over their rating after at least one single outage at some hour; ` +
+      `the ${fmtNum(m.contingencies)} outages tested are every 220/400 kV circuit, tie line and 400/220 kV transformer. Estimates from public data, not the operator's.`;
+    const pick = (id, key, after) => $(id).addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; CONG[key] = b.dataset[key]; [...$(id).children].forEach(x => x.classList.toggle("on", x === b)); after(); });
+    pick("cong-metric", "metric", () => { congNotes(); congDraw(false); });
+    pick("cong-hours", "hours", () => { congNotes(); congDraw(false); });
+    pick("cong-tech", "tech", () => { congNotes(); congDraw(false); });
+    $("cong-rank").addEventListener("click", e => { const tr = e.target.closest("tr[data-line]"); if (tr) openLine(d.lines[+tr.dataset.line]); });
+    window.addEventListener("resize", () => CONG.chart && CONG.chart.resize());
+    $("theme").addEventListener("click", () => setTimeout(() => { congStyle(); congDraw(true); }, 0));
+    congNotes();
+    congDraw(true);
+  }
+
+  function congNotes() {
+    const d = CONG.data, m = d.meta;
+    $("cong-metric-note").textContent = CONG.metric === "n0" && CONG.hours !== "all" ? "The hour-of-day split is kept for the hours after an outage only." :
+      CONG.metric === "p95" ? "Loading after the worst single outage, exceeded in 5% of the hours of 2025." : "";
+    const st = d.stations.filter(s => s.tech[CONG.tech]);
+    $("cong-tech-note").innerHTML = CONG.tech === "none" ? "" :
+      `${st.length} 220/400 kV substations. The colour is the highest loading after an outage, in the worst hour of 2025, on the lines that carry 5% or more of the new plant's output; ` +
+      `<b>${st.filter(s => s.tech[CONG.tech].added_hours === 0).length}</b> of them would add no hours over 100%. Click one for the lines and hours.`;
+    const cls = m.classes;
+    $("cong-notes").innerHTML =
+      `<p><b>How the model works.</b> The grid is OpenStreetMap's (Geofabrik extract of 1 January 2026, 110 kV and up), with Germany's, the Czech Republic's, Slovakia's and Lithuania's 220/400 kV grids from PyPSA-Eur, so loop flows through the neighbours and outages abroad follow the network. ` +
+      `Each hour: PSE's metered output of every centrally dispatched unit at its substation; wind and solar split by URE's register of licensed installations and the weather; demand and the other generation by population, spread over the nearest 110 kV substations. ` +
+      `The neighbours' injections are set so that every Polish border carries PSE's metered flow. The phase shifters on the German border (Mikułowa, Vierraden) hold their flow when something else trips. ` +
+      `Disconnections ENTSO-E lists for the year are taken out of service: mostly the tie lines (the Krajnik – Vierraden circuits were out one at a time for most of 2025) and a few lines in the north; PSE publishes only the outages that affect cross-border capacity, so most internal ones are missing.</p>` +
+      `<p><b>Ratings.</b> No operator publishes line ratings, so each line gets a standard conductor from its voltage and OpenStreetMap's bundle tag (220 kV: ${esc(cls["220|1"].label)}, ${fmtNum(cls["220|1"].s)} MVA per circuit; 400 kV: ${esc(cls["400|2"].label)}, ${fmtNum(cls["400|2"].s)} MVA; triple bundles ${fmtNum(cls["400|3"].s)} MVA), at 30 °C air. ` +
+      `Lines PSE's development plan 2025–2034 modernises are taken as built for a ${m.t_limited} °C conductor, the rest ${m.t_design} °C, and every rating moves each hour with the air temperature at the line (ERA5). ` +
+      `Most of the lines the map flags are in that plan: partly a finding, partly the rule itself, since being in the plan lowers a line's modelled rating. ` +
+      `Transformers are screened too but left off the map: OpenStreetMap tags the units of only a few stations, so their ratings are mostly a default.</p>` +
+      `<p><b>The main uncertainty.</b> The 110 kV grid runs in parallel with the 220/400 kV lines and takes part of their flow. The model keeps it closed, as PSE coordinates it; the distribution operators' open points are not public. ` +
+      (m.sensitivity ? `With a 110 kV grid half or a quarter as stiff, more lines would go over 100% after an outage: ${m.sensitivity.x110["2"]} or ${m.sensitivity.x110["4"]} instead of ${m.sensitivity.x110["1"]}. Read the map as a ranking of where the grid is tight more than as a count.` : "") + `</p>` +
+      `<p><b>What it leaves out.</b> Busbar splits and switching PSE uses to relieve lines, outages ENTSO-E does not list, redispatch (the measured dispatch already includes it), reactive power and losses. ` +
+      `A line over 100% here is a line under pressure, not one that was overloaded: PSE keeps flows within limits by switching and redispatch. Treat the map as a screen for where to look, not as a connection study.</p>` +
+      `<p>Sources: ${m.sources.map(esc).join("; ")}. Code: <a href="https://github.com/aragn/polish-grid/tree/main/etl/congestion" target="_blank" rel="noopener">etl/congestion</a>.</p>`;
+  }
+  congLoad();
   </script>
 </body>
 </html>

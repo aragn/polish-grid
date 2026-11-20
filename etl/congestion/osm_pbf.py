@@ -94,6 +94,8 @@ def main():
         for m in r["members"]:
             if m["type"] == "way" and m["ref"] in ways.geom:
                 m["geometry"] = ways.geom[m["ref"]]
+        # PyPSA-Eur builds a line from every member: keep the ways whose geometry is in the extract
+        r["members"] = [m for m in r["members"] if "geometry" in m]
         pts = [g for m in r["members"] for g in m.get("geometry", [])]
         if pts:
             r["bounds"] = {"minlat": min(g["lat"] for g in pts), "minlon": min(g["lon"] for g in pts),

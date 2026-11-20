@@ -61,6 +61,10 @@ WIRES = {"single": 1, "double": 2, "triple": 3, "quad": 4, "quadruple": 4}
 TRAFO_UNIT = {(400, 220): 500.0, (400, 110): 330.0, (220, 110): 160.0}  # MVA per unit when OSM has no rating
 TRAFO_UNITS_DEFAULT = 2
 TRAFO_X_PU = 0.12
+# The neighbours' substations at the far end of the tie lines (the prebuilt network has no names)
+FOREIGN_NAMES = [("Vierraden", 53.098, 14.269), ("Hagenwerder", 51.060, 14.950), ("Nošovice", 49.670, 18.430),
+                 ("Dětmarovice", 49.900, 18.470), ("Albrechtice", 49.790, 18.520), ("Liskovec", 49.710, 18.320),
+                 ("Lemešany", 48.860, 21.260), ("Alytus", 54.440, 23.970)]
 
 
 def read(path):
@@ -85,7 +89,7 @@ def km(lat1, lon1, lat2, lon2):
 def clean_name(s):
     s = str(s or "")
     s = re.sub(r"(?i)\b(stacja|rozdzielnia|elektroenergetyczna|transformatorowa|GPZ|RPZ|SE|PSE|GSZ|RS)\b\.?", " ", s)
-    s = re.sub(r"\b\d{2,3}(/\d{2,3})*\s*kV\b", "", s)
+    s = re.sub(r"\b\d{1,3}(/\d{1,3})*\s*kV\b", "", s)
     s = s.replace('"', "").replace("„", "").replace("”", "")
     return re.sub(r"\s+", " ", s).strip(" -,")
 
@@ -111,6 +115,9 @@ def main():
     ap.add_argument("--raw", required=True)
     ap.add_argument("--osm", required=True)
     ap.add_argument("--prsp", help="JSON list of [station A, station B, kV] that PSE's plan upgrades")
+    ap.add_argument("--x110", type=float, default=1.0,
+                    help="multiplier on 110 kV reactances: the distribution operators run the 110 kV grid with open points, "
+                         "which OSM does not show, so it is a weaker parallel path than its lines suggest")
     a = ap.parse_args()
 
     # ---------------------------------------------------------------- Poland
@@ -118,7 +125,18 @@ def main():
     pl_ = read(os.path.join(a.pl, "lines.csv"))
     pt = read(os.path.join(a.pl, "transformers.csv"))
     pk = read(os.path.join(a.pl, "links.csv")) if os.path.exists(os.path.join(a.pl, "links.csv")) else pd.DataFrame()
+    # nothing under construction: the model is the grid in service
+    built = lambda df: df[df["under_construction"].astype(str) != "t"] if "under_construction" in df.columns else df
+    pb, pl_ = built(pb), built(pl_)
     pb = pb[(pb.country == "PL") & (pb.dc == "f") & (pb.voltage >= 100)].set_index("bus_id")
+    # Geofabrik's extract reaches over the border (Dětmarovice, Hagenwerder, Lemešany...): only buses on Polish
+    # territory, so the Polish build never shares a bus with the neighbours' network but at the tie lines.
+    from shapely.geometry import Point, shape
+    from shapely.ops import unary_union
+    geo = json.load(open(os.path.join(ROOT, "geo", "poland_voivodeships.json"), encoding="utf-8"))
+    poland = unary_union([shape(f["geometry"]).buffer(0) for f in geo["features"]]).buffer(0.003)
+    inside = np.array([poland.contains(Point(x, y)) for x, y in zip(pb.x, pb.y)])
+    pb = pb[inside]
     ids = set(pb.index)
 
     # raw OSM: names of substations, tags of line ways, transformer units
@@ -191,7 +209,8 @@ def main():
         length = float(r.length) / 1000.0
         branches.append({"id": r.line_id, "kind": "line", "bus0": r.bus0, "bus1": r.bus1, "kv": kv, "country": "PL",
                          "length_km": round(length, 2), "circuits": n,
-                         "x_pu": c["x"] * max(length, 0.3) / n / (kv ** 2 / BASE_MVA), "s_nom": c["s"] * n,
+                         "x_pu": c["x"] * max(length, 0.3) / n / (kv ** 2 / BASE_MVA) * (a.x110 if kv == 110 else 1.0),
+                         "s_nom": c["s"] * n,
                          "conductor": c["label"], "bundle_tagged": tagged, "t_design": T_DESIGN,
                          "underground": str(r.underground) == "t", "tie": False, "osm": ";".join(tags),
                          "geom": geom(r.geometry, kv)})
@@ -217,8 +236,8 @@ def main():
                          "units": len(mvas), "rating_source": how, "tie": False, "osm": ""})
 
     # ---------------------------------------------------------------- neighbours (0.7) and ties
-    ob = read(os.path.join(a.osm, "buses.csv"))
-    ol = read(os.path.join(a.osm, "lines.csv"))
+    ob = built(read(os.path.join(a.osm, "buses.csv")))
+    ol = built(read(os.path.join(a.osm, "lines.csv")))
     ot = read(os.path.join(a.osm, "transformers.csv"))
     ok = read(os.path.join(a.osm, "links.csv"))
     oc = read(os.path.join(a.osm, "converters.csv"))
@@ -279,7 +298,7 @@ def main():
                              "country": ctry.get(r.bus0), "length_km": 0, "circuits": 1, "x_pu": TRAFO_X_PU * BASE_MVA / s,
                              "s_nom": s, "tie": False, "osm": ""})
     for x in {b["bus1"] for b in branches if str(b["bus1"]).startswith("X_")}:
-        buses[x] = {"id": x, "name": f"Boundary {x[2:]}", "kv": 0, "lat": None, "lon": None, "country": x[2:],
+        buses[x] = {"id": x, "name": {"UA": "Ukraine", "BY": "Belarus", "SE": "Sweden"}.get(x[2:], x[2:]) + " (boundary)", "kv": 0, "lat": None, "lon": None, "country": x[2:],
                     "boundary": True, "virtual": False}
     # SwePol: the AC bus of the Polish converter
     ac_of = dict(zip(oc.bus0, oc.bus1))
@@ -289,6 +308,29 @@ def main():
             if ctry.get(here) == "PL" and ctry.get(there) in BOUNDARY | {"SE"}:
                 ac = to_pl(ac_of[here]) if here in ac_of else None
                 hvdc.append({"id": r.link_id, "pl_ac_bus": ac, "neighbour": f"X_{ctry.get(there)}", "p_nom": float(r.p_nom)})
+
+    # A tie whose foreign end is a dead end (OSM's split point at the border with nothing behind it, as at
+    # Krajnik-Vierraden) goes to the nearest foreign substation of that voltage within 2 km that is connected.
+    deg = collections.Counter()
+    for b in branches:
+        if not b["tie"]:
+            deg[b["bus0"]] += 1
+            deg[b["bus1"]] += 1
+    reattached = []
+    for b in branches:
+        if not b["tie"]:
+            continue
+        side = "bus1" if b["bus1"] in ext_ids else "bus0" if b["bus0"] in ext_ids else None
+        if side is None or deg[b[side]] > 0:
+            continue
+        f = buses[b[side]]
+        cand = [x for x in buses.values() if x["country"] == f["country"] and x["kv"] == f["kv"] and deg[x["id"]] > 0]
+        if not cand:
+            continue
+        best = min(cand, key=lambda x: km(f["lat"], f["lon"], x["lat"], x["lon"]))
+        if km(f["lat"], f["lon"], best["lat"], best["lon"]) < 2.0:
+            reattached.append((b["id"], b[side], best["id"]))
+            b[side] = best["id"]
 
     # ---------------------------------------------------------------- the connected grid around Poland
     g = nx.MultiGraph()
@@ -343,7 +385,9 @@ def main():
         if b["name"] or b["boundary"]:
             continue
         if b["country"] != "PL":
-            b["name"] = f"{b['country']} {b['kv']} kV {b['lat']:.2f},{b['lon']:.2f}"
+            fn = min(FOREIGN_NAMES, key=lambda x: km(b["lat"], b["lon"], x[1], x[2]))
+            b["name"] = (f"{fn[0]} ({b['country']})" if km(b["lat"], b["lon"], fn[1], fn[2]) < 6
+                         else f"{b['country']} {b['kv']} kV {b['lat']:.2f},{b['lon']:.2f}")
             continue
         n = min(named, key=lambda c: km(b["lat"], b["lon"], c["lat"], c["lon"]))
         d = km(b["lat"], b["lon"], n["lat"], n["lon"])
@@ -375,7 +419,7 @@ def main():
                      "PyPSA-Eur's prebuilt OSM network 0.7 for DE, CZ, SK, LT",
            "base_mva": BASE_MVA, "classes": {f"{k[0]}|{k[1]}": v for k, v in CLASSES.items()},
            "t_ref": T_REF, "t_design": T_DESIGN, "t_limited": T_LIMITED,
-           "buses": out_buses, "branches": branches, "hvdc": hvdc, "ties_skipped": ties_skipped,
+           "buses": out_buses, "branches": branches, "hvdc": hvdc, "ties_skipped": ties_skipped, "ties_reattached": reattached,
            "dropped_islands": dict(dropped)}
     os.makedirs(os.path.join(a.work, "out"), exist_ok=True)
     json.dump(out, open(os.path.join(a.work, "out", "network.json"), "w", encoding="utf-8"), ensure_ascii=False)

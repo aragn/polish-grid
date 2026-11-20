@@ -9,9 +9,6 @@ on:
       year:
         description: "year to fetch"
         default: "2025"
-  push:
-    branches: [congestion-public]
-    paths: [etl/congestion/fetch_outages.py, .github/workflows/congestion-outages.yml]
 
 permissions:
   contents: write

@@ -95,6 +95,10 @@ def match_outages(m, path, hours):
     report = collections.Counter()
     h0 = hours[0]
     for o in rows:
+        # a disconnection only: ENTSO-E also lists limits, where some capacity stays available
+        if o.get("available_max") is not None and o["available_max"] > 0:
+            report[("limit, not applied", o["assets"][0]["name"] if o["assets"] else "")] += 1
+            continue
         idx = []
         for a in o["assets"]:
             if a["type"] not in ("AC line", "transformer"):
@@ -125,11 +129,22 @@ def tie_rows(m):
     return out
 
 
-def outage_groups(m, path, hours):
+def outage_groups(m, path, hours, border=None, neigh=None):
+    """Hours grouped by the set of branches out.  A neighbour's last tie is never taken out while
+    PSE metered more than 50 MW across that border (the outage record and the meter disagree)."""
     outages, report = (match_outages(m, path, hours) if path else ({}, collections.Counter()))
+    by_country = collections.defaultdict(set)
+    for j, c, _ in tie_rows(m):
+        by_country[c].add(m.rows[j])
     groups = collections.defaultdict(list)
     for t in range(len(hours)):
-        groups[outages.get(t, frozenset())].append(t)
+        out = set(outages.get(t, frozenset()))
+        if border is not None:
+            for c, ties in by_country.items():
+                if c in neigh and ties <= out and abs(border[t, neigh.index(c)]) > 50:
+                    out -= ties
+                    report[("kept: border flow metered", c)] += 1
+        groups[frozenset(out)].append(t)
     return groups, report
 
 
@@ -209,7 +224,7 @@ def main():
     border = inj["border"].astype("float64")
     R = m.ratings(a.work, hours)
 
-    groups, oreport = outage_groups(m, a.outages, hours)
+    groups, oreport = outage_groups(m, a.outages, hours, border, neigh)
 
     ties = tie_rows(m)
     F, n1, arg, U, applied_hours = screen_year(m, P, gsk, neigh, border, R, groups)

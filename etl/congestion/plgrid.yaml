@@ -1,0 +1,21 @@
+# Poland's grid from 110 kV up, built from OpenStreetMap (Geofabrik snapshot of 1 January 2026)
+# for the congestion screening model in aragn/polish-grid (etl/congestion/).
+# Only the OSM network rules are used:
+#   pixi run snakemake -c2 resources/plgrid/osm/build/lines.csv --configfile ../config/plgrid.yaml
+# Raw data: etl/congestion/osm_pbf.py (or osm_overpass.py) -> data/osm/build/unknown/PL/
+# Copy this file to the PyPSA-Eur workspace's config/ folder.
+run:
+  name: plgrid
+  shared_resources:
+    policy: false
+
+countries: [PL]
+
+electricity:
+  voltages: [110., 220., 380., 400., 450., 750.]
+  base_network: osm
+
+data:
+  osm:
+    source: build
+    version: latest
