@@ -100,6 +100,9 @@ etl/update.py                 the entry point
 geo/                          voivodeships, 220/400 kV lines
 output/index.html             the unit output page (no build step, no stored data)
 output/plants.json            fuel, operator and place per PSE plant name
+grid/index.html               the grid capacity page
+data/grid_capacity.json       available connection capacity by group, 2026-2031 (etl/grid_capacity.py)
+archive/grid_capacity/        the operators' capacity PDFs and TAURON's map data
 ```
 
 ## Unit output page
@@ -115,3 +118,25 @@ repeated hour as `02a:15`, `pdwkseub` repeats `02:15`). The fuel, operator and
 place in `output/plants.json` are plant-level labels from the TGE register and
 operators' pages; edit that file when PSE adds a plant (unmapped plants show as
 "Not mapped").
+
+## Grid capacity page
+
+`grid/` shows the available connection capacity ("wartość łącznej dostępnej mocy
+przyłączeniowej") each operator publishes under art. 7 ust. 8l of the Energy Law,
+with a five-year outlook since 30 April 2026. `etl/grid_capacity.py` reads:
+
+- TAURON: the JSON behind its map, every GPZ with coordinates, its group's 110 kV
+  value and its own medium-voltage value, 2026-2031. The API answers 429 after a few
+  hundred quick calls, so the script paces about 120 calls and reads it once a week
+  (`--force` reads it now). The map gives no date.
+- Energa: two PDFs (generation, demand), groups of 110 kV stations, 2026-2031 and 2035.
+- PGE: one PDF, groups of 110 kV stations, 2026-2031.
+- PSE: one PDF, 220/400 kV stations, 2026 and 2031, step 1 and step 2 (the published
+  one, 0 everywhere in 2026), and the demand capacity of PSE's planned stations.
+
+ENEA and Stoen ask for consent before their values are republished station by
+station, so they are left out. Groups are placed at their stations (TAURON's own
+coordinates; for the others the nearest OpenStreetMap substation or town of that
+name within 90 km of the group's other stations). Live queue projects are counted
+per group by TAURON's GPZ code or by station name: applications filed or under
+study are not yet in the operators' figures; conditions and agreements are.

@@ -20,6 +20,7 @@ sys.path.insert(0, HERE)
 import build  # noqa: E402
 import capacity_market  # noqa: E402
 import dso  # noqa: E402
+import grid_capacity  # noqa: E402
 import imagery  # noqa: E402
 import pse  # noqa: E402
 import running  # noqa: E402
@@ -52,13 +53,18 @@ def main():
         jwcd_changed = running.fetch_jwcd()
         cm_changed = capacity_market.main()   # URE's capacity-market results: only new notices are read
         sat_changed = saturation.main()       # PSE's switchyards with no free connection bays
+        try:                                  # the operators' available connection capacity, 2026-2031
+            gc_changed = grid_capacity.main()
+        except Exception as error:            # noqa: BLE001 -- must not stop the queue update
+            print(f"Grid capacity failed: {error}")
+            gc_changed = False
         try:                                  # orthophotos and Sentinel-2 passes of the known sites, weekly
             img_changed = imagery.main()
         except Exception as error:            # noqa: BLE001 -- images must not stop the queue update
             print(f"Imagery failed: {error}")
             img_changed = False
-        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed and not img_changed:
-            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market, the saturated switchyards or the site images.")
+        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed and not gc_changed and not img_changed:
+            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market, the saturated switchyards, the grid capacity or the site images.")
             return
     build.main()
 
