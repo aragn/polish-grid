@@ -182,3 +182,31 @@ location, and the market may export the extra output instead.
   about the model. Only the split between parallel ties is modelled.
 - **Reference flows.** A private comparison with the TSOs' published flow-based
   reference flows (not redistributable) is kept outside this repository.
+
+## Good enough for the Grid capacity tab?
+
+Not yet as a public layer of line congestion. The hot spots it ranks highest
+(Warsaw, Upper Silesia 220 kV) are partly artefacts of the missing 110 kV
+grid and of OSM's tee points. Its standard ratings make lines of one voltage
+look alike. With no grid beyond the border, an outage on one border cannot
+push flow onto another. A map of "hours above 100%" per line would look more
+precise than it is.
+
+Next steps, roughly in order of value:
+
+1. **110 kV grid** from the same Geofabrik extract `osm_pl.py` reads
+   (OSM maps it well in Poland), so city and Silesian load spreads as it
+   really does.
+2. **Neighbours' grids** (PyPSA-Eur's OSM network for DE, CZ, SK, with each
+   country's measured net position), so loop flows and outages abroad are
+   physical, plus the Mikułowa and Krajnik phase shifters as controllable
+   branches.
+3. **Line-specific ratings** from public sources (PSE's development plan and
+   investment descriptions, TYNDP project sheets, conductor tags in OSM),
+   instead of one type per voltage.
+4. **Planned outages** (ENTSO-E 10.1.A) for switching states.
+
+Once 1–3 are in, a cautious public layer is possible: per substation, the
+share of a new MW that lands on the 400 kV corridors the screen flags. That is
+a sensitivity map, and it is less sensitive to ratings than hours above 100%.
+The what-if script can stay a local tool.

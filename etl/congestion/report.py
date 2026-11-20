@@ -45,6 +45,8 @@ def main():
         sol = sum(r["n1_by_hour"][h] for h in SOLAR) / tot
         eve = sum(r["n1_by_hour"][h] for h in EVENING) / tot
         c = r["n1_contingencies"][0] if r["n1_contingencies"] else {"name": "", "hours": 0}
+        if r["n0_hours"] >= 0.9 * r["n1_hours"]:
+            c = {"name": "already above 100% with nothing out (N-0)", "hours": r["n0_hours"]}
         print(f"| {r['n1_hours']} | {r['n0_hours']} | {r['n1_p95']:.2f} | {r['name']} | {r['s_nom']} | {c['name']} ({c['hours']}) "
               f"| {sol:.0%} | {eve:.0%} |")
     print("\nSolar hours are 10:00-16:00 and the evening peak 17:00-22:00, Polish time (6 and 5 of the 24 hours).\n")
