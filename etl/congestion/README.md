@@ -164,8 +164,8 @@ The full year takes about 20 seconds; `whatif.py --batch` takes about
 an hour and a half for 123 substations × 3 technologies.
 
 **Results for 2025** (`report.py`). 21 of 328 lines (circuits of one line
-merged) go over 100% after an outage at least once, and a few with nothing
-out, all on the Czech border:
+merged) go over 100% after an outage at least once; a handful also do with
+nothing out, for a few hours each, mostly around the Czech border:
 
 - **The east.** Zamość – Ukraine 220 kV and Mokre – Zamość after the loss of
   the Rzeszów – Khmelnytskyi 400 kV tie (275 and 60 hours). Puławy –
