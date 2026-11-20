@@ -145,3 +145,9 @@ coordinates; for the others the nearest OpenStreetMap substation or town of that
 name within 90 km of the group's other stations). Live queue projects are counted
 per group by TAURON's GPZ code or by station name: applications filed or under
 study are not yet in the operators' figures; conditions and agreements are.
+
+The page also shows PSE's cuts of wind and solar output since 24 September 2024
+(`etl/curtailment.py`, API dataset `poze-redoze`): hourly MW split into balancing
+and network reasons, for the whole country. PSE revises past days, so the whole
+series is read every run. The share of output uses ENTSO-E solar and wind output
+from `data/generation/PL/`.
