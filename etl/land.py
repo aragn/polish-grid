@@ -45,6 +45,7 @@ MIN_ROOM_MW = 50
 RADIUS_KM = 3.0
 MIN_AREA_HA = 1.0
 REFRESH_DAYS = 90
+VERSION = 2              # bump to re-fetch everything (2: outlines simplified correctly)
 PAGE = 1000
 NS = {"gml": "http://www.opengis.net/gml/3.2"}
 PLACED = {"substation", "operator", "near"}
@@ -102,11 +103,13 @@ def ring_area(points):
 
 
 def simplify(points, tolerance):
-    """Douglas-Peucker on projected points; returns the indices kept."""
+    """Douglas-Peucker on projected points; returns the indices kept.  A closed ring (first point = last) is split
+    at the point farthest from its start, since a segment of zero length would keep nothing."""
     if len(points) < 4:
         return list(range(len(points)))
-    keep = {0, len(points) - 1}
-    stack = [(0, len(points) - 1)]
+    far = max(range(len(points)), key=lambda i: math.hypot(points[i][0] - points[0][0], points[i][1] - points[0][1]))
+    keep = {0, far, len(points) - 1}
+    stack = [(0, far), (far, len(points) - 1)]
     while stack:
         a, b = stack.pop()
         (x1, y1), (x2, y2) = points[a], points[b]
@@ -194,7 +197,7 @@ def main(budget_minutes=50, only=None):
             continue
         known = index["stations"].get(sid)
         moved = known and (abs(known["lat"] - station["lat"]) > 1e-4 or abs(known["lon"] - station["lon"]) > 1e-4)
-        stale = not known or not known.get("fetched") or (today - datetime.date.fromisoformat(known["fetched"])).days >= REFRESH_DAYS
+        stale = not known or known.get("v") != VERSION or not known.get("fetched") or (today - datetime.date.fromisoformat(known["fetched"])).days >= REFRESH_DAYS
         if stale or moved:
             todo.append(station)
     todo.sort(key=lambda s: -s["room"])      # the substations of the groups with the most room first
@@ -222,7 +225,7 @@ def main(budget_minutes=50, only=None):
             json.dump({"station": {k: station[k] for k in ("id", "name", "code", "op", "lat", "lon", "how", "groups")}, "radius_km": RADIUS_KM,
                        "min_ha": MIN_AREA_HA, "fetched": today.isoformat(), "plots_in_square": matched, "plots": plots},
                       open(os.path.join(OUT, f"{sid}.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-            index["stations"][sid] = {**{k: station[k] for k in ("name", "code", "op", "lat", "lon", "how", "groups")}, "fetched": today.isoformat(), "n": len(plots),
+            index["stations"][sid] = {**{k: station[k] for k in ("name", "code", "op", "lat", "lon", "how", "groups")}, "fetched": today.isoformat(), "v": VERSION, "n": len(plots),
                                       "big": sum(1 for p in plots if p["ha"] >= 5), "max_ha": max((p["ha"] for p in plots), default=0)}
             done += 1
             if done % 20 == 0:

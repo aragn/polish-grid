@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Polish Grid · Land</title>
+  <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 1 ha or more within 3 km, filtered by the size a solar farm or battery needs, on satellite imagery.">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
+      --hover:#1a1f25; --accent:#5b9cff; --plot:#ff3b30; --plot-dim:#ffd60a; --station:#5b9cff; --shadow:rgba(0,0,0,.55);
+      --c3:#2b915a;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        color-scheme: light;
+        --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+        --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a;
+      }
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
+      --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a;
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    html, body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:14px; }
+    a { color:var(--accent); }
+    button, input, select { font-family:inherit; }
+    .topbar { display:flex; align-items:center; gap:18px; padding:12px 24px; border-bottom:1px solid var(--border); background:var(--panel); position:sticky; top:0; z-index:1001; flex-wrap:wrap; }
+    .brand { font-weight:700; font-size:15px; letter-spacing:.2px; }
+    .brand span { color:var(--muted); font-weight:500; }
+    .nav { display:flex; gap:4px; flex-wrap:wrap; }
+    .nav a { color:var(--muted); text-decoration:none; padding:6px 10px; border-radius:7px; font-size:13px; white-space:nowrap; }
+    .nav a.active { color:var(--text); background:var(--hover); }
+    .theme { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--muted); border-radius:7px; padding:5px 10px; font-size:12px; cursor:pointer; }
+    main { max-width:1600px; margin:0 auto; padding:20px 24px 40px; }
+    .intro h1 { font-size:22px; margin:0 0 6px; font-weight:650; }
+    .intro p { margin:0; color:var(--muted); line-height:1.55; max-width:1100px; }
+    .layout { display:grid; grid-template-columns:380px minmax(0, 1fr); gap:16px; margin-top:16px; }
+    .side { display:flex; flex-direction:column; gap:12px; min-width:0; }
+    .box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+    .box h3 { margin:0 0 8px; font-size:12.5px; font-weight:650; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
+    .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .count { color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:6px; }
+    .count b { color:var(--text); }
+    .select, .input { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 8px; font-size:13px; }
+    .select { width:100%; }
+    .input { width:76px; }
+    .seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+    .seg button { border:0; background:var(--panel-2); color:var(--muted); padding:5px 11px; font-size:12.5px; cursor:pointer; }
+    .seg button.on { background:var(--hover); color:var(--text); font-weight:600; }
+    .chips { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
+    .chip { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:999px; padding:3px 9px; font-size:12px; cursor:pointer; }
+    .chip.on { border-color:var(--station); color:var(--station); font-weight:600; }
+    .chip small { color:var(--muted); }
+    .map-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; position:relative; min-height:720px; }
+    #map { position:absolute; inset:0; }
+    .list { max-height:430px; overflow:auto; border:1px solid var(--border); border-radius:10px; }
+    .plot { padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; font-size:12.5px; }
+    .plot:hover, .plot.on { background:var(--hover); }
+    .plot b { font-variant-numeric:tabular-nums; }
+    .plot .sub { color:var(--muted); font-size:11.5px; margin-top:2px; }
+    .card { display:grid; grid-template-columns:120px 1fr; gap:4px 10px; font-size:12.5px; margin:0; }
+    .card dt { color:var(--muted); }
+    .card dd { margin:0; line-height:1.45; word-break:break-word; }
+    .leaflet-container { background:#1b1f24; font-family:inherit; }
+    .leaflet-popup-content { font-size:12.5px; line-height:1.45; }
+    .legend-box { position:absolute; z-index:500; bottom:22px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:7px 10px; font-size:11.5px; color:var(--muted); }
+    .legend-box div { display:flex; align-items:center; gap:6px; margin-top:2px; }
+    .legend-box i { width:14px; height:10px; display:inline-block; border:2px solid; }
+    footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
+    @media (max-width: 1100px) { .layout { grid-template-columns:1fr; } .map-box { min-height:520px; } }
+    @media (max-width: 640px) { .topbar, main { padding-left:16px; padding-right:16px; } .nav { overflow-x:auto; flex-wrap:nowrap; min-width:0; } .map-box { min-height:420px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
+    <nav class="nav"><a href="../">Connection queue (PSE)</a><a href="../output/">Unit output (JWCD)</a><a href="../capacity/">Capacity market</a><a href="../grid/">Grid capacity</a><a class="active" href="./">Land</a></nav>
+    <button class="theme" type="button" id="theme">Theme</button>
+  </header>
+  <main>
+    <section class="intro">
+      <h1>Land near the substations with room</h1>
+      <p id="intro">Loading…</p>
+    </section>
+    <div class="layout">
+      <aside class="side">
+        <div class="box">
+          <h3>Group of substations</h3>
+          <select class="select" id="group" aria-label="Group of substations"></select>
+          <div class="count" id="group-note"></div>
+          <div class="chips" id="stations"></div>
+        </div>
+        <div class="box">
+          <h3>Project</h3>
+          <div class="seg" id="kind"><button type="button" data-kind="pv" class="on">Solar PV</button><button type="button" data-kind="bess">Battery</button></div>
+          <div class="row" style="margin-top:10px" id="pv-inputs"><input class="input" id="mwp" type="number" min="0" step="1" value="20"> MWp at <input class="input" id="haper" type="number" min="0.3" step="0.1" value="1.2"> ha per MWp</div>
+          <div class="row" style="margin-top:10px" id="bess-inputs" hidden><input class="input" id="mw" type="number" min="0" step="5" value="50"> MW / <input class="input" id="mwh" type="number" min="0" step="10" value="100"> MWh</div>
+          <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha on one plot</div>
+          <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2" class="on">2 km</button><button type="button" data-km="3">3 km</button></div> of a substation</div>
+          <div class="count" id="need-note"></div>
+        </div>
+        <div class="box">
+          <h3 id="list-title">Plots</h3>
+          <div class="row" style="margin-bottom:8px"><span class="count" style="margin:0">Sort by</span><div class="seg" id="sort"><button type="button" data-sort="km" class="on">Distance</button><button type="button" data-sort="ha">Area</button></div></div>
+          <div class="list" id="plots"></div>
+        </div>
+        <div class="box" id="card-box" hidden>
+          <h3 id="card-title">Plot</h3>
+          <dl class="card" id="card"></dl>
+        </div>
+      </aside>
+      <section class="map-box">
+        <div id="map"></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div></div>
+      </section>
+    </div>
+    <footer id="footer"></footer>
+  </main>
+
+  <script>
+  "use strict";
+  /* Polish Grid: land plots near the substations with room.  Data: data/land/index.json and
+     data/land/<station>.json (etl/land.py, from GUGiK's collective EGiB WFS), data/grid_capacity.json. */
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
+  const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null };
+  let index, capacity, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
+  const cache = {};
+
+  async function get(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); }
+
+  function needOf() {
+    if (state.kind === "pv") return Math.round((+$("mwp").value || 0) * (+$("haper").value || 0) * 10) / 10;
+    // A battery: about 2 ha per 100 MWh of containers and spacing, plus 0.5 ha for its substation and access.
+    return Math.round((0.5 + (+$("mwh").value || 0) * 0.02) * 10) / 10;
+  }
+
+  async function load() {
+    [index, capacity] = await Promise.all([get("../data/land/index.json"), get("../data/grid_capacity.json")]);
+    const groups = capacity.areas.filter(a => a.op !== "pse")
+      .map(a => ({ a, sts: Object.entries(index.stations).filter(([, s]) => s.groups.includes(a.id)) }))
+      .filter(g => g.sts.length)
+      .sort((x, y) => Math.max(y.a.gen["2030"] || 0, y.a.dem["2030"] || 0) - Math.max(x.a.gen["2030"] || 0, x.a.dem["2030"] || 0));
+    $("group").innerHTML = groups.map(({ a, sts }) => `<option value="${esc(a.id)}">${esc(a.name)} · ${OPS[a.op]} · 2030: ${Math.round(a.gen["2030"] || 0)} MW in, ${Math.round(a.dem["2030"] || 0)} MW out · ${sts.length} substations</option>`).join("");
+    const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
+    $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
+      `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +
+      `Pick a group, say what you want to build, and the plots big enough within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
+    map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([52.1, 19.4], 6);
+    const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" });
+    const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "" });
+    const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" });
+    const ortho = L.tileLayer.wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution", { layers: "Raster", format: "image/jpeg", maxZoom: 20, attribution: "Orthophoto © GUGiK" });
+    const parcels = L.tileLayer.wms("https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow", { layers: "dzialki,numery_dzialek", format: "image/png", transparent: true, maxZoom: 20, attribution: "EGiB © GUGiK" });
+    esri.addTo(map); labels.addTo(map);
+    L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
+      { "Place names": labels, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
+    ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map);
+    bind();
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const start = hash.get("group") && groups.some(g => g.a.id === hash.get("group")) ? hash.get("group") : groups[0]?.a.id;
+    if (start) { $("group").value = start; await selectGroup(start); }
+    $("need").value = needOf(); state.need = needOf(); render();
+    footer();
+  }
+
+  async function selectGroup(id) {
+    state.group = id; state.plot = null;
+    const area = capacity.areas.find(a => a.id === id);
+    stations = Object.entries(index.stations).filter(([, s]) => s.groups.includes(id)).map(([sid, s]) => ({ sid, ...s }));
+    state.station = null;
+    await Promise.all(stations.map(async s => { if (!cache[s.sid]) cache[s.sid] = await get(`../data/land/${encodeURIComponent(s.sid)}.json`).catch(() => ({ plots: [] })); }));
+    const seen = new Map();
+    for (const s of stations) for (const p of cache[s.sid].plots) {
+      const prev = seen.get(p.id);
+      if (!prev || p.km < prev.km) seen.set(p.id, { ...p, station: s.sid });
+    }
+    plots = [...seen.values()];
+    const missing = area.stations.filter(st => st.lat != null).length - stations.length;
+    $("group-note").innerHTML = `Room in 2030 for the whole group: <b>${Math.round(area.gen["2030"] || 0)} MW</b> to feed in, <b>${Math.round(area.dem["2030"] || 0)} MW</b> to take out ` +
+      `(<a href="../grid/">Grid capacity</a>). ${stations.length} substations with plots${missing > 0 ? `, ${missing} not fetched yet or placed only roughly` : ""}. Click one to show only its plots.`;
+    history.replaceState(null, "", `#group=${encodeURIComponent(id)}`);
+    renderStations();
+    const bounds = L.latLngBounds(stations.map(s => [s.lat, s.lon]));
+    map.invalidateSize();
+    if (bounds.isValid()) map.fitBounds(bounds.pad(0.15), { maxZoom: 13 });
+    render();
+  }
+
+  function renderStations() {
+    $("stations").innerHTML = `<button type="button" class="chip ${state.station ? "" : "on"}" data-sid="">All</button>` +
+      stations.sort((a, b) => a.name.localeCompare(b.name)).map(s => `<button type="button" class="chip ${state.station === s.sid ? "on" : ""}" data-sid="${esc(s.sid)}">${esc(s.name)} <small>${s.n}</small></button>`).join("");
+    stationLayer.clearLayers(); ringLayer.clearLayers();
+    for (const s of stations) {
+      const on = !state.station || state.station === s.sid;
+      L.circleMarker([s.lat, s.lon], { radius: 7, color: "#fff", weight: 2, fillColor: cssVar("--station"), fillOpacity: on ? 1 : 0.4 })
+        .bindTooltip(`<b>${esc(s.name)}</b>${s.code ? " " + esc(s.code) : ""}<br>${s.how === "near" ? "Placed at the 110 kV substation nearest the town of that name" : "Substation"} · ${s.n} plots of 1 ha+`)
+        .on("click", () => { state.station = state.station === s.sid ? null : s.sid; renderStations(); render(); }).addTo(stationLayer);
+      if (on) for (const r of [1, 2, 3]) L.circle([s.lat, s.lon], { radius: r * 1000, color: cssVar("--station"), weight: r === state.km ? 1.6 : 0.8, opacity: 0.8, dashArray: r === state.km ? null : "4 4", fill: false, interactive: false }).addTo(ringLayer);
+    }
+  }
+
+  function shown() {
+    return plots.filter(p => !state.station || cache[state.station]?.plots.some(q => q.id === p.id))
+      .map(p => ({ ...p, km: state.station ? cache[state.station].plots.find(q => q.id === p.id).km : p.km }));
+  }
+
+  function render() {
+    state.need = +$("need").value || 0;
+    const all = shown().filter(p => p.km <= state.km);
+    const ok = all.filter(p => p.ha >= state.need).sort((a, b) => state.sort === "ha" ? b.ha - a.ha : a.km - b.km);
+    $("need-note").innerHTML = `${state.kind === "pv" ? "Ground-mounted PV takes about 1–1.5 ha per MWp, with spacing." : "A battery takes about 2 ha per 100 MWh with spacing, plus about 0.5 ha for its substation and access."} ` +
+      `<b>${ok.length}</b> plots of at least ${state.need} ha within ${state.km} km; ${all.length - ok.length} smaller ones are dashed (neighbouring plots can be combined).`;
+    $("list-title").textContent = `${ok.length} plots big enough`;
+    $("plots").innerHTML = ok.slice(0, 300).map(p => `<div class="plot ${state.plot === p.id ? "on" : ""}" data-id="${esc(p.id)}"><b>${p.ha.toFixed(1)} ha</b> · ${p.km.toFixed(1)} km · ${esc(p.obreb)} ${esc(p.nr)}<div class="sub">${esc(p.gmina)} · ${esc(p.id)}${p.klasy ? " · " + esc(p.klasy) : ""}</div></div>`).join("") ||
+      `<div class="plot" style="cursor:default">No plot this big within ${state.km} km. Try a larger distance, a smaller project, or combine neighbouring plots.</div>`;
+    plotLayer.clearLayers();
+    const red = cssVar("--plot"), dim = cssVar("--plot-dim");
+    for (const p of all) {
+      const big = p.ha >= state.need, sel = state.plot === p.id;
+      const latlngs = p.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon])));
+      L.polygon(latlngs, { color: sel ? "#fff" : big ? red : dim, weight: sel ? 3.5 : big ? 2.2 : 1, opacity: big || sel ? 1 : 0.7, dashArray: big || sel ? null : "3 3",
+        fillColor: big ? red : dim, fillOpacity: sel ? 0.25 : big ? 0.08 : 0.02 })
+        .bindTooltip(`${p.ha.toFixed(1)} ha · ${p.km.toFixed(1)} km · ${esc(p.obreb)} ${esc(p.nr)}`, { sticky: true })
+        .on("click", () => selectPlot(p.id, false)).addTo(plotLayer);
+    }
+    renderCard();
+  }
+
+  function selectPlot(id, zoom) {
+    state.plot = id; render();
+    const p = plots.find(q => q.id === id);
+    if (p && zoom) map.fitBounds(L.latLngBounds(p.geom.flat(2).map(([lon, lat]) => [lat, lon])).pad(0.6), { maxZoom: 17 });
+    document.querySelector(`.plot[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" });
+  }
+
+  function renderCard() {
+    const p = plots.find(q => q.id === state.plot);
+    $("card-box").hidden = !p;
+    if (!p) return;
+    const ring = p.geom[0][0], lat = ring.reduce((s, c) => s + c[1], 0) / ring.length, lon = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+    const st = index.stations[p.station] || {};
+    $("card-title").textContent = `Plot ${p.nr}, ${p.obreb}`;
+    $("card").innerHTML = [
+      ["Identifier", esc(p.id)],
+      ["Municipality", `${esc(p.gmina)} (precinct ${esc(p.obreb)})`],
+      ["Area", `${p.ha.toFixed(2)} ha from its outline${p.ha_egib ? `; ${p.ha_egib} ha in the register` : ""}`],
+      ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
+      ["Land and soil classes", p.klasy ? esc(p.klasy) : "not published by this county's service"],
+      ["Owner group", p.grupa ? `group ${esc(p.grupa)} in the register (the kind of owner, not who)` : "not published by this county's service"],
+      ["Look further", `<a href="https://mapy.geoportal.gov.pl/imap/Imgp_2.html?identifyParcel=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Geoportal</a> (classes, zoning, orthophotos) · ` +
+        `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat.toFixed(5)}&lng=${lon.toFixed(5)}" target="_blank" rel="noopener">Copernicus Browser</a> (Sentinel-2 history) · ` +
+        `<a href="https://ekw.ms.gov.pl/eukw_ogol/menu.do" target="_blank" rel="noopener">Land and mortgage register</a> (owners, by register number)`],
+    ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
+  }
+
+  function bind() {
+    $("group").addEventListener("change", e => selectGroup(e.target.value));
+    window.addEventListener("hashchange", () => { const g = new URLSearchParams(location.hash.slice(1)).get("group"); if (g && g !== state.group && [...$("group").options].some(o => o.value === g)) { $("group").value = g; selectGroup(g); } });
+    $("stations").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.station = b.dataset.sid || null; renderStations(); render(); });
+    $("kind").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.kind = b.dataset.kind; [...$("kind").children].forEach(x => x.classList.toggle("on", x === b));
+      $("pv-inputs").hidden = state.kind !== "pv"; $("bess-inputs").hidden = state.kind !== "bess"; $("need").value = needOf(); render(); });
+    for (const id of ["mwp", "haper", "mw", "mwh"]) $(id).addEventListener("input", () => { $("need").value = needOf(); render(); });
+    $("need").addEventListener("input", render);
+    $("radius").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.km = +b.dataset.km; [...$("radius").children].forEach(x => x.classList.toggle("on", x === b)); renderStations(); render(); });
+    $("sort").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; [...$("sort").children].forEach(x => x.classList.toggle("on", x === b)); render(); });
+    $("plots").addEventListener("click", e => { const d = e.target.closest(".plot[data-id]"); if (d) selectPlot(d.dataset.id, true); });
+    $("theme").addEventListener("click", () => {
+      const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("pg-theme", root.dataset.theme); } catch (e) { /* private mode */ }
+      renderStations(); render();
+    });
+  }
+
+  function footer() {
+    $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
+      `Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `A plot shown here is only a starting point: check its zoning, soil class, protected areas and access, and the owner, before anything else.`;
+  }
+
+  (function initTheme() { try { const s = localStorage.getItem("pg-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) { /* private mode */ } })();
+  load().catch(e => { $("intro").textContent = `Could not load the data: ${e.message}`; console.error(e); });
+  </script>
+</body>
+</html>

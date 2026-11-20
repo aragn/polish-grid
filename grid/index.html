@@ -151,7 +151,7 @@
 <body>
   <header class="topbar">
     <div class="brand">Polish Grid <span>· power system data for Poland</span></div>
-    <nav class="nav"><a href="../">Connection queue (PSE)</a><a href="../output/">Unit output (JWCD)</a><a href="../capacity/">Capacity market</a><a class="active" href="./">Grid capacity</a></nav>
+    <nav class="nav"><a href="../">Connection queue (PSE)</a><a href="../output/">Unit output (JWCD)</a><a href="../capacity/">Capacity market</a><a class="active" href="./">Grid capacity</a><a href="../land/">Land</a></nav>
     <button class="theme" type="button" id="theme">Theme</button>
   </header>
   <main>
@@ -545,7 +545,7 @@
 
   function stationsTable(a) {
     if (a.op !== "tauron") {
-      return `<ul class="stations">${a.stations.map(s => `<li>${esc(s.name)}${s.own === false ? ' <span class="muted">(not the operator\'s)</span>' : ""}${s.how === "place" ? ' <span class="muted">· at the town</span>' : s.how ? "" : ' <span class="muted">· not placed</span>'}</li>`).join("")}</ul>`;
+      return `<ul class="stations">${a.stations.map(s => `<li>${esc(s.name)}${s.own === false ? ' <span class="muted">(not the operator\'s)</span>' : ""}${s.how === "place" ? ' <span class="muted">· at the town</span>' : s.how === "near" ? ' <span class="muted">· nearest substation to the town</span>' : s.how ? "" : ' <span class="muted">· not placed</span>'}</li>`).join("")}</ul>`;
     }
     const years = data.years;
     return `<div style="overflow-x:auto"><table class="years"><thead><tr><th>GPZ</th>${years.map(y => `<th>${y}</th>`).join("")}</tr></thead><tbody>` +
@@ -581,6 +581,7 @@
       (a.changes ? `<div class="count">Changes to the group in later years: ${esc(a.changes)}</div>` : "") +
       (a.op === "pse" ? "" : `<h4>Stations in the group</h4>${stationsTable(a)}`) +
       `<h4>Queue at these stations</h4>${queueBlock(a)}` +
+      (a.op !== "pse" && Math.max(a.gen["2030"] || 0, a.dem["2030"] || 0) >= 50 ? `<div class="callout" style="margin-top:14px"><b><a href="../land/#group=${encodeURIComponent(a.id)}">Find land near these substations →</a></b> Plots of 1 ha or more within 3 km, on satellite imagery.</div>` : "") +
       (a.op !== "pse" ? `<div class="count" style="margin-top:12px">The transmission grid above: PSE publishes 0 MW for new generation at every one of its stations (step 2, ${fmtDate(data.operators.pse.asof)}), so the distribution figures already allow for what PSE has agreed.</div>` : "");
     $("detail").showModal();
   }
