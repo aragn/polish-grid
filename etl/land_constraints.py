@@ -126,7 +126,7 @@ def county_values(county, plots, workdir):
                 values[key] = 0.0
                 continue
             part = shapely.intersection(shapely.union_all(hits), shape)
-            values[key] = round(part.area / 10000, 2)
+            values[key] = round(min(part.area, area) / 10000, 2)   # simplified outlines can overshoot slightly
             if not part.is_empty:
                 cut.append(part)
         taken = shapely.union_all(cut).area if cut else 0.0
