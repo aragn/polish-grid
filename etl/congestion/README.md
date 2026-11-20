@@ -163,8 +163,9 @@ substations** within 25 km, weighted by 1/distance²: about 1,800 load buses.
 The full year takes about 20 seconds; `whatif.py --batch` takes about
 an hour and a half for 123 substations × 3 technologies.
 
-**Results for 2025** (`report.py`). 24 lines go over 100% after an outage at
-least once, and 9 with nothing out:
+**Results for 2025** (`report.py`). 21 of 328 lines (circuits of one line
+merged) go over 100% after an outage at least once, and a few with nothing
+out, all on the Czech border:
 
 - **The east.** Zamość – Ukraine 220 kV and Mokre – Zamość after the loss of
   the Rzeszów – Khmelnytskyi 400 kV tie (275 and 60 hours). Puławy –
@@ -181,8 +182,8 @@ circular, since the plan is also what lowers their modelled rating.
 Compared with a 220/400 kV-only model, the 110 kV grid carries part of the
 flow in parallel and far fewer lines go over. That is the main sensitivity:
 with 110 kV reactances ×2, ×4 and ×8 (`network.py --x110`, a stand-in for
-open points the distribution operators run), 32, 45 and 50 lines go over
-after an outage, against 24. The default is a closed 110 kV grid, because PSE coordinates
+open points the distribution operators run), 28, 38 and 42 lines go over
+after an outage, against 21. The default is a closed 110 kV grid, because PSE coordinates
 the 110 kV network as one that runs in parallel with 220/400 kV.
 
 ## What if
