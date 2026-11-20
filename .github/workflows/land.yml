@@ -1,0 +1,46 @@
+# Fetches the land plots around the shortlisted substations (etl/land.py) from GUGiK's cadastre service,
+# which answers from GitHub's runners. Each run works through the substations not yet fetched (or older
+# than 90 days) for up to the budget, then commits data/land; the next run carries on.
+name: Update land plots
+
+on:
+  schedule:
+    - cron: "15 1 * * 0"
+  workflow_dispatch:
+    inputs:
+      budget:
+        description: "minutes to spend fetching"
+        default: "300"
+      only:
+        description: "only this group (e.g. energa-13) or substation id"
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: land
+  cancel-in-progress: false
+
+jobs:
+  land:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Fetch
+        run: |
+          python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '300' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data/land
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Land plots: $(python -c "import json; d=json.load(open('data/land/index.json')); print(len(d['stations']), 'of', d['shortlisted'], 'substations')")"
+          for attempt in 1 2 3; do git pull --rebase -q && git push && exit 0; sleep 20; done
+          exit 1
