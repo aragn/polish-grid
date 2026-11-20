@@ -1,0 +1,38 @@
+# ENTSO-E transmission outages (10.1.A/B) for the congestion screening model
+# (etl/congestion/fetch_outages.py).  The key is only in this repo's secrets,
+# so the year is fetched here and kept as data/congestion/outages_<year>.json.
+name: Congestion screening outages
+
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: "year to fetch"
+        default: "2025"
+  push:
+    branches: [congestion-public]
+    paths: [etl/congestion/fetch_outages.py, .github/workflows/congestion-outages.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  outages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Fetch
+        env:
+          ENTSOE_API_KEY: ${{ secrets.ENTSOE_API_KEY }}
+        run: |
+          mkdir -p data/congestion
+          python etl/congestion/fetch_outages.py --year "${{ github.event.inputs.year || '2025' }}" --out "data/congestion/outages_${{ github.event.inputs.year || '2025' }}.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: outages
+          path: data/congestion/outages_*.json
