@@ -16,6 +16,7 @@
       --line-400:#4a5260; --line-220:#323843; --station:#7d8691;
       --c0:#4a5058; --c1:#1d4a35; --c2:#216b47; --c3:#2b915a; --c4:#4fbb7b; --c5:#9fe3b3;
       --pse:#9aa2ac; --new:#5b9cff; --sat-full:#ff5a5a; --warn:#ffa53d;
+      --pv-bal:#c98500; --pv-net:#e66767; --wi-bal:#199e70; --wi-net:#9085e9;
       --shadow:rgba(0,0,0,.55);
     }
     @media (prefers-color-scheme: light) {
@@ -28,6 +29,7 @@
         --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
         --c0:#c4c2ba; --c1:#cde8d4; --c2:#97cfa6; --c3:#56b073; --c4:#25864a; --c5:#0e5a2e;
         --pse:#6b6a66; --new:#2a78d6; --sat-full:#d32f2f; --warn:#e07b00; --shadow:rgba(16,24,40,.14);
+        --pv-bal:#eda100; --pv-net:#e34948; --wi-bal:#1baf7a; --wi-net:#6250d6;
       }
     }
     :root[data-theme="light"] {
@@ -39,6 +41,7 @@
       --line-400:#b2b0a6; --line-220:#d2d0c7; --station:#77756f;
       --c0:#c4c2ba; --c1:#cde8d4; --c2:#97cfa6; --c3:#56b073; --c4:#25864a; --c5:#0e5a2e;
       --pse:#6b6a66; --new:#2a78d6; --sat-full:#d32f2f; --warn:#e07b00; --shadow:rgba(16,24,40,.14);
+        --pv-bal:#eda100; --pv-net:#e34948; --wi-bal:#1baf7a; --wi-net:#6250d6;
     }
     * { box-sizing:border-box; }
     [hidden] { display:none !important; }
@@ -129,6 +132,17 @@
     .timeline-wrap { padding:0 18px 8px; }
     #timeline { height:220px; }
     .list td.due-ok { color:var(--new); font-weight:650; }
+    .curt-charts { display:grid; grid-template-columns:minmax(0, 1.6fr) minmax(0, 1fr); gap:16px; padding:0 18px 16px; }
+    .curt-box { border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--panel-2); min-width:0; }
+    .curt-box .row { justify-content:space-between; }
+    .curt-title { font-weight:650; font-size:14px; }
+    .curt-sub { color:var(--muted); font-size:12px; margin:2px 0 6px; line-height:1.45; }
+    #curt-month, #curt-hour { height:300px; }
+    .curt-tiles { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; padding:0 18px 14px; }
+    .curt-notes { padding:0 18px 18px; color:var(--muted); font-size:12.5px; line-height:1.6; }
+    .curt-notes p { margin:0 0 6px; }
+    @media (max-width: 1150px) { .curt-charts { grid-template-columns:1fr; } .curt-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) { .curt-tiles { grid-template-columns:1fr; } }
     footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
     @media (max-width: 1150px) {
       .tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -220,6 +234,27 @@
       <div style="padding:0 18px 16px"><div class="table-wrap" style="max-height:none"><table class="list" id="new-table"></table></div></div>
     </section>
 
+    <section class="panel" id="curt-panel" hidden>
+      <div class="panel-head">
+        <div class="panel-title">Wind and solar curtailment in Poland so far</div>
+        <div class="panel-sub" id="curt-sub"></div>
+      </div>
+      <div class="curt-tiles" id="curt-tiles"></div>
+      <div class="curt-charts">
+        <div class="curt-box">
+          <div class="row"><div class="curt-title">By month</div><div class="seg" id="curt-unit"><button type="button" data-unit="gwh" class="on">GWh</button><button type="button" data-unit="share">% of output</button></div></div>
+          <div class="curt-sub" id="curt-month-sub">Energy PSE ordered wind and solar plants not to produce, by reason</div>
+          <div id="curt-month"></div>
+        </div>
+        <div class="curt-box">
+          <div class="row"><div class="curt-title">The average day</div><div class="seg" id="curt-year"></div></div>
+          <div class="curt-sub">MWh cut in each hour, averaged over every day of the year (Polish time)</div>
+          <div id="curt-hour"></div>
+        </div>
+      </div>
+      <div class="curt-notes" id="curt-notes"></div>
+    </section>
+
     <section class="panel">
       <div class="panel-head"><div class="panel-title">How to read these figures</div>
         <div class="panel-sub">What the operators publish, what it means for a project, and what it leaves out.</div></div>
@@ -258,11 +293,13 @@
   const fmtMw = v => v == null ? "–" : `${Math.round(v).toLocaleString("en")} MW`;
   const fmtNum = v => v == null ? "–" : Math.round(v).toLocaleString("en");
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const fmtMonth = m => { const [y, mo] = m.split("-"); return `${MONTHS[+mo - 1]} ${y}`; };
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
 
   const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, region: null, sort: "value", plan: "draft" };
   let timeline;
-  let data, geo, gridLines, saturation, chart;
+  let data, geo, gridLines, saturation, chart, curt, curtMonth, curtHour;
+  const curtState = { unit: "gwh", year: null };
 
   function dueOf(s) { return state.plan === "draft" ? (s.draft_end ?? s.plan_end ?? null) : (s.plan_end ?? s.draft_end ?? null); }
   function pseYear(year) { return year >= 2031 ? "2031" : "2026"; }
@@ -295,6 +332,7 @@
   async function load() {
     [data, geo, gridLines, saturation] = await Promise.all([get("../data/grid_capacity.json"), get("../geo/poland_voivodeships.json"),
       get("../geo/grid_lines.json").catch(() => ({ lines: [] })), get("../data/saturation.json").catch(() => ({ stations: [] }))]);
+    curt = await get("../data/curtailment.json").catch(() => null);
     echarts.registerMap("poland", geo);
     chart = echarts.init($("map"), null, { renderer: "canvas" });
     chart.on("click", params => {
@@ -523,7 +561,69 @@
         `<td class="num ${s.plan_end && s.plan_end <= state.year ? "due-ok" : ""}">${s.plan_end ?? "–"}</td><td>${[s.draft_item ? "draft " + esc(s.draft_item) : "", s.plan_item ? "agreed " + esc(s.plan_item) : ""].filter(Boolean).join(" · ")}</td></tr>`).join("") + `</tbody>`;
   }
 
-  function render(full) { renderSide(); renderTiles(); renderLegend(); renderRank(); renderNew(); draw(full); }
+  const CURT = [["pv_bal", "Solar, balancing", "--pv-bal"], ["pv_net", "Solar, network", "--pv-net"], ["wi_bal", "Wind, balancing", "--wi-bal"], ["wi_net", "Wind, network", "--wi-net"]];
+  const fmtGwh = mwh => `${(mwh / 1000).toLocaleString("en", { maximumFractionDigits: mwh >= 100000 ? 0 : 1 })} GWh`;
+  const pct = (a, b) => b ? `${(100 * a / b).toFixed(1)}%` : "–";
+
+  function renderCurtailment() {
+    if (!curt || !curt.months?.length) return;
+    $("curt-panel").hidden = false;
+    const years = Object.keys(curt.years).filter(y => curt.years[y].months >= 6);
+    if (!curtState.year) curtState.year = years[years.length - 1];
+    const full = curt.months.filter(m => !m.partial);
+    const last12 = full.slice(-12), sum = (rows, k) => rows.reduce((s, m) => s + (m[k] || 0), 0);
+    const tot12 = CURT.reduce((s, [k]) => s + sum(last12, k), 0), net12 = sum(last12, "pv_net") + sum(last12, "wi_net");
+    const y25 = curt.years["2025"];
+    $("curt-sub").innerHTML = `PSE's own figures for how much wind and solar output it cut back, and why, from ${fmtDate(curt.first)} to ${fmtDate(curt.last)}, for the whole country. ` +
+      `<b>Balancing</b> cuts happen when Poland as a whole has more power than it can use, store or export, mostly at sunny midday at weekends and in spring; <b>network</b> cuts happen when a line or transformer would be overloaded. ` +
+      `This is history for all of Poland, not a forecast for a site.`;
+    const tiles = [
+      [`Last 12 months`, fmtGwh(tot12), `${last12[0] ? fmtMonth(last12[0].month) : ""} to ${last12.length ? fmtMonth(last12[last12.length - 1].month) : ""}`],
+      [`Solar output cut`, pct(sum(last12, "pv_bal") + sum(last12, "pv_net"), sum(last12, "pv_gen")), `of all solar output in those months (${fmtGwh(sum(last12, "pv_bal") + sum(last12, "pv_net"))})`],
+      [`Wind output cut`, pct(sum(last12, "wi_bal") + sum(last12, "wi_net"), sum(last12, "wi_gen")), `of all wind output (${fmtGwh(sum(last12, "wi_bal") + sum(last12, "wi_net"))})`],
+      [`For network reasons`, pct(net12, tot12), `of the cuts (${fmtGwh(net12)}); the rest is for balancing`],
+    ];
+    $("curt-tiles").innerHTML = tiles.map(([k, v, s]) => `<div class="tile"><div class="k">${esc(k)}</div><div class="v">${v}</div><div class="s">${esc(s)}</div></div>`).join("");
+
+    const share = curtState.unit === "share";
+    curtMonth = curtMonth || echarts.init($("curt-month"));
+    const axisStyle = { axisLabel: { color: cssVar("--muted") }, axisLine: { lineStyle: { color: cssVar("--border") } } };
+    curtMonth.setOption({
+      animation: false, grid: { left: 48, right: 12, top: $("curt-month").clientWidth < 520 ? 62 : 34, bottom: 26 },
+      legend: { top: 0, textStyle: { color: cssVar("--muted"), fontSize: 11 }, itemWidth: 10, itemHeight: 10 },
+      tooltip: { trigger: "axis", backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), textStyle: { color: cssVar("--text"), fontSize: 12 },
+        formatter: ps => { const m = curt.months[ps[0].dataIndex];
+          return `<b>${fmtMonth(m.month)}</b>${m.partial ? ` <span style="color:${cssVar("--muted")}">(part of the month)</span>` : ""}<br>` + CURT.map(([k, label, c]) =>
+            `<span style="color:${cssVar(c)}">●</span> ${label}: ${fmtGwh(m[k])}${share ? ` · ${pct(m[k], k.startsWith("pv") ? m.pv_gen : m.wi_gen)} of ${k.startsWith("pv") ? "solar" : "wind"} output` : ""}`).join("<br>"); } },
+      xAxis: { type: "category", data: curt.months.map(m => fmtMonth(m.month)), ...axisStyle },
+      yAxis: { type: "value", name: share ? "% of output" : "GWh", nameTextStyle: { color: cssVar("--muted") }, axisLabel: { color: cssVar("--muted"), formatter: v => share ? `${v}%` : v }, splitLine: { lineStyle: { color: cssVar("--border") } } },
+      series: CURT.map(([k, label, c]) => ({ name: label, type: "bar", stack: share ? (k.startsWith("pv") ? "pv" : "wi") : "all", barMaxWidth: 26,
+        itemStyle: { color: cssVar(c) },
+        data: curt.months.map(m => ({ value: share ? (m[k.startsWith("pv") ? "pv_gen" : "wi_gen"] ? +(100 * m[k] / m[k.startsWith("pv") ? "pv_gen" : "wi_gen"]).toFixed(2) : null) : +(m[k] / 1000).toFixed(1),
+          itemStyle: { opacity: m.partial ? 0.4 : 1 } })) }))
+    }, true);
+    $("curt-month-sub").textContent = share ? "Share of each month's solar output (left bar) and wind output (right bar) that PSE cut, by reason" : "Energy PSE ordered wind and solar plants not to produce, by reason";
+
+    $("curt-year").innerHTML = years.map(y => `<button type="button" data-year="${y}" class="${y === curtState.year ? "on" : ""}">${y}</button>`).join("");
+    const prof = curt.profile[curtState.year] || [];
+    curtHour = curtHour || echarts.init($("curt-hour"));
+    curtHour.setOption({
+      animation: false, grid: { left: 44, right: 10, top: 14, bottom: 26 },
+      tooltip: { trigger: "axis", backgroundColor: cssVar("--tooltip-bg"), borderColor: cssVar("--tooltip-border"), textStyle: { color: cssVar("--text"), fontSize: 12 },
+        formatter: ps => `<b>${ps[0].axisValue}:00–${+ps[0].axisValue + 1}:00</b><br>` + ps.map(p => `${p.marker} ${p.seriesName}: ${fmtNum(p.value)} MWh`).join("<br>") },
+      xAxis: { type: "category", data: prof.map((_, h) => String(h)), ...axisStyle },
+      yAxis: { type: "value", name: "MWh", nameTextStyle: { color: cssVar("--muted") }, axisLabel: { color: cssVar("--muted") }, splitLine: { lineStyle: { color: cssVar("--border") } } },
+      series: CURT.map(([k, label, c]) => ({ name: label, type: "bar", stack: "all", itemStyle: { color: cssVar(c) }, data: prof.map(h => h[k]) }))
+    }, true);
+
+    const top = (curt.top_days || []).slice(0, 3).map(d => `${fmtDate(d.day)} (${fmtGwh(CURT.reduce((s, [k]) => s + d[k], 0))})`).join(", ");
+    $("curt-notes").innerHTML =
+      `<p><b>What it means for a project.</b> In ${y25 ? "2025" : "the latest year"} PSE cut ${y25 ? pct(y25.pv_bal + y25.pv_net, y25.pv_gen) : "–"} of Poland's solar output and ${y25 ? pct(y25.wi_bal + y25.wi_net, y25.wi_gen) : "–"} of its wind output. Almost all of it was for balancing, so it hits every solar farm in the country on the same sunny hours wherever it connects; the network share is small and is the part that depends on the site. A battery next to a solar farm can store what would be cut, and those same hours are when prices are lowest or negative.</p>` +
+      `<p><b>Who pays.</b> These are PSE's non-market redispatch orders: under Regulation (EU) 2019/943, art. 13, a plant with a firm connection is compensated for them, unless it agreed to limits (as in a flexible connection agreement). Plants that stop producing on their own when prices are negative don't appear here.</p>` +
+      `<p><b>The largest days</b>: ${esc(top)}. Source: <a href="${esc(curt.source)}" target="_blank" rel="noopener">PSE, reductions of wind and solar generation</a> (hourly MW, revised afterwards; read every morning), with solar and wind output from ENTSO-E. Months shown pale are incomplete.</p>`;
+  }
+
+  function render(full) { renderSide(); renderTiles(); renderLegend(); renderRank(); renderNew(); renderCurtailment(); draw(full); }
 
   function yearTable(a) {
     const years = data.years, sel = String(state.year);
@@ -620,7 +720,9 @@
     $("d-close").addEventListener("click", () => $("detail").close());
     $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
     $("plan").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.plan = b.dataset.plan; [...$("plan").children].forEach(x => x.classList.toggle("on", x === b)); renderNew(); draw(false); });
-    window.addEventListener("resize", () => { chart.resize(); if (timeline) timeline.resize(); });
+    $("curt-unit").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.unit = b.dataset.unit; [...$("curt-unit").children].forEach(x => x.classList.toggle("on", x === b)); renderCurtailment(); });
+    $("curt-year").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.year = b.dataset.year; renderCurtailment(); });
+    window.addEventListener("resize", () => { chart.resize(); if (timeline) timeline.resize(); if (curtMonth) curtMonth.resize(); if (curtHour) curtHour.resize(); });
     $("theme").addEventListener("click", () => {
       const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
       root.dataset.theme = dark ? "light" : "dark";

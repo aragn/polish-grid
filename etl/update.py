@@ -19,6 +19,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import build  # noqa: E402
 import capacity_market  # noqa: E402
+import curtailment  # noqa: E402
 import dso  # noqa: E402
 import grid_capacity  # noqa: E402
 import imagery  # noqa: E402
@@ -58,13 +59,18 @@ def main():
         except Exception as error:            # noqa: BLE001 -- must not stop the queue update
             print(f"Grid capacity failed: {error}")
             gc_changed = False
+        try:                                  # PSE's cuts of wind and solar output, by reason
+            curt_changed = curtailment.main()
+        except Exception as error:            # noqa: BLE001 -- must not stop the queue update
+            print(f"Curtailment failed: {error}")
+            curt_changed = False
         try:                                  # orthophotos and Sentinel-2 passes of the known sites, weekly
             img_changed = imagery.main()
         except Exception as error:            # noqa: BLE001 -- images must not stop the queue update
             print(f"Imagery failed: {error}")
             img_changed = False
-        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed and not gc_changed and not img_changed:
-            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market, the saturated switchyards, the grid capacity or the site images.")
+        if not new and not dso_changed and not jwcd_changed and not cm_changed and not sat_changed and not gc_changed and not curt_changed and not img_changed:
+            print("Nothing new from PSE, the distribution operators, the unit output, the capacity market, the saturated switchyards, the grid capacity, the curtailment or the site images.")
             return
     build.main()
 
