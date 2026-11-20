@@ -103,6 +103,8 @@ output/plants.json            fuel, operator and place per PSE plant name
 grid/index.html               the grid capacity page
 data/grid_capacity.json       available connection capacity by group, 2026-2031 (etl/grid_capacity.py)
 archive/grid_capacity/        the operators' capacity PDFs and TAURON's map data
+land/index.html               the land page
+data/land/                    plots around the shortlisted substations (etl/land.py)
 ```
 
 ## Unit output page
@@ -151,3 +153,22 @@ The page also shows PSE's cuts of wind and solar output since 24 September 2024
 and network reasons, for the whole country. PSE revises past days, so the whole
 series is read every run. The share of output uses ENTSO-E solar and wind output
 from `data/generation/PL/`.
+
+## Land page
+
+`land/` shows the registered land plots (działki ewidencyjne) of 1 ha or more within
+3 km of the substations of the groups with room for at least 50 MW of generation or
+demand in 2030, on Esri satellite imagery, filtered by the area a solar farm (MWp x ha
+per MWp) or a battery (about 2 ha per 100 MWh plus 0.5 ha) needs. `etl/land.py` reads
+them from GUGiK's collective EGiB WFS (`ms:dzialki`), which answers from GitHub's
+runners but not from every network, in `.github/workflows/land.yml` (weekly; each
+substation re-read after 90 days; bump `VERSION` to re-read all). It keeps the plot
+identifier, municipality, precinct, number, area computed from the outline, distance to
+the substation, and where the county publishes them the land and soil classes and the
+owner group (the kind of owner, never a name). Outlines are simplified to about 1.5 m.
+
+Substations are placed at the operator's coordinates (TAURON), else at an OpenStreetMap
+110 kV substation of that name (`etl/osm_substations.py` writes
+`etl/osm_substations_110.json` from the Overpass API, cleaning names like
+`Stacja elektroenergetyczna 110/15kV „GPZ Zamość Janowice”`), else at the 110 kV
+substation within 3 km of the town of that name.
