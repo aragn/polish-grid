@@ -21,6 +21,13 @@ jobs:
             "https://www.pse.pl/documents/20182/21595261/PRSP_2025_2034_dokument_glowny_2024_12_20.pdf"
           ls -la out
           head -c 5 out/PRSP_2025_2034.pdf | grep -q "%PDF" && tail -c 1024 out/PRSP_2025_2034.pdf | grep -q "%%EOF"
+      - name: OpenStreetMap power features, Poland, 1 January 2026 (Geofabrik)
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool
+          curl -sSL --retry 5 -o poland.osm.pbf https://download.geofabrik.de/europe/poland-260101.osm.pbf
+          osmium tags-filter poland.osm.pbf nwr/power=line,cable,substation,transformer,circuit,plant \
+            nwr/construction:power nwr/route=power -o out/poland-260101-power.osm.pbf
+          ls -la out
       - uses: actions/upload-artifact@v4
         with:
           name: sources
