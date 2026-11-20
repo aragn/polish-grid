@@ -28,7 +28,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spl
 
-PST_CORRIDORS = (("mikulowa", "X_DE"), ("krajnik", "X_DE"))
+PST_CORRIDORS = (("mikulowa", "DE"), ("krajnik", "DE"))
 
 
 def fold(s):
@@ -61,9 +61,13 @@ class Model:
         self.s = np.array([b["s_nom"] for b in br])
         # contingencies: Polish 220/400 kV circuits, ties and 400/220 kV transformers
         self.cont_all = np.where(self.mon)[0]
-        self.pst = np.array([pst == "fixed" and b["tie"] and any(
-            fold(self.buses[self.bidx[b["bus0"]]]["name"]).startswith(p) and b["bus1"] == x or
-            fold(self.buses[self.bidx[b["bus1"]]]["name"]).startswith(p) and b["bus0"] == x for p, x in PST_CORRIDORS) for b in br])
+        def is_pst(b):
+            ends = [self.buses[self.bidx[b["bus0"]]], self.buses[self.bidx[b["bus1"]]]]
+            pl = [e for e in ends if e["country"] == "PL"]
+            other = [e for e in ends if e["country"] != "PL"]
+            return (pst == "fixed" and b["tie"] and len(pl) == 1 and len(other) == 1
+                    and any(fold(pl[0]["name"]).startswith(p) and other[0]["country"] == c for p, c in PST_CORRIDORS))
+        self.pst = np.array([is_pst(b) for b in br])
         self.rows = np.where(self.mon)[0]  # every row we need is monitored (ties included)
         self.ref = next(i for i, b in enumerate(self.buses) if b["country"] == "PL" and b["kv"] == 400)
         self.keep = np.array([i for i in range(nb) if i != self.ref])
@@ -85,19 +89,33 @@ class Model:
         X[:, k] = lu.solve(np.ascontiguousarray(R[:, k].T)).T
         return X
 
+    def _outaged(self, base, out):
+        """PTDF rows with the branches in `out` (all rows) removed: a low-rank update of `base`.
+        Outages that would island part of the grid are left in service."""
+        rpos = {r: i for i, r in enumerate(self.rows)}
+        M = [m for m in out if m in rpos]
+        while M:
+            tr = base[:, self.f[M]] - base[:, self.t[M]]  # [rows, k]
+            A = np.eye(len(M)) - tr[[rpos[m] for m in M], :]
+            if np.linalg.cond(A) < 1e8:
+                return base + tr @ np.linalg.solve(A, base[[rpos[m] for m in M], :]), M
+            M = M[:-1]
+        return base, []
+
     def state(self, out=frozenset()):
-        """(ptdf_rows, lodf[rows, cont], cont, bridge) for a topology; cached."""
+        """(ptdf_rows, lodf[rows, cont], cont, bridge, applied outages) for a topology; cached."""
         out = frozenset(out)
         if out in self._cache:
             return self._cache[out]
-        P = self._ptdf(out)
+        if "base" not in self._cache:
+            self._cache["base"] = self._ptdf(set())
+            self._cache["base_pst"] = self._ptdf(set(np.where(self.pst)[0])) if self.pst.any() else self._cache["base"]
+        P, applied = self._outaged(self._cache["base"], sorted(out))
+        out = frozenset(applied)
         rpos = {r: i for i, r in enumerate(self.rows)}
         cont = np.array([k for k in self.cont_all if k not in out])
         # LODFs on the network without the flow-controlled PST branches
-        if self.pst.any():
-            Pn = self._ptdf(out | set(np.where(self.pst)[0]))
-        else:
-            Pn = P
+        Pn = self._outaged(self._cache["base_pst"], sorted(out - set(np.where(self.pst)[0])))[0] if self.pst.any() else P
         ci = np.array([rpos[k] for k in cont])
         tr = Pn[:, self.f[cont]] - Pn[:, self.t[cont]]  # [rows, cont]: flow on row per MW sent across k
         denom = 1.0 - tr[ci, np.arange(len(cont))]
@@ -109,9 +127,10 @@ class Model:
         lodf[pst_rows, :] = 0.0       # a PST corridor keeps its flow
         lodf[:, np.isin(cont, np.where(self.pst)[0])] = 0.0  # tripping one is not screened here
         lodf[pst_rows[:, None], np.where(np.isin(cont, np.where(self.pst)[0]))[0][None, :]] = 0.0
-        res = (P, lodf.astype("float32"), cont, bridge)
-        if len(self._cache) > 400:
-            self._cache.clear()
+        res = (P, lodf.astype("float32"), cont, bridge, out)
+        if len(self._cache) > 60:
+            for k in [k for k in self._cache if k not in ("base", "base_pst")][:30]:
+                del self._cache[k]
         self._cache[out] = res
         return res
 
@@ -139,19 +158,24 @@ class Model:
         return out
 
     # ---- screening
-    def screen(self, F, R, lodf, cont, chunk=96):
-        """F [T, rows] base flows, R [T, rows] ratings: worst post-contingency loading and its contingency."""
+    def screen(self, F, R, lodf, cont, chunk=96, subset=None):
+        """F [T, rows] base flows, R [T, rows] ratings: worst post-contingency loading and its contingency.
+        With `subset` (row positions), only those rows are screened (the others come back 0)."""
         T, L = F.shape
         rpos = {r: i for i, r in enumerate(self.rows)}
         ci = np.array([rpos[k] for k in cont])
+        mon = np.arange(L) if subset is None else np.asarray(subset)
+        lo = lodf[mon]
+        own = np.array([np.where(ci == j)[0][0] if j in set(ci) else -1 for j in mon])
         worst = np.zeros((T, L), dtype="float32")
         arg = np.zeros((T, L), dtype="int32")
         for t0 in range(0, T, chunk):
             f = F[t0:t0 + chunk].astype("float32")
-            post = f[:, :, None] + lodf[None, :, :] * f[:, ci][:, None, :]
-            post[:, ci, np.arange(len(cont))] = 0.0
+            post = f[:, mon, None] + lo[None, :, :] * f[:, ci][:, None, :]
+            has = own >= 0
+            post[:, np.where(has)[0], own[has]] = 0.0
             a = np.abs(post)
             k = a.argmax(axis=2)
-            worst[t0:t0 + chunk] = np.take_along_axis(a, k[:, :, None], 2)[:, :, 0] / R[t0:t0 + chunk]
-            arg[t0:t0 + chunk] = cont[k]
+            worst[t0:t0 + chunk, mon] = np.take_along_axis(a, k[:, :, None], 2)[:, :, 0] / R[t0:t0 + chunk][:, mon]
+            arg[t0:t0 + chunk, mon] = cont[k]
         return worst, arg

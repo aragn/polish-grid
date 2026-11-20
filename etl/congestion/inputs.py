@@ -1,38 +1,37 @@
 """
-Hourly nodal injections for a year on the 220/400 kV model:
+Hourly nodal injections for a year on the model of network.py:
 
-    python etl/congestion/inputs.py --work D:/Power/pl-congestion --ure <URE "Mapa OZE" xlsx> --year 2025
+    python etl/congestion/inputs.py --work W --ure <URE "Mapa OZE" xlsx> --pop <pop_layout_total.nc> --year 2025
 
-Reads <work>/out/network.json (network.py), <work>/cache/pse/ (fetch_pse.py)
-and <work>/cache/weather_pl.npz (weather.py).  Writes
-<work>/out/injections_<year>.npz: P[t, bus] in MW, positive into the grid,
-with load already netted, plus the components for the report.
+Reads W/out/network.json, W/cache/pse/ (fetch_pse.py) and
+W/cache/weather_pl.npz (weather.py).  Writes W/out/injections_<year>.npz:
+  P[t, bus]        Polish injections in MW (positive into the grid, load netted),
+                   Ukraine's border flow at its boundary node;
+  gsk[bus, c]      how each neighbour's (DE, CZ, SK, LT) net injection spreads
+                   over its buses (population);
+  border[t, c]     PSE's metered flow from each neighbour into Poland.
+flows.py solves every hour for the neighbours' injections that reproduce the
+measured border flows on the topology of that hour.
 
 Rules (README, "Injections"):
-  JWCD units      PSE gen-jw per unit, at the substation of its plant; the
-                  digit in the resource code is the connection voltage
-                  (2 = 220 kV, 4 = 400 kV, 1 = 110 kV: nearest 110 kV-feeding
-                  substation).  Pumping is negative.
-  wind            PSE's national wind output (wi), split every hour in
-                  proportion to URE's licensed wind capacity at each place times
-                  the ERA5 capacity factor of its cell.
-  solar           PSE's national PV (pv) less the JWCD PV unit, split by URE's
-                  licensed PV plus micro-installations (not in URE's register,
-                  spread by population), times the SARAH-3 capacity factor.
-  other           the rest of PSE's generation (jg + jnwrb less JWCD, wind and
-                  solar: CHP, industrial and small units, hydro, biomass),
-                  spread by population.
+  JWCD units      PSE gen-jw per unit, at its plant's substation; the digit
+                  before the separator in the resource code is the connection
+                  voltage (2 = 220 kV, 4 = 400 kV, 1 = 110 kV).  Pumping is negative.
+  wind            PSE's national wind output, split every hour by URE's licensed
+                  wind capacity at each town times the ERA5 capacity factor.
+  solar           PSE's national PV less the JWCD PV unit, split by URE's licensed
+                  PV plus micro-installations (spread by population) times the
+                  SARAH-3 capacity factor.
+  other           the rest of PSE's generation, spread by population.
   load            PSE's system demand, spread by population.
-  borders         PSE's metered flows per section, net per neighbour, at the
-                  neighbour's boundary node (SwePol at Słupsk).
+  SwePol          its metered flow at the converter's AC bus (Słupsk).
   closing         what is left (metering differences) goes onto the load.
-Every population or capacity share lands on the nearest substation that
-transforms to 110 kV.
+A place's population or capacity feeds its three nearest 110 kV substations
+within 25 km, weighted by 1 / distance^2.
 """
 
 import argparse
 import collections
-import datetime
 import glob
 import json
 import math
@@ -42,16 +41,17 @@ import re
 import numpy as np
 import openpyxl
 import pandas as pd
+import xarray as xr
 from shapely.geometry import Point, shape
-from shapely.strtree import STRtree
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 
-SHARE_K, SHARE_KM = 3, 40.0
+SHARE_K, SHARE_KM = 3, 25.0
 MICRO_PV_MW = 13000.0  # micro-installations (<50 kW, mostly prosumers), mid-2025; only the spatial split depends on it
+NEIGHBOURS = ["DE", "CZ", "SK", "LT"]
 
-# Plant sites (lat, lon).  Units connect to the nearest bus of the voltage in their resource code.
+# Plant sites (lat, lon).  Units connect to the nearest real substation of the voltage in their resource code.
 PLANTS = {
     "Bełchatów": (51.266, 19.330), "Chorzów": (50.290, 18.950), "Dolna Odra": (53.205, 14.462), "Gryfino": (53.205, 14.462),
     "EC Czechnica-2": (51.030, 17.150), "EC Rzeszów": (50.030, 22.030), "EC Siekierki": (52.190, 21.090),
@@ -66,12 +66,11 @@ PLANTS = {
     "Zwartowo": (54.640, 17.640), "Łagisza": (50.350, 19.140), "Łaziska 3": (50.140, 18.850), "Żarnowiec": (54.720, 18.080),
     "Adamów": (52.020, 18.540), "Baltic Power": (54.775, 17.915), "Ostrołęka C": (53.090, 21.570),
 }
-# Where the nearest real substation is not the plant's: Bełchatów's switchyard is an OSM tee point
-# with many short circuits to Rogowiec, while the mine's substation is nearer.
+# Where the nearest real substation is not the plant's (Bełchatów's switchyard is an OSM tee point
+# with many short circuits to Rogowiec, while the mine's substation is nearer).
 PLANT_BUS = {"Bełchatów": "Rogowiec"}
 JWCD_PV = {"Zwartowo"}
 JWCD_WIND = {"Baltic Power"}
-SECTIONS = {"DE": "X_DE", "CZ": "X_CZ", "SK": "X_SK", "LT": "X_LT", "UA": "X_UA", "SE": "X_SE"}
 
 
 def km(lat1, lon1, lat2, lon2):
@@ -145,6 +144,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
     ap.add_argument("--ure", required=True, help="URE 'Mapa OZE' register (xlsx), e.g. as of 30 June of the year")
+    ap.add_argument("--pop", required=True, help="PyPSA-Eur pop_layout_total.nc (population on the cutout grid)")
     ap.add_argument("--year", type=int, default=2025)
     a = ap.parse_args()
     hours = hour_index(a.year)
@@ -152,30 +152,29 @@ def main():
 
     net = json.load(open(os.path.join(a.work, "out", "network.json"), encoding="utf-8"))
     buses = net["buses"]
+    nb = len(buses)
     bidx = {b["id"]: i for i, b in enumerate(buses)}
-    load_buses = [i for i, b in enumerate(buses) if b["feeds110"]]
-    lb_xy = np.array([[buses[i]["lat"], buses[i]["lon"]] for i in load_buses])
+    load_buses = np.array([i for i, b in enumerate(buses) if b.get("load")])
+    lb_lat = np.array([buses[i]["lat"] for i in load_buses])
+    lb_lon = np.array([buses[i]["lon"] for i in load_buses])
 
-    def nearest(lat, lon, kv=None, name=None):
-        if kv is None:
-            d = (lb_xy[:, 0] - lat) ** 2 + ((lb_xy[:, 1] - lon) * math.cos(math.radians(lat))) ** 2
-            return load_buses[int(np.argmin(d))]
-        # Plants connect to a real substation: OSM's virtual tee points at plant switchyards keep only some
-        # of the circuits, which would bottle the plant up behind one line.
-        cand = [i for i, b in enumerate(buses) if b["kv"] == kv and not b["id"].startswith("virtual")
-                and (name is None or b["name"] == name)]
-        return min(cand, key=lambda i: km(lat, lon, buses[i]["lat"], buses[i]["lon"]))
+    def dist(lat, lon):
+        return 6371 * np.hypot(np.radians(lb_lon - lon) * math.cos(math.radians(lat)), np.radians(lb_lat - lat))
 
     def share(lat, lon):
-        """The 110 kV grid is meshed: a place feeds its SHARE_K nearest 110 kV-feeding substations within
-        SHARE_KM (always at least the nearest), weighted by 1 / distance^2."""
-        d = np.array([km(lat, lon, x[0], x[1]) for x in lb_xy])
+        """The 110 kV substations a place feeds: its SHARE_K nearest within SHARE_KM, by 1 / distance^2."""
+        d = dist(lat, lon)
         order = np.argsort(d)[:SHARE_K]
         order = [o for j, o in enumerate(order) if j == 0 or d[o] <= SHARE_KM]
-        wgt = 1.0 / np.maximum(d[order], 3.0) ** 2
-        v = np.zeros(len(buses))
-        v[[load_buses[o] for o in order]] = wgt / wgt.sum()
+        wgt = 1.0 / np.maximum(d[order], 2.0) ** 2
+        v = np.zeros(nb)
+        v[load_buses[order]] = wgt / wgt.sum()
         return v
+
+    def nearest_real(lat, lon, kv, name=None):
+        cand = [i for i, b in enumerate(buses) if b["country"] == "PL" and b["kv"] == kv and not b.get("virtual")
+                and (name is None or (b["name"] or "").startswith(name))]
+        return min(cand, key=lambda i: km(lat, lon, buses[i]["lat"], buses[i]["lon"]))
 
     # ---- weather cells inside Poland
     w = np.load(os.path.join(a.work, "cache", "weather_pl.npz"))
@@ -189,21 +188,14 @@ def main():
     cx, cy = w["x"][cells], w["y"][cells]
     pop = np.nan_to_num(w["pop"][cells])
     cell_share = np.array([share(y, x) for x, y in zip(cx, cy)])  # [cell, bus]
-    cell_bus = cell_share.argmax(axis=1)
 
     def cell_of(lat, lon):
         return int(np.argmin((cy - lat) ** 2 + ((cx - lon) * math.cos(math.radians(lat))) ** 2))
 
-    nb = len(buses)
+    pop_share = pop @ cell_share
+    pop_share /= pop_share.sum()
 
-    def spread(weights_cell):
-        """bus share vector from a weight per cell."""
-        v = weights_cell @ cell_share
-        return v / v.sum()
-
-    pop_share = spread(pop)
-
-    # ---- URE installations -> (bus, cell) capacity matrices
+    # ---- URE installations -> (bus, cell) capacity
     ure, how = read_ure(a.ure, places)
     cap = {"WIL": np.zeros((nb, len(cells))), "PVA": np.zeros((nb, len(cells)))}
     for kind, mw, lat, lon in ure:
@@ -211,7 +203,6 @@ def main():
     micro = (cell_share * (MICRO_PV_MW * pop / pop.sum())[:, None]).T  # [bus, cell]
 
     def weather_split(capmat, cf):
-        """hourly bus shares: capacity x capacity factor, normalised every hour."""
         x = cf @ capmat.T  # [T, nb]
         s = x.sum(1, keepdims=True)
         s[s == 0] = 1
@@ -233,7 +224,7 @@ def main():
     jw["value"] = pd.to_numeric(jw["value"], errors="coerce").fillna(0.0)
     unit_h = jw.groupby(["resource_code", "hour"])["value"].mean().unstack(0).reindex(hours).fillna(0.0)
     unit_plant = jw.groupby("resource_code")["power_plant"].first()
-    P = np.zeros((T, nb))
+    P = np.zeros((T, nb), dtype="float64")
     units, missing = [], []
     for code in unit_h.columns:
         plant = unit_plant[code]
@@ -242,12 +233,11 @@ def main():
             continue
         # "BEL 2-02", "KOZ12S01", "JW2_4-07", "ZWA_1P03": the digit just before the separator is the voltage.
         m = re.search(r"(\d)[-SP]\d+$", code)
-        digit = m.group(1) if m else "1"
+        kv = {"2": 220, "4": 400}.get(m.group(1) if m else "1", 110)
         lat, lon = PLANTS[plant]
-        kv = {"2": 220, "4": 400}.get(digit)
-        bus = nearest(lat, lon, kv, PLANT_BUS.get(plant) if kv else None)
+        bus = nearest_real(lat, lon, kv, PLANT_BUS.get(plant) if kv > 110 else None)
         P[:, bus] += unit_h[code].values
-        units.append({"code": code, "plant": plant, "bus": buses[bus]["id"], "bus_name": buses[bus]["name"],
+        units.append({"code": code, "plant": plant, "bus": buses[bus]["id"], "bus_name": buses[bus]["name"], "kv": kv,
                       "km": round(km(lat, lon, buses[bus]["lat"], buses[bus]["lon"]), 1),
                       "twh": round(float(unit_h[code].clip(lower=0).sum()) / 1e6, 3)})
     jw_gen = unit_h.clip(lower=0).sum(axis=1).values
@@ -259,56 +249,64 @@ def main():
     other = sysh["jg"].values + sysh["jnwrb"].values - jw_gen - wind - solar
     P += wind[:, None] * wind_share + solar[:, None] * solar_share + np.clip(other, 0, None)[:, None] * pop_share
     P -= sysh["demand"].values[:, None] * pop_share
-    # How far the weather model overshoots: PSE's energy over the fleet's modelled energy (whatif.py scales by it).
     k_wind = float(wind.sum() / (cf_wind @ cap["WIL"].sum(0)).sum())
     k_solar = float(solar.sum() / (cf_solar @ (cap["PVA"] + micro).sum(0)).sum())
 
-    # ---- borders
+    # ---- borders: PSE's metered flows (both directions listed every quarter-hour: add them, then average)
     fl = read_pse(a.work, "przeplywy-mocy")
     fl["value"] = pd.to_numeric(fl["value"], errors="coerce").fillna(0.0)
-    fl["nb"] = fl["section_code"].str.replace("PL", "").str.strip("-")
-    # Both directions of a border are listed every quarter-hour (one of them 0): add them, then average the quarters.
-    fl["nb"] = fl["nb"].replace({"UA_DOB": "UA"})
+    fl["nb"] = fl["section_code"].str.replace("PL", "").str.strip("-").replace({"UA_DOB": "UA"})
     quarter = fl.groupby(["dtime_utc", "hour", "nb"])["value"].sum().reset_index()
     border = quarter.groupby(["hour", "nb"])["value"].mean().unstack(1).reindex(hours).interpolate(limit_direction="both").fillna(0.0)
-    hv = {h["neighbour"]: h["pl_ac_bus"] for h in net["hvdc"]}
-    for c, node in SECTIONS.items():
-        if c not in border.columns:
-            continue
-        target = bidx.get(node) if node in bidx else bidx.get(hv.get(node))
-        P[:, target] += border[c].values
+    if "X_UA" in bidx and "UA" in border.columns:
+        P[:, bidx["X_UA"]] += border["UA"].values
+    for h in net["hvdc"]:
+        c = h["neighbour"][2:]
+        if c in border.columns and h["pl_ac_bus"] in bidx:
+            P[:, bidx[h["pl_ac_bus"]]] += border[c].values
     net_import = border.sum(axis=1).values
 
-    # ---- closing: metering differences onto the load
-    mismatch = P.sum(1)
+    # ---- closing: with SwePol and Ukraine in, Poland's injections must equal minus what the
+    # synchronous neighbours modelled (DE, CZ, SK, LT) send it
+    from_neighbours = sum(border[c].values for c in NEIGHBOURS if c in border.columns)
+    mismatch = P.sum(1) + from_neighbours
     P -= mismatch[:, None] * pop_share
+
+    # ---- the neighbours' shift keys: population of the cutout cell at each bus
+    popx = xr.open_dataarray(a.pop)
+    gsk = np.zeros((nb, len(NEIGHBOURS)))
+    for i, b in enumerate(buses):
+        if b["country"] in NEIGHBOURS and not b.get("virtual") and b["lat"] is not None:
+            v = float(popx.sel(x=b["lon"], y=b["lat"], method="nearest"))
+            gsk[i, NEIGHBOURS.index(b["country"])] = max(v, 0.0) + 1e-6
+    gsk /= gsk.sum(0, keepdims=True)
+    border_mat = np.column_stack([border[c].values if c in border.columns else np.zeros(T) for c in NEIGHBOURS])
 
     os.makedirs(os.path.join(a.work, "out"), exist_ok=True)
     np.savez_compressed(os.path.join(a.work, "out", f"injections_{a.year}.npz"), P=P.astype("float32"),
-                        hours=(hours - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1), demand=sysh["demand"].values, wind=wind, solar=solar, other=other,
-                        jwcd=jw_gen, net_import=net_import, swm=(sysh["swm_p"] + sysh["swm_np"]).values, mismatch=mismatch,
-                        border=border.values, border_names=np.array(list(border.columns)),
-                        pop_share=pop_share, k_wind=k_wind, k_solar=k_solar, cell_x=cx, cell_y=cy, cell_bus=cell_bus,
+                        hours=(hours - pd.Timestamp("1970-01-01", tz="UTC")) // pd.Timedelta(seconds=1),
+                        demand=sysh["demand"].values, wind=wind, solar=solar, other=other, jwcd=jw_gen,
+                        net_import=net_import, swm=(sysh["swm_p"] + sysh["swm_np"]).values, mismatch=mismatch,
+                        border=border_mat, neighbours=np.array(NEIGHBOURS), gsk=gsk.astype("float32"),
+                        pop_share=pop_share, k_wind=k_wind, k_solar=k_solar,
                         jwcd_bus=np.array([bidx[u["bus"]] for u in units]),
                         jwcd_units=unit_h[[u["code"] for u in units]].values.astype("float32"),
                         jwcd_codes=np.array([u["code"] for u in units]), jwcd_plants=np.array([u["plant"] for u in units]))
     meta = {"year": a.year, "hours": T, "pse_gap_hours": gaps, "units": units, "unplaced_plants": sorted(set(missing)),
-            "ure_mw_by_how": {f"{k[0]}|{k[1]}": round(v) for k, v in how.items()},
-            "micro_pv_mw": MICRO_PV_MW, "cells_in_poland": int(len(cells)),
+            "ure_mw_by_how": {f"{k[0]}|{k[1]}": round(v) for k, v in how.items()}, "micro_pv_mw": MICRO_PV_MW,
+            "cells_in_poland": int(len(cells)), "load_buses": int(len(load_buses)),
             "weather_scale": {"wind": round(k_wind, 3), "solar": round(k_solar, 3)},
-            "fleet_mw": {"wind_ure": round(float(cap["WIL"].sum())), "pv_ure": round(float(cap["PVA"].sum())),
-                         "pv_micro": MICRO_PV_MW},
             "twh": {k: round(float(np.nansum(v)) / 1e6, 2) for k, v in
                     {"demand": sysh["demand"].values, "jwcd": jw_gen, "wind": wind, "solar": solar, "other": other,
                      "net_import_sections": net_import, "net_import_swm": (sysh["swm_p"] + sysh["swm_np"]).values}.items()},
             "mismatch_mw": {"mean": round(float(np.mean(mismatch)), 1), "mean_abs": round(float(np.mean(np.abs(mismatch))), 1),
                             "p99_abs": round(float(np.percentile(np.abs(mismatch), 99)), 1)},
-            "other_negative_hours": int((other < 0).sum())}
+            "border_mean_mw": {c: round(float(border[c].mean()), 1) for c in border.columns}}
     json.dump(meta, open(os.path.join(a.work, "out", f"injections_{a.year}.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(json.dumps({k: v for k, v in meta.items() if k != "units"}, ensure_ascii=False, indent=1))
     for u in units:
         if u["km"] > 8:
-            print("far:", u)
+            print("far:", u["code"], u["plant"], u["bus_name"], u["kv"], u["km"])
 
 
 if __name__ == "__main__":

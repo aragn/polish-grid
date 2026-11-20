@@ -90,6 +90,15 @@ def clean_name(s):
     return re.sub(r"\s+", " ", s).strip(" -,")
 
 
+def geom(wkt, kv):
+    """Simplified [[lon, lat], ...] of a 220/400 kV line, for the map; None below 220 kV."""
+    if kv < 220 or not isinstance(wkt, str) or "LINESTRING" not in wkt:
+        return None
+    from shapely import wkt as W
+    g = W.loads(wkt).simplify(0.003)
+    return [[round(x, 4), round(y, 4)] for x, y in g.coords]
+
+
 def raw_elements(raw, name):
     path = os.path.join(raw, f"{name}.json")
     return json.load(open(path, encoding="utf-8"))["elements"] if os.path.exists(path) else []
@@ -173,7 +182,8 @@ def main():
                          "length_km": round(length, 2), "circuits": n,
                          "x_pu": c["x"] * max(length, 0.3) / n / (kv ** 2 / BASE_MVA), "s_nom": c["s"] * n,
                          "conductor": c["label"], "bundle_tagged": tagged, "t_design": T_DESIGN,
-                         "underground": str(r.underground) == "t", "tie": False, "osm": ";".join(tags)})
+                         "underground": str(r.underground) == "t", "tie": False, "osm": ";".join(tags),
+                         "geom": geom(r.geometry, kv)})
     # transformers: units from OSM's power=transformer within 400 m of the substation
     for r in pt.itertuples():
         if r.bus0 not in ids or r.bus1 not in ids:
@@ -249,6 +259,7 @@ def main():
         branches.append({"id": r.line_id, "kind": "line", "bus0": b0, "bus1": b1, "kv": kv,
                          "country": "PL" if tie else (c0 if c0 == c1 else f"{c0}-{c1}"), "length_km": round(length, 2),
                          "circuits": n, "x_pu": x_pu, "s_nom": s_nom, "conductor": label, "t_design": T_DESIGN,
+                         "geom": geom(r.geometry, kv) if tie else None,
                          "tie": tie, "osm": r.tags})
     for r in ot.itertuples():
         if r.bus0 in ext_ids and r.bus1 in ext_ids and level(r.voltage_bus0) != level(r.voltage_bus1):
@@ -278,6 +289,19 @@ def main():
     branches = [b for b in branches if b["bus0"] in main_cc]
     keep = {h["pl_ac_bus"] for h in hvdc}
 
+    def join_geom(p, q, node):
+        """Geometry of two lines merged at `node`, in the order of the merged branch."""
+        if not p.get("geom") or not q.get("geom"):
+            return p.get("geom") or q.get("geom")
+        b = buses[node]
+        def near_end(g):  # orient g so that it ends at the node
+            d0 = km(b["lat"], b["lon"], g[0][1], g[0][0])
+            d1 = km(b["lat"], b["lon"], g[-1][1], g[-1][0])
+            return g[::-1] if d0 < d1 else g
+        gp = near_end(p["geom"])
+        gq = near_end(q["geom"])[::-1]
+        return gp + gq[1:]
+
     # series reduction of pass-through virtual buses
     while True:
         deg = collections.defaultdict(list)
@@ -297,7 +321,7 @@ def main():
         a1 = q["bus1"] if q["bus0"] == node else q["bus0"]
         merged = dict(p, id=p["id"] + "|" + q["id"], bus0=a0, bus1=a1, length_km=round(p["length_km"] + q["length_km"], 2),
                       x_pu=p["x_pu"] + q["x_pu"], s_nom=min(p["s_nom"], q["s_nom"]), tie=p["tie"] or q["tie"],
-                      osm=f"{p['osm']};{q['osm']}", bundle_tagged=p.get("bundle_tagged", False) or q.get("bundle_tagged", False))
+                      osm=f"{p['osm']};{q['osm']}", geom=join_geom(p, q, node), bundle_tagged=p.get("bundle_tagged", False) or q.get("bundle_tagged", False))
         branches = [b for k, b in enumerate(branches) if k not in (i, j)] + [merged]
         main_cc.discard(node)
 
