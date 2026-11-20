@@ -365,6 +365,10 @@ def median(values):
 
 
 GROUP_RADIUS_KM = 90   # a group's stations load the same lines: one placed farther than this from the rest is a namesake
+SNAP_KM = 3            # a station placed at a town moves to the 110 kV substation nearest it within this distance
+_OSM110 = os.path.join(HERE, "osm_substations_110.json")
+OSM110 = json.load(open(_OSM110, encoding="utf-8"))["substations"] if os.path.exists(_OSM110) else []
+from osm_substations import key_of as osm_key  # noqa: E402
 
 
 def place_group(places, names, op):
@@ -384,12 +388,24 @@ def place_group(places, names, op):
         if len(words) >= 2 and len(words[-1]) > 4:
             candidates += [(lat, lon, "substation") for lat, lon, *_ in places.subs.get(" ".join(words[1:]), [])]
         candidates += [(lat, lon, "place") for lat, lon, _ in places.places.get(key, []) + places.places.get(fold(name), [])]
+        # Every 110 kV substation in OSM by its own name ("Olsztyn Jaroty" for "Jaroty", "Jaroty" for "Olsztyn Jaroty").
+        own = osm_key(name)
+        if own:
+            for k, _, lat, lon, *_ in OSM110:
+                if k and (k == own or k.endswith(" " + own) or own.endswith(" " + k)):
+                    candidates.append((lat, lon, "substation"))
         if found:
             candidates.append((found[0], found[1], found[3]))
         candidates = [c for c in candidates if km(centre, c[:2]) <= GROUP_RADIUS_KM]
         # The nearest substation, else the nearest town.
         candidates.sort(key=lambda c: (c[2] != "substation", km(centre, c[:2])))
-        out.append(candidates[0] if candidates else None)
+        best = candidates[0] if candidates else None
+        if best and best[2] == "place":
+            # Placed at a town: the 110 kV substation nearest it, if one is within SNAP_KM, is most likely the one meant.
+            near = min(((km(best[:2], (lat, lon)), lat, lon) for _, _, lat, lon, *_ in OSM110), default=None)
+            if near and near[0] <= SNAP_KM:
+                best = (near[1], near[2], "near")
+        out.append(best)
     return out
 
 
