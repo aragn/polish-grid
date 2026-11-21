@@ -16,6 +16,11 @@ their identifier, municipality, precinct, number, area, and where the county pub
 classes and the owner group (grupa rejestrowa: the kind of owner, never a name).  Outlines are simplified to
 about 1.5 m and rounded to 1e-5 degrees.
 
+Paging: a page holds at most PAGE plots, and the service's numberMatched on a page only counts the plots up to that
+page (813 on the first page of a square that holds 11,143), so the total comes from a separate hits request and the
+pages are read until it.  A refetch keeps what the later steps found on a plot (constraints, protected areas, zoning,
+flood) when the plot is unchanged, so they only work on the new plots.
+
 Writes data/land/<station>.json (one per substation) and data/land/index.json.
 """
 
@@ -45,7 +50,7 @@ MIN_ROOM_MW = 50
 RADIUS_KM = 3.0
 MIN_AREA_HA = 1.0
 REFRESH_DAYS = 90
-VERSION = 2              # bump to re-fetch everything (2: outlines simplified correctly)
+VERSION = 3              # bump to re-fetch everything (2: outlines simplified correctly; 3: every page, not just the first)
 PAGE = 1000
 NS = {"gml": "http://www.opengis.net/gml/3.2"}
 PLACED = {"substation", "operator", "near"}
@@ -152,15 +157,18 @@ def plots_around(station):
     bbox = f"{lat - dlat},{lon - dlon},{lat + dlat},{lon + dlon},urn:ogc:def:crs:EPSG::4326"
     to_xy = project(lat)
     sx, sy = to_xy(lat, lon)
-    out, start, matched = [], 0, None
+    query = {"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": "ms:dzialki", "SRSNAME": "urn:ogc:def:crs:EPSG::4326", "BBOX": bbox}
+    m = re.search(rb'numberMatched="(\d+)"', get({**query, "RESULTTYPE": "hits"})[:3000])
+    total = int(m.group(1)) if m else None
+    out, seen, start, empty = [], set(), 0, 0
     while True:
-        content = get({"SERVICE": "WFS", "VERSION": "2.0.0", "REQUEST": "GetFeature", "TYPENAMES": "ms:dzialki", "SRSNAME": "urn:ogc:def:crs:EPSG::4326",
-                       "BBOX": bbox, "COUNT": PAGE, "STARTINDEX": start})
-        m = re.search(rb'numberMatched="(\d+)"', content[:2000])
-        matched = int(m.group(1)) if m else matched
+        content = get({**query, "COUNT": PAGE, "STARTINDEX": start})
         n = 0
         for fields, polygons in parse(content):
             n += 1
+            if fields.get("ID_DZIALKI", "") in seen:
+                continue
+            seen.add(fields.get("ID_DZIALKI", ""))
             area = 0.0
             geometry, nearest = [], 1e9
             for rings in polygons:
@@ -180,9 +188,29 @@ def plots_around(station):
                         "klasy": fields.get("KLASOUZYTKI_EGIB", ""), "grupa": fields.get("GRUPA_REJESTROWA", ""),
                         "km": round(nearest / 1000, 2), "geom": geometry})
         start += PAGE
-        if n < PAGE or (matched is not None and start >= matched):
+        # Without a total, stop after two empty pages in a row (a page can come back with fewer than PAGE plots).
+        empty = empty + 1 if n == 0 else 0
+        if (total is not None and start >= total) or (total is None and empty >= 2):
             break
-    return out, matched
+    return out, total if total is not None else len(seen)
+
+
+FETCHED = {"id", "gmina", "obreb", "nr", "ha", "ha_egib", "klasy", "grupa", "km", "geom"}
+
+
+def carry_over(path, plots):
+    """Copy what the later steps found (constraints, protected areas, zoning, flood, neighbours) from the station's
+    previous file onto the plots that haven't changed (same id, area and outline)."""
+    if not os.path.exists(path):
+        return 0
+    old = {p["id"]: p for p in json.load(open(path, encoding="utf-8")).get("plots", [])}
+    kept = 0
+    for plot in plots:
+        before = old.get(plot["id"])
+        if before and before.get("ha") == plot["ha"] and before.get("geom") == plot["geom"]:
+            plot.update({k: v for k, v in before.items() if k not in FETCHED})
+            kept += 1
+    return kept
 
 
 def main(budget_minutes=50, only=None):
@@ -203,7 +231,7 @@ def main(budget_minutes=50, only=None):
     todo.sort(key=lambda s: -s["room"])      # the substations of the groups with the most room first
     print(f"Land: {len(wanted)} substations shortlisted, {len(todo)} to fetch", flush=True)
     deadline = time.time() + budget_minutes * 60
-    done = 0
+    done = added = 0
 
     def work(station):
         if time.time() > deadline:
@@ -222,14 +250,20 @@ def main(budget_minutes=50, only=None):
             if error:
                 print(f"Land: {sid} failed: {error}", flush=True)
                 continue
+            path = os.path.join(OUT, f"{sid}.json")
+            before = (index["stations"].get(sid) or {}).get("n", 0)
+            kept = carry_over(path, plots)
             json.dump({"station": {k: station[k] for k in ("id", "name", "code", "op", "lat", "lon", "how", "groups")}, "radius_km": RADIUS_KM,
                        "min_ha": MIN_AREA_HA, "fetched": today.isoformat(), "plots_in_square": matched, "plots": plots},
-                      open(os.path.join(OUT, f"{sid}.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
+                      open(path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
             index["stations"][sid] = {**{k: station[k] for k in ("name", "code", "op", "lat", "lon", "how", "groups")}, "fetched": today.isoformat(), "v": VERSION, "n": len(plots),
-                                      "big": sum(1 for p in plots if p["ha"] >= 5), "max_ha": max((p["ha"] for p in plots), default=0)}
+                                      "big": sum(1 for p in plots if p["ha"] >= 5), "max_ha": max((p["ha"] for p in plots), default=0),
+                                      "checked": sum(1 for p in plots if "u" in p), "big_usable": sum(1 for p in plots if p.get("u", 0) >= 5),
+                                      "n2k": sum(1 for p in plots if p.get("n2", 0) > 0)}
             done += 1
-            if done % 20 == 0:
-                print(f"Land: {done}/{len(todo)}", flush=True)
+            added += len(plots) - kept
+            if done <= 5 or done % 20 == 0:
+                print(f"Land: {done}/{len(todo)} ({sid}: {matched} plots in the square, {len(plots)} of 1 ha or more, was {before}; {kept} unchanged)", flush=True)
                 json.dump(index, open(index_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     # Stations no longer shortlisted stay on disk but leave the index.
     index["stations"] = {sid: v for sid, v in index["stations"].items() if sid in wanted}
@@ -239,7 +273,7 @@ def main(budget_minutes=50, only=None):
                   "source": WFS, "shortlisted": len(wanted)})
     json.dump(index, open(index_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     left = len(todo) - done
-    print(f"Land: fetched {done}, {left} left for the next run, {len(index['stations'])} substations with plots")
+    print(f"Land: fetched {done}, {left} left for the next run, {len(index['stations'])} substations with plots; {added} new or changed plots for the later steps")
     return done > 0
 
 
