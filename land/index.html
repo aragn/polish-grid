@@ -12,19 +12,19 @@
       color-scheme: dark;
       --bg:#0b0d10; --panel:#111418; --panel-2:#15191e; --border:#272c33; --text:#f1f3f5; --muted:#8c949e; --muted-2:#666e78;
       --hover:#1a1f25; --accent:#5b9cff; --plot:#ff3b30; --plot-dim:#ffd60a; --station:#5b9cff; --shadow:rgba(0,0,0,.55);
-      --c3:#2b915a;
+      --c3:#2b915a; --warn:#ffb340;
     }
     @media (prefers-color-scheme: light) {
       :root:not([data-theme="dark"]) {
         color-scheme: light;
         --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
-        --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a;
+        --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a; --warn:#b25e00;
       }
     }
     :root[data-theme="light"] {
       color-scheme: light;
       --bg:#f6f6f4; --panel:#fcfcfb; --panel-2:#f3f3f0; --border:#e1e0d9; --text:#0b0b0b; --muted:#52514e; --muted-2:#898781;
-      --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a;
+      --hover:#efeeea; --accent:#2a78d6; --station:#2a78d6; --shadow:rgba(16,24,40,.14); --c3:#25864a; --warn:#b25e00;
     }
     * { box-sizing:border-box; }
     [hidden] { display:none !important; }
@@ -46,6 +46,8 @@
     .box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
     .box h3 { margin:0 0 8px; font-size:12.5px; font-weight:650; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
     .row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    label.row { flex-wrap:nowrap; align-items:flex-start; }
+    label.row input { margin:2px 0 0; flex:none; }
     .count { color:var(--muted); font-size:12.5px; line-height:1.5; margin-top:6px; }
     .count b { color:var(--text); }
     .select, .input { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 8px; font-size:13px; }
@@ -65,6 +67,9 @@
     .plot:hover, .plot.on { background:var(--hover); }
     .plot b { font-variant-numeric:tabular-nums; }
     .plot .sub { color:var(--muted); font-size:11.5px; margin-top:2px; }
+    .tags { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+    .tag { border:1px solid var(--border); border-radius:5px; padding:0 5px; font-size:11px; color:var(--muted); }
+    .tag.warn { border-color:var(--warn); color:var(--warn); }
     .card { display:grid; grid-template-columns:120px 1fr; gap:4px 10px; font-size:12.5px; margin:0; }
     .card dt { color:var(--muted); }
     .card dd { margin:0; line-height:1.45; word-break:break-word; }
@@ -106,6 +111,9 @@
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="usable" checked> Count only usable land: no forest, water, roads or buildings</label>
           <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0">no limit</option><option value="30">30 m</option><option value="50" selected>50 m</option><option value="100">100 m</option></select> on average</div>
           <div class="row" style="margin-top:10px">At least <select class="select" id="gap" style="width:auto"><option value="0">any distance</option><option value="50">50 m</option><option value="100">100 m</option><option value="250">250 m</option><option value="500">500 m</option></select> from the nearest building</div>
+          <div class="row" style="margin-top:10px">Leave out plots in <select class="select" id="nature" style="width:auto"><option value="0">no protected area</option><option value="1" selected>national parks and nature reserves</option><option value="2">… and landscape parks</option><option value="3">… and Natura 2000</option><option value="4">… and protected landscape areas</option></select></div>
+          <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="soil"> Leave out plots with class I–III farmland (where the register lists classes)</label>
+          <div class="row" style="margin-top:10px">Owner <select class="select" id="owner" style="width:auto"><option value="">anyone</option><option value="state">State Treasury and state bodies</option><option value="local">municipality, county or region</option><option value="private">private persons</option><option value="company">companies</option><option value="other">cooperatives, churches, land communities</option></select></div>
           <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2" class="on">2 km</button><button type="button" data-km="3">3 km</button></div> of a substation</div>
           <div class="count" id="need-note"></div>
         </div>
@@ -121,7 +129,7 @@
       </aside>
       <section class="map-box">
         <div id="map"></div>
-        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div></div>
       </section>
     </div>
     <footer id="footer"></footer>
@@ -137,12 +145,41 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50 };
-  let index, capacity, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "" };
+  let index, capacity, protectedAreas = {}, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {};
 
   function areaOf(p) { return state.usable && p.u != null ? p.u : p.ha; }
-  function fits(p) { return areaOf(p) >= state.need && (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth); }
+  function fits(p) {
+    return areaOf(p) >= state.need && (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth)
+      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p);
+  }
+  // Protected areas, strictest first; a plot counts as inside when more than a tenth of it is.
+  const NATURE_STYLE = { n2k: { color: "#bf5af2" }, PL01: { color: "#ff9f0a" }, PL02: { color: "#ff9f0a" }, PL03: { color: "#30d158" }, PL04: { color: "#64d2ff", dash: "5 4" } };
+  const NATURE = [["np", "a national park or nature reserve"], ["lp", "a landscape park"], ["n2", "Natura 2000"], ["ol", "a protected landscape area"]];
+  function blockedByNature(p) { return NATURE.slice(0, state.nature).some(([k]) => (p[k] || 0) > 0.1 * p.ha); }
+  // Land-use symbols and soil classes of the register (EGiB regulation, annex 1). "W/RIIIa" is a ditch on class IIIa arable soil.
+  const USE = { R: "arable", "Ł": "meadow", Ps: "pasture", S: "orchard", Br: "built-up farmland", Wsr: "farm pond", W: "ditch", Lzr: "wooded farmland",
+    Ls: "forest", Lz: "wooded land", B: "residential", Ba: "industrial", Bi: "other built-up", Bp: "urbanised, not built", Bz: "recreation", K: "mining",
+    dr: "road", Tk: "railway", Ti: "other transport", Tp: "land for planned roads or railways", Tr: "miscellaneous", N: "wasteland", Wm: "sea", Wp: "flowing water", Ws: "standing water" };
+  function decodeClass(token) {
+    const parts = token.split("/");
+    const one = s => { const m = s.match(/^(Wsr|Lzr|Br|Ps|Ls|Lz|Ba|Bi|Bp|Bz|Ti|Tk|Tp|Tr|Wm|Wp|Ws|dr|R|Ł|S|W|B|K|N)(I{1,3}[ab]?|IV[ab]?|VIz|VI|V)?$/);
+      return m ? `${USE[m[1]] || m[1]}${m[2] ? ", class " + m[2] : ""}` : s; };
+    return parts.length === 2 ? `${one(parts[0])} on ${one(parts[1])} soil` : one(token);
+  }
+  function goodSoil(p) {
+    if (!p.klasy) return [];
+    return [...new Set(p.klasy.split(/[,;]\s*/).filter(x => /^(R|Ł|Ps)(I|II|III|IIIa|IIIb)$/.test(x.split("/").pop())))];
+  }
+  // Register groups, regulation on land and building registers, § 14(1) (Dz.U. 2024 poz. 219).
+  const OWNER = { 1: "State Treasury", 2: "State Treasury, with perpetual usufructuaries", 3: "state companies and other state legal persons",
+    4: "municipality", 5: "municipality, with perpetual usufructuaries", 6: "municipal companies and other local-government legal persons",
+    7: "private persons", 8: "cooperatives", 9: "churches and religious bodies", 10: "land communities", 11: "county (powiat)",
+    12: "county, with perpetual usufructuaries", 13: "region (województwo)", 14: "region, with perpetual usufructuaries", 15: "companies", 16: "other owners" };
+  const OWNER_SETS = { state: [1, 2, 3], local: [4, 5, 6, 11, 12, 13, 14], private: [7], company: [15], other: [8, 9, 10, 16] };
+  const groupsOf = p => String(p.grupa || "").split(",").map(Number).filter(Boolean);
+  function ownerOk(p) { if (!state.owner) return true; const g = groupsOf(p); return g.length > 0 && g.every(x => OWNER_SETS[state.owner].includes(x)); }
   // Average width = 2 x area / perimeter (a long rectangle's width); old railway and road plots are long, thin strips.
   function widthOf(p) {
     let perimeter = 0;
@@ -161,6 +198,7 @@
 
   async function load() {
     [index, capacity] = await Promise.all([get("../data/land/index.json"), get("../data/grid_capacity.json")]);
+    protectedAreas = (await get("../data/land/protected.json").catch(() => ({ areas: {} }))).areas;
     const groups = capacity.areas.filter(a => a.op !== "pse")
       .map(a => ({ a, sts: Object.entries(index.stations).filter(([, s]) => s.groups.includes(a.id)) }))
       .filter(g => g.sts.length)
@@ -169,7 +207,7 @@
     const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
     $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
       `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +
-      `Pick a group, say what you want to build, and the plots with enough usable land (forest, water, roads and buildings taken out) within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
+      `Pick a group, say what you want to build, and the plots with enough usable land (forest, water, roads and buildings taken out), outside the protected areas and on the soil and owners you choose, within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
     map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([52.1, 19.4], 6);
     const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" });
     const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "" });
@@ -177,8 +215,20 @@
     const ortho = L.tileLayer.wms("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMS/StandardResolution", { layers: "Raster", format: "image/jpeg", maxZoom: 20, attribution: "Orthophoto © GUGiK" });
     const parcels = L.tileLayer.wms("https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaEwidencjiGruntow", { layers: "dzialki,numery_dzialek", format: "image/png", transparent: true, maxZoom: 20, attribution: "EGiB © GUGiK" });
     esri.addTo(map); labels.addTo(map);
+    // Protected areas near the substations, from data/land/protected_shapes.json (EEA, simplified to 25 m); EEA's own map tiles only draw faint outlines.
+    // In its own pane below the plots (they arrive later, and would otherwise be drawn over them); names are on the plot card.
+    map.createPane("nature").style.zIndex = 350;
+    const natureLayer = L.layerGroup(), natureRenderer = L.canvas({ pane: "nature" });
+    get("../data/land/protected_shapes.json").then(d => {
+      for (const [id, rings] of d.shapes) {
+        const a = protectedAreas[id]; if (!a) continue;
+        const c = NATURE_STYLE[a[0]] || NATURE_STYLE.n2k;
+        L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: c.color, weight: 1.4, opacity: 0.9, dashArray: c.dash, fillColor: c.color, fillOpacity: 0.13, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(natureLayer);
+      }
+    }).catch(() => {});
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
-      { "Place names": labels, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
+      { "Place names": labels, "Protected areas (EEA)": natureLayer, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
+    natureLayer.addTo(map);
     ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map);
     bind();
     const hash = new URLSearchParams(location.hash.slice(1));
@@ -235,11 +285,14 @@
     const ok = all.filter(fits).sort((a, b) => state.sort === "ha" ? areaOf(b) - areaOf(a) : a.km - b.km);
     const checked = all.filter(p => p.u != null).length;
     $("need-note").innerHTML = `${state.kind === "pv" ? "Ground-mounted PV takes about 1–1.5 ha per MWp, with spacing." : "A battery takes about 2 ha per 100 MWh with spacing, plus about 0.5 ha for its substation and access."} ` +
-      `<b>${ok.length}</b> plots with at least ${state.need} ha${state.usable ? " of usable land" : ""}${state.gap ? ` and ${state.gap} m from the nearest building` : ""}${state.minWidth ? `, at least ${state.minWidth} m wide,` : ""} within ${state.km} km; the ${all.length - ok.length} others are dashed (neighbouring plots can be combined). ` +
-      (checked < all.length ? `${all.length - checked} plots haven't been checked for forest, water and buildings yet and count at their full area.` : "");
-    $("list-title").textContent = `${ok.length} plots big enough`;
+      `<b>${ok.length}</b> plots with at least ${state.need} ha${state.usable ? " of usable land" : ""}${state.gap ? ` and ${state.gap} m from the nearest building` : ""}${state.minWidth ? `, at least ${state.minWidth} m wide,` : ""}${state.nature ? ` outside ${NATURE.slice(0, state.nature).map(x => x[1].replace(/^an? /, "")).join(", ")}` : ""}${state.soil ? ", without class I–III farmland" : ""}${state.owner ? `, owned by ${$("owner").selectedOptions[0].text}` : ""} within ${state.km} km; the ${all.length - ok.length} others are dashed (neighbouring plots can be combined). ` +
+      (checked < all.length ? `${all.length - checked} plots haven't been checked for forest, water and buildings yet and count at their full area. ` : "") +
+      (state.nature ? "A plot counts as inside a protected area when more than a tenth of it is. " : "") +
+      (state.soil ? `${all.filter(p => !p.klasy).length} plots have no classes in the register and stay in. ` : "") +
+      (state.owner ? `${all.filter(p => !p.grupa).length} plots have no owner group in the register and are left out. ` : "");
+    $("list-title").textContent = `${ok.length} plot${ok.length === 1 ? "" : "s"} big enough`;
     $("plots").innerHTML = ok.slice(0, 300).map(p => `<div class="plot ${state.plot === p.id ? "on" : ""}" data-id="${esc(p.id)}"><b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}` +
-      `<div class="sub">${esc(p.obreb)} ${esc(p.nr)} · ${esc(p.gmina)} · ${esc(p.id)}${p.klasy ? " · " + esc(p.klasy) : ""}</div></div>`).join("") ||
+      `<div class="sub">${esc(p.obreb)} ${esc(p.nr)} · ${esc(p.gmina)} · ${esc(p.id)}${p.klasy ? " · " + esc(p.klasy) : ""}</div>${badges(p)}</div>`).join("") ||
       `<div class="plot" style="cursor:default">No plot this big within ${state.km} km. Try a larger distance, a smaller project, or combine neighbouring plots.</div>`;
     plotLayer.clearLayers();
     const red = cssVar("--plot"), dim = cssVar("--plot-dim");
@@ -254,11 +307,41 @@
     renderCard();
   }
 
+  function badges(p) {
+    const b = [];
+    for (const [k, label] of [["np", "national park or reserve"], ["lp", "landscape park"], ["n2", "Natura 2000"], ["ol", "protected landscape"]])
+      if ((p[k] || 0) > 0) b.push(`<span class="tag warn">${label} ${Math.round(100 * Math.min(p[k] / p.ha, 1))}%</span>`);
+    if (goodSoil(p).length) b.push(`<span class="tag">class I–III farmland</span>`);
+    const g = groupsOf(p);
+    if (g.length) b.push(`<span class="tag">${esc(g.map(x => OWNER[x] || "group " + x).join(" + "))}</span>`);
+    return b.length ? `<div class="tags">${b.join("")}</div>` : "";
+  }
+
   function selectPlot(id, zoom) {
     state.plot = id; render();
     const p = plots.find(q => q.id === id);
     if (p && zoom) map.fitBounds(L.latLngBounds(p.geom.flat(2).map(([lon, lat]) => [lat, lon])).pad(0.6), { maxZoom: 17 });
     document.querySelector(`.plot[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" });
+  }
+
+  function protectedText(p) {
+    if (p.n2 == null) return "not checked yet";
+    const rows = (p.pz || []).map(id => protectedAreas[id]).filter(Boolean)
+      .map(([kind, name, label]) => `${esc(name)} <span style="color:var(--muted)">(${esc(label)})</span>`);
+    const inside = [["np", "national park or reserve"], ["lp", "landscape park"], ["n2", "Natura 2000"], ["ol", "protected landscape area"]]
+      .filter(([k]) => p[k] > 0).map(([k, l]) => `${Math.min(p[k], p.ha).toFixed(2)} ha in ${l}`);
+    if (!rows.length) return p.n2d == null ? "none; no Natura 2000 site within 5 km" : `none; the nearest Natura 2000 site is ${p.n2d < 1000 ? p.n2d + " m" : (p.n2d / 1000).toFixed(1) + " km"} away`;
+    return `${rows.join("; ")}.<br>${inside.join(", ") || "it only touches the edge"}.` +
+      (p.np > 0 ? " Building in national parks and nature reserves is in practice ruled out." : "") +
+      (p.n2 > 0 ? " In Natura 2000 a project needs an assessment of its effect on the site." : "");
+  }
+  function planningText(p) {
+    const good = goodSoil(p);
+    const soil = !p.klasy ? "The register doesn't list this plot's soil classes here; check them on Geoportal. "
+      : good.length ? `Includes class I–III farmland (${esc(good.join(", "))}): turning it to other uses needs the agriculture minister's consent, given in a local plan (farmland protection act, art. 7(2)). `
+      : /^(R|Ł|Ps)IV/.test(p.klasy.split(/[,;]\s*/).map(x => x.split("/").pop()).find(x => /^(R|Ł|Ps)IV/.test(x)) || "") ? "Its best farmland is class IV. " : "No class I–III farmland listed. ";
+    return soil + "Ground-mounted solar needs a local plan (MPZP) on class I–III farmland and forest at any size, on class IV farmland above 150 kW, and elsewhere above 1 MW " +
+      "(planning act, art. 14(6a)); a battery is not a renewable source, so this rule doesn't apply to it.";
   }
 
   function renderCard() {
@@ -277,8 +360,10 @@
       ["On the plot", p.u == null ? "–" : [["forest and wooded land", p.f], ["water", p.w], ["built-up land", p.b], ["roads and railways", p.r]].filter(([, v]) => v > 0).map(([k, v]) => `${v.toFixed(2)} ha ${k}`).join(", ") || "none of these"],
       ["Buildings", p.u == null ? "–" : (p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"} away`)],
       ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
-      ["Land and soil classes", p.klasy ? esc(p.klasy) : "not published by this county's service"],
-      ["Owner group", p.grupa ? `group ${esc(p.grupa)} in the register (the kind of owner, not who)` : "not published by this county's service"],
+      ["Protected areas", protectedText(p)],
+      ["Land and soil classes", p.klasy ? p.klasy.split(/[,;]\s*/).filter(Boolean).map(x => `${esc(x)} <span style="color:var(--muted)">(${esc(decodeClass(x))})</span>`).join(", ") : "not published by this county's service"],
+      ["Planning", planningText(p)],
+      ["Owner group", p.grupa ? `${groupsOf(p).map(x => `${esc(OWNER[x] || "group " + x)} (group ${x})`).join(" and ")}. The kind of owner, not who.` : "not published by this county's service"],
       ["Look further", `<a href="https://mapy.geoportal.gov.pl/imap/Imgp_2.html?identifyParcel=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Geoportal</a> (classes, zoning, orthophotos) · ` +
         `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat.toFixed(5)}&lng=${lon.toFixed(5)}" target="_blank" rel="noopener">Copernicus Browser</a> (Sentinel-2 history) · ` +
         `<a href="https://ekw.ms.gov.pl/eukw_ogol/menu.do" target="_blank" rel="noopener">Land and mortgage register</a> (owners, by register number)`],
@@ -286,6 +371,7 @@
   }
 
   function bind() {
+    Object.assign(state, { usable: $("usable").checked, gap: +$("gap").value, minWidth: +$("width").value, nature: +$("nature").value, soil: $("soil").checked ? 1 : 0, owner: $("owner").value });
     $("group").addEventListener("change", e => selectGroup(e.target.value));
     window.addEventListener("hashchange", () => { const g = new URLSearchParams(location.hash.slice(1)).get("group"); if (g && g !== state.group && [...$("group").options].some(o => o.value === g)) { $("group").value = g; selectGroup(g); } });
     $("stations").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.station = b.dataset.sid || null; renderStations(); render(); });
@@ -296,6 +382,9 @@
     $("usable").addEventListener("change", e => { state.usable = e.target.checked; render(); });
     $("gap").addEventListener("change", e => { state.gap = +e.target.value; render(); });
     $("width").addEventListener("change", e => { state.minWidth = +e.target.value; render(); });
+    $("nature").addEventListener("change", e => { state.nature = +e.target.value; render(); });
+    $("soil").addEventListener("change", e => { state.soil = e.target.checked ? 1 : 0; render(); });
+    $("owner").addEventListener("change", e => { state.owner = e.target.value; render(); });
     $("radius").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.km = +b.dataset.km; [...$("radius").children].forEach(x => x.classList.toggle("on", x === b)); renderStations(); render(); });
     $("sort").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; [...$("sort").children].forEach(x => x.classList.toggle("on", x === b)); render(); });
     $("plots").addEventListener("click", e => { const d = e.target.closest(".plot[data-id]"); if (d) selectPlot(d.dataset.id, true); });
@@ -309,8 +398,8 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
-      `A plot shown here is only a starting point: check its zoning, soil class, protected areas and access, and the owner, before anything else.`;
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 
   (function initTheme() { try { const s = localStorage.getItem("pg-theme"); if (s) document.documentElement.dataset.theme = s; } catch (e) { /* private mode */ } })();

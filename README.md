@@ -188,6 +188,24 @@ buildings on the plot. BDOT10k comes per county as a zip of GeoPackages from
 only; about 70 s a county, 206 counties). The page filters on usable hectares, average
 width (2 x area / perimeter, to drop narrow strips) and distance from buildings.
 
+`etl/land_protected.py` adds the protected areas, from the European Environment Agency's
+ArcGIS services (GDOŚ's own service refuses the runners): Natura 2000 (end-2024 release)
+and the Nationally designated areas (national parks PL01, nature reserves PL02, landscape
+parks PL03, protected landscape areas PL04). Each plot gets the hectares inside each kind
+(`n2`, `np`, `lp`, `ol`), the distance to the nearest Natura 2000 site (`n2d`) and the ids
+of the areas it touches (`pz`, named in `data/land/protected.json`).
+`data/land/protected_shapes.json` holds the areas within 4 km of the substations,
+simplified to 25 m, for the map. It takes about 4 minutes for all plots and runs before
+BDOT10k in `land.yml`. Dispatch with `protected_all` after a new EEA release.
+
+The page also decodes the register's land-use and soil-class symbols (`RIIIa`,
+`W/ŁIV`...) and owner groups 1–16 (§ 14 of the regulation on land and building
+registers, Dz.U. 2024 poz. 219). Its planning note follows art. 14(6a) of the planning
+act (Dz.U. 2026 poz. 538): ground-mounted solar needs a local plan on class I–III
+farmland and forest at any size, on class IV above 150 kW, elsewhere above 1 MW. It also
+follows art. 7(2) of the farmland protection act: class I–III farmland needs the
+agriculture minister's consent.
+
 Substations are placed at the operator's coordinates (TAURON), else at an OpenStreetMap
 110 kV substation of that name (`etl/osm_substations.py` writes
 `etl/osm_substations_110.json` from the Overpass API, cleaning names like
