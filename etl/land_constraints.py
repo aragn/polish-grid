@@ -33,6 +33,8 @@ import shapely
 from pyogrio import raw
 from pyproj import Transformer
 
+from land_protected import station_files
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 LAND = os.path.join(ROOT, "data", "land")
@@ -146,7 +148,7 @@ def county_values(county, plots, workdir):
 
 
 def main(budget_minutes=240, only=None):
-    files = sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if os.path.basename(f) not in ("index.json", "protected.json", "protected_shapes.json"))
+    files = station_files()
     # Plots still to check, by county (a plot may appear in several stations' files: checked once).
     todo = {}
     for path in files:

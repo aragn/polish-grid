@@ -128,6 +128,14 @@ def plot_shape(plot):
     return shapely.make_valid(shapely.MultiPolygon(polygons) if len(polygons) > 1 else polygons[0])
 
 
+# Files in data/land/ that aren't one substation's plots.
+NOT_STATIONS = ("index.json", "protected.json", "protected_shapes.json", "zoning.json")
+
+
+def station_files():
+    return sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if os.path.basename(f) not in NOT_STATIONS)
+
+
 GROUPS = {"n2": ("n2k",), "np": ("PL01", "PL02"), "lp": ("PL03",), "ol": ("PL04",)}
 
 
@@ -152,7 +160,7 @@ def values_for(shape, areas, tree, n2k_tree, n2k_index):
 
 
 def main(redo_all=False):
-    files = sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if os.path.basename(f) not in ("index.json", "protected.json", "protected_shapes.json"))
+    files = station_files()
     todo = {}
     for path in files:
         for plot in json.load(open(path, encoding="utf-8"))["plots"]:

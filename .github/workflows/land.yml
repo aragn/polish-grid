@@ -1,6 +1,7 @@
 # Fetches the land plots around the shortlisted substations (etl/land.py) from GUGiK's cadastre service,
 # which answers from GitHub's runners, then the protected areas they fall in from the EEA (etl/land_protected.py)
-# and what lies on them from BDOT10k (etl/land_constraints.py). Each run works through what is new or older than 90 days for up to the budgets,
+# and what lies on them from BDOT10k (etl/land_constraints.py). Zoning comes from the urban register (etl/land_zoning.py),
+# flood areas from Wody Polskie (etl/land_flood.py), and etl/land_blocks.py lists each plot's neighbours. Each run works through what is new or older than 90 days for up to the budgets,
 # then commits data/land; the next run carries on.
 name: Update land plots
 
@@ -18,6 +19,12 @@ on:
       only:
         description: "only this group (e.g. energa-13) or substation id"
         default: ""
+      zoning_budget:
+        description: "minutes to spend on zoning (urban register, 10 features a request)"
+        default: "120"
+      recheck:
+        description: "recheck every plot: none, zoning, flood or both"
+        default: "none"
       protected_all:
         description: "recheck every plot for protected areas (after a new EEA release)"
         type: boolean
@@ -39,14 +46,20 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests shapely pyproj pyogrio
+      - run: pip install requests shapely pyproj pyogrio numpy pillow
       - name: Fetch
         run: |
           python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '60' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
       - name: Natura 2000 and other protected areas on each plot (EEA)
         run: python etl/land_protected.py ${{ github.event.inputs.protected_all == 'true' && '--all' || '' }}
+      - name: Zoning on each plot (urban register)
+        run: python etl/land_zoning.py --budget-minutes "${{ github.event.inputs.zoning_budget || '120' }}" ${{ (github.event.inputs.recheck == 'zoning' || github.event.inputs.recheck == 'both') && '--all' || '' }}
+      - name: Flood areas on each plot (Wody Polskie)
+        run: python etl/land_flood.py ${{ (github.event.inputs.recheck == 'flood' || github.event.inputs.recheck == 'both') && '--all' || '' }}
       - name: Forest, water, roads and buildings on each plot
         run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
+      - name: Neighbouring plots
+        run: python etl/land_blocks.py
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
