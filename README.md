@@ -198,6 +198,35 @@ of the areas it touches (`pz`, named in `data/land/protected.json`).
 simplified to 25 m, for the map. It takes about 4 minutes for all plots and runs before
 BDOT10k in `land.yml`. Dispatch with `protected_all` after a new EEA release.
 
+`etl/land_zoning.py` reads the Ministry of Development's urban register
+(`rejestr-urbanistyczny.gov.pl/uslugi-sieciowe/app-mpzp/wfs` and `app-pog/wfs`, since
+October 2026 the only national source of plans) over the box around each substation's
+plots. The register returns at most 10 features a request, whatever `count` asks for, so
+the script follows `numberMatched`. GML coordinates come northing first. Each plot gets:
+- `mp` (hectares inside a published local plan) and `mpz` (the plans);
+- `pg` (the general-plan zones it falls in, with hectares).
+
+`data/land/zoning.json` names them, with each zone's type and the land uses ("profiles")
+a local plan may allow there, such as `PEF`, solar farm. Local plans in the register
+carry only their outline, title and date. Many municipalities haven't published their
+plans yet, so "no plan" on the page means "none in the register".
+
+`etl/land_flood.py` reads Wody Polskie's flood hazard maps (INSPIRE view service
+`INSPIRE_NZ_HY_MZPMRP_WMS`, river and sea floods, second cycle, made public in September
+2022 and still the official maps). Its WFS sends whole river reaches of several MB each,
+so instead the WMS draws the areas with our own SLD (two FeatureTypeStyles, so that the
+1% areas are painted over the 0.2% ones). The script asks for one image per substation at
+5 m a pixel, since the service draws nothing above 1:50,000, and samples each plot every
+10 m. `q1` is the hectares in the 1% (or 10%) area, an area of special flood danger
+under the Water Law, art. 16(34). `q02` is the further hectares flooded only at 0.2% or
+if an embankment fails.
+
+`etl/land_blocks.py` stores each plot's touching neighbours of 1 ha or more (`nx`,
+written relative to the precinct). The page grows a site from a plot by adding its
+largest neighbours that pass the filters, up to the number of plots the reader allows.
+Joining all touching plots into blocks doesn't work: 70,000 of the plots form one
+farmland mosaic.
+
 The page also decodes the register's land-use and soil-class symbols (`RIIIa`,
 `W/ŁIV`...) and owner groups 1–16 (§ 14 of the regulation on land and building
 registers, Dz.U. 2024 poz. 219). Its planning note follows art. 14(6a) of the planning
