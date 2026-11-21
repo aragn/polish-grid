@@ -1,6 +1,6 @@
 # Fetches the land plots around the shortlisted substations (etl/land.py) from GUGiK's cadastre service,
-# which answers from GitHub's runners, then what lies on them from BDOT10k
-# (etl/land_constraints.py). Each run works through what is new or older than 90 days for up to the budgets,
+# which answers from GitHub's runners, then the protected areas they fall in from the EEA (etl/land_protected.py)
+# and what lies on them from BDOT10k (etl/land_constraints.py). Each run works through what is new or older than 90 days for up to the budgets,
 # then commits data/land; the next run carries on.
 name: Update land plots
 
@@ -18,6 +18,10 @@ on:
       only:
         description: "only this group (e.g. energa-13) or substation id"
         default: ""
+      protected_all:
+        description: "recheck every plot for protected areas (after a new EEA release)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,6 +43,8 @@ jobs:
       - name: Fetch
         run: |
           python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '60' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
+      - name: Natura 2000 and other protected areas on each plot (EEA)
+        run: python etl/land_protected.py ${{ github.event.inputs.protected_all == 'true' && '--all' || '' }}
       - name: Forest, water, roads and buildings on each plot
         run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
       - name: Commit

@@ -146,7 +146,7 @@ def county_values(county, plots, workdir):
 
 
 def main(budget_minutes=240, only=None):
-    files = sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if not f.endswith("index.json"))
+    files = sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if os.path.basename(f) not in ("index.json", "protected.json", "protected_shapes.json"))
     # Plots still to check, by county (a plot may appear in several stations' files: checked once).
     todo = {}
     for path in files:
