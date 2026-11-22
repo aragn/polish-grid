@@ -40,6 +40,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from stations import fold  # noqa: E402
+from land_budget import capped  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 OUT = os.path.join(ROOT, "data", "land")
@@ -230,7 +231,7 @@ def main(budget_minutes=50, only=None):
             todo.append(station)
     todo.sort(key=lambda s: -s["room"])      # the substations of the groups with the most room first
     print(f"Land: {len(wanted)} substations shortlisted, {len(todo)} to fetch", flush=True)
-    deadline = time.time() + budget_minutes * 60
+    deadline = time.time() + capped(budget_minutes, 30, "Land") * 60
     done = added = 0
 
     def work(station):

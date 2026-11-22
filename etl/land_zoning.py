@@ -35,6 +35,7 @@ import shapely
 from pyproj import Transformer
 
 from land_protected import plot_shape, station_files
+from land_budget import capped
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LAND = os.path.join(os.path.dirname(HERE), "data", "land")
@@ -184,7 +185,7 @@ def main(budget_minutes=120, redo_all=False, only=None):
         return False
     shapes = {pid: plot_shape(p) for pid, p in plots.items()}
     shapes = {pid: s for pid, s in shapes.items() if s is not None and not s.is_empty}
-    deadline = time.time() + budget_minutes * 60
+    deadline = time.time() + capped(budget_minutes, 30, "Land zoning") * 60
     plans, zones, done_ids, done, failed = {}, {}, set(), 0, 0
     t0 = time.time()
 

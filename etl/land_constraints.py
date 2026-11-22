@@ -34,6 +34,7 @@ from pyogrio import raw
 from pyproj import Transformer
 
 from land_protected import station_files
+from land_budget import capped
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -159,7 +160,7 @@ def main(budget_minutes=240, only=None):
     if only:
         counties = [c for c in counties if c == only]
     print(f"Land constraints: {sum(len(v) for v in todo.values())} plots to check in {len(todo)} counties", flush=True)
-    deadline = time.time() + budget_minutes * 60
+    deadline = time.time() + capped(budget_minutes, 15, "Land constraints") * 60
     workdir = tempfile.mkdtemp(prefix="bdot10k_")
     results, done = {}, 0
     try:
