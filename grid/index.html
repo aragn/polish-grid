@@ -139,6 +139,7 @@
     .s-leg span { color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
     .s-leg span i { width:8px; height:8px; border-radius:50%; display:inline-block; flex:none; }
     .s-leg b { display:block; font-size:15px; margin:2px 0 0 14px; font-variant-numeric:tabular-nums; }
+    .s-over { display:block; font-style:normal; color:var(--warn); font-size:11px; margin:1px 0 0 14px; }
     .s-cap { color:var(--muted-2); font-size:11.5px; line-height:1.45; margin-top:8px; }
     .obars { display:flex; gap:6px; align-items:flex-end; height:118px; border:1px solid var(--border); border-radius:10px; padding:10px 10px 6px; background:var(--panel-2); }
     .ob { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0; }
@@ -841,7 +842,8 @@
     const kind = state.mode === "one" ? (oneWay(a) === "demand" ? "dem" : "gen") : state.mode;
     const q = a.queue || {}, dir = kind === "dem" ? "out" : "in";
     const free = Math.max(0, valueOf(a, kind, y) || 0), waiting = q[`pending_${dir}`] || 0, held = q[`held_${dir}`] || 0;
-    const total = free + waiting + held;
+    // The published room is already net of the agreed projects; the waiting ones would come out of it if granted.
+    const afterQueue = Math.max(0, free - waiting), over = Math.max(0, waiting - free), total = free + held;
     const placed = s.lat != null;
     const sat = placed ? (saturation.stations || []).find(x => x.lat != null && (kmBetween(s, x) < 1.5 || (a.op === "pse" && foldName(x.station || x.name) === foldName(s.name)))) : null;
     const kv = a.op === "pse" ? `${sat && sat.station_kv ? sat.station_kv.filter(k => k !== "110").join("/") || "220/400" : "220/400"} kV` : "110 kV";
@@ -849,8 +851,8 @@
     const land = placed && landIndex ? Object.entries(landIndex).find(([, x]) => x.lat != null && kmBetween(s, x) < 0.3) : null;
     const op = data.operators[a.op];
     const parts = [
-      { label: "Free", v: free, color: "var(--c4)" },
-      { label: "Waiting, not decided", v: waiting, color: "var(--warn)" },
+      { label: "Left if all waiting are granted", v: afterQueue, color: "var(--c4)" },
+      { label: "Waiting, not decided", v: free - afterQueue, shown: waiting, note: over ? `${fmtMw(over)} more than the free room` : "", color: "var(--warn)" },
       { label: "Conditions or agreement", v: held, color: "var(--accent)" },
     ];
     const rows = [];
@@ -881,10 +883,12 @@
       (placed ? `<div class="sat" id="s-sat"><img id="s-img" alt="Aerial image of ${esc(s.name)}"><i class="sat-ring"></i></div><div class="sat-cap" id="s-cap">Loading the aerial image…</div>` : "") +
       (where ? `<div class="sat-cap">${esc(where)}</div>` : "") +
       `<div class="s-sec"><h5>Room for ${SIDE_KIND[kind]}, ${yl}</h5><div class="s-donut">` +
-      donut(parts, fmtNum(free), total > 0 ? `MW FREE · ${Math.round(100 * free / total)}%` : "MW FREE") +
-      `<div class="s-leg">${parts.map(p => `<div><span><i style="background:${p.color}"></i>${esc(p.label)}</span><b>${fmtMw(p.v)}</b></div>`).join("")}</div></div>` +
+      donut(parts, fmtNum(free), "MW FREE") +
+      `<div class="s-leg">${parts.map(p => `<div><span><i style="background:${p.color}"></i>${esc(p.label)}</span><b>${fmtMw(p.shown ?? p.v)}</b>` +
+        `${p.note ? `<em class="s-over">${esc(p.note)}</em>` : ""}</div>`).join("")}</div></div>` +
       `<div class="s-cap">${a.op === "pse" ? "PSE's published figure (step 2) for this station" : `One figure for the whole group of ${a.stations.length} stations: what connects at any of them uses it up`}. ` +
-      `Waiting and agreed: the projects in our queue data matched to ${a.op === "pse" ? "the station" : "the group"}, ${dir === "in" ? "to feed in" : "to take out"}; the agreed ones are already subtracted from the free room.</div></div>` +
+      `${fmtMw(free)} free, already net of the ${fmtMw(held)} agreed. The ring is the room before those agreements (${fmtMw(total)}); the applications not yet decided would come out of the free room if granted. ` +
+      `Waiting and agreed are the projects in our queue data matched to ${a.op === "pse" ? "the station" : "the group"} by name, ${dir === "in" ? "to feed in" : "to take out"}, so they are approximate.</div></div>` +
       `<div class="s-sec"><h5>Outlook by year, ${SIDE_KIND[kind]}</h5>${outlookBars(a, kind)}` +
       `<div class="s-cap">${esc(op.name)}, ${a.op === "tauron" ? `read ${fmtDate(op.read)}` : `as of ${fmtDate(op.asof)}`}. The operator's own outlook for each year, not a history.</div></div>` +
       `<div class="s-sec">${rows.join("")}</div>` +
