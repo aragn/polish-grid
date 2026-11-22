@@ -143,6 +143,15 @@ them in PSE's development plans (agreed PRSP 2025-2034 and the 2027-2036 draft),
 matched by hand in `etl/pse_new_stations.json`; the page fills them in once built by
 the chosen year and charts them by year.
 
+**Station card.** Clicking a group, a PSE station or one of a group's stations opens,
+beside the group's card, a card for that station: an aerial image of it (GUGiK's
+orthophoto from the Geoportal WMS, loaded by the browser; Esri World Imagery when the
+Geoportal doesn't answer, as from some networks), the room left in the chosen year
+against what waits in the queue and what is already agreed, the operator's outlook by
+year, TAURON's medium-voltage room for that GPZ, PSE switchyards with no free bays,
+the modelled effect of a 100 MW battery and the land plots around it. Station names in
+the group's card switch it.
+
 **Modelled line loading in 2025.** A second map on the page comes from
 `etl/congestion/`. That is a DC power-flow model of the 110-400 kV grid, built
 from OpenStreetMap with the neighbours' 220/400 kV grids, run for every hour of
