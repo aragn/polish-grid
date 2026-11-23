@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install requests pyogrio && python probe/probe.py
+      - run: pip install requests pyogrio shapely pyproj && python probe/probe.py
