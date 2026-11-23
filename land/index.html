@@ -86,6 +86,10 @@
     .recs button:hover { background:var(--hover); }
     .recs button b { color:var(--c3); font-variant-numeric:tabular-nums; }
     .recs small { color:var(--muted); display:block; font-size:11.5px; }
+    details.buffers { margin-top:10px; border:1px solid var(--border); border-radius:9px; padding:6px 9px; }
+    details.buffers summary { cursor:pointer; color:var(--text); font-size:13px; }
+    .bufgrid { display:grid; grid-template-columns:auto auto; gap:6px 8px; align-items:center; margin-top:8px; font-size:13px; }
+    .bufgrid .select { width:auto; }
     .checks { list-style:none; margin:3px 0 0; padding:0; }
     .checks li { margin:2px 0; }
     .checks .y { color:var(--c3); font-weight:700; } .checks .n { color:var(--warn); font-weight:700; } .checks .q { color:var(--muted); font-weight:700; }
@@ -128,6 +132,12 @@
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="flood" checked> Leave out plots in the 1% flood area (special flood danger)</label>
           <div class="row" style="margin-top:10px">Zoning <select class="select" id="zoning" style="width:auto"><option value="">any</option><option value="solar">general-plan zone allows solar farms</option><option value="nohomes">not in a housing, services or green zone</option><option value="plan">inside a published local plan</option></select></div>
           <div class="row" style="margin-top:10px">Combine up to <select class="select" id="combine" style="width:auto"><option value="1" selected>1 plot (single plots)</option><option value="2">2 neighbouring plots</option><option value="3">3 neighbouring plots</option><option value="5">5 neighbouring plots</option><option value="8">8 neighbouring plots</option></select></div>
+          <details class="buffers" id="buffers">
+            <summary>Distances: homes, roads, power lines <span id="buf-summary" style="color:var(--muted)"></span></summary>
+            <div class="row" style="margin-top:8px">Preset <select class="select" id="preset" style="width:auto"><option value="">none: set your own</option><option value="pv">solar, common buffers</option><option value="bess">battery, common buffers</option></select></div>
+            <div class="bufgrid" id="bufgrid"></div>
+            <div class="count" id="buf-note">Measured from the plot's edge to the nearest object in BDOT10k. A plot is left out when one is closer; the buffers aren't cut out of its area. Presets are starting points used in practice, not legal minimums.</div>
+          </details>
           <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2" class="on">2 km</button><button type="button" data-km="3">3 km</button></div> of a substation</div>
           <div class="count" id="need-note"></div>
         </div>
@@ -164,15 +174,38 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1 };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0 };
   let recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {};
 
+  // Distances from data/land (etl/land_constraints.py): p.d[i] in metres for index.distance_keys[i]; 0 touching, null none
+  // within 3 km.  undefined: not computed yet for this plot.
+  let DK = {};
+  const dist = (p, key) => p.d == null || DK[key] == null ? undefined : p.d[DK[key]];
+  const fmtM = m => m == null ? "none within 3 km" : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
+  // Buffers the reader can set: leave a plot out when the nearest object is closer than this.
+  const BUFFERS = [["home", "homes", [0, 30, 50, 100, 150, 250, 500]], ["housing", "housing areas", [0, 50, 100, 150, 250, 500]],
+    ["hv_line", "high-voltage lines", [0, 10, 30, 50, 100]], ["railway", "railways", [0, 20, 50, 100]], ["major_road", "motorways and main roads", [0, 20, 50, 100]],
+    ["cemetery", "cemeteries", [0, 50, 150, 250]], ["airfield", "airfields", [0, 500, 1000, 2000]]];
+  const ACCESS = [0, 50, 100, 300, 1000];
+  const PRESETS = {
+    pv: { buf: { home: 30, major_road: 50, railway: 20, hv_line: 10 }, access: 1000 },
+    bess: { buf: { home: 150, housing: 150, major_road: 50, railway: 20, hv_line: 10 }, access: 300 },
+  };
+  function buffersOk(p) {
+    for (const [key] of BUFFERS) {
+      const b = state.buf[key] || 0; if (!b) continue;
+      const d = dist(p, key);
+      if (d != null && d < b) return false;
+    }
+    if (state.access) { const d = dist(p, "public_road"); if (d !== undefined && (d == null || d > state.access)) return false; }
+    return true;
+  }
   function areaOf(p) { return state.usable && p.u != null ? p.u : p.ha; }
   // Every filter but the area; a site of neighbouring plots is built only from plots that pass it.
   function fitsOther(p) {
     return (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth)
-      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p);
+      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p) && buffersOk(p);
   }
   function fits(p) { return fitsOther(p) && areaOf(p) >= state.need; }
   // Neighbours are stored relative to the plot's precinct ("98/2" next to "280205_5.0022.98/1").
@@ -253,6 +286,7 @@
     [index, capacity] = await Promise.all([get("../data/land/index.json"), get("../data/grid_capacity.json")]);
     protectedAreas = (await get("../data/land/protected.json").catch(() => ({ areas: {} }))).areas;
     zoning = await get("../data/land/zoning.json").catch(() => zoning);
+    DK = Object.fromEntries((index.distance_keys || []).map((k, i) => [k, i]));
     const groups = capacity.areas.filter(a => a.op !== "pse")
       .map(a => ({ a, sts: Object.entries(index.stations).filter(([, s]) => s.groups.includes(a.id)) }))
       .filter(g => g.sts.length)
@@ -374,6 +408,13 @@
     if (state.flood) tries.push([{ flood: 0 }, "allow plots in the 1% flood area", "Building there needs a water-law permit, and storing polluting substances is banned."]);
     if (state.owner) tries.push([{ owner: "" }, "any owner", ""]);
     if (state.zoning) tries.push([{ zoning: "" }, "any zoning", "Many municipalities haven't published their plans in the register yet."]);
+    for (const [key, label, steps] of BUFFERS) {
+      const b = state.buf[key] || 0; if (!b) continue;
+      const v2 = lower(b, steps);
+      tries.push([{ buf: { ...state.buf, [key]: v2 } }, v2 ? `${v2} m from ${label} instead of ${b} m` : `no distance from ${label} instead of ${b} m`, ""]);
+    }
+    if (state.access) { const i = ACCESS.indexOf(state.access), v2 = i < ACCESS.length - 1 ? ACCESS[i + 1] : 0;
+      tries.push([{ access: v2 }, v2 ? `a public road within ${v2} m instead of ${state.access} m` : "no limit on the distance to a public road", "A longer access road to build."]); }
     if (state.combine < 8) { const next = [1, 2, 3, 5, 8].find(x => x > state.combine); tries.push([{ combine: next }, `combine up to ${next} neighbouring plots`, "Each plot may have a different owner."]); }
     if (state.km < 3) tries.push([{ km: state.km + 1 }, `look within ${state.km + 1} km of a substation`, "A longer cable to the substation."]);
     const saved = { ...state };
@@ -398,6 +439,7 @@
     if ("owner" in change) $("owner").value = state.owner;
     if ("zoning" in change) $("zoning").value = state.zoning;
     if ("combine" in change) $("combine").value = state.combine;
+    if ("buf" in change || "access" in change) syncBuffers();
     if ("km" in change) { [...$("radius").children].forEach(x => x.classList.toggle("on", +x.dataset.km === state.km)); renderStations(); }
     render();
   }
@@ -408,9 +450,14 @@
     const bess = state.kind === "bess", c = [], add = (ok, label, why) => c.push({ ok, label, why });
     add(area >= state.need, `at least ${state.need} ha${state.usable ? " usable" : ""}`, `${area.toFixed(1)} ha`);
     add(p.km <= 1, "within 1 km of the substation", `${p.km.toFixed(1)} km; the shorter the cable, the cheaper the connection`);
-    const minGap = bess ? 150 : 30;
-    add(p.u == null ? null : p.bm == null || p.bm >= minGap, `nearest building at least ${minGap} m away`,
-      p.u == null ? "not checked yet" : `${p.bm == null ? "none within 3 km" : p.bm + " m"}; a common buffer ${bess ? "for a battery's noise and fire risk" : "for a solar farm"}, not a legal minimum`);
+    const minGap = bess ? 150 : 30, home = dist(p, "home");
+    if (home !== undefined) add(home == null || home >= minGap, `nearest home at least ${minGap} m away`, `${fmtM(home)}; a common buffer ${bess ? "for a battery's noise and fire risk" : "for a solar farm"}, not a legal minimum`);
+    else add(p.u == null ? null : p.bm == null || p.bm >= minGap, `nearest building at least ${minGap} m away`,
+      p.u == null ? "not checked yet" : `${p.bm == null ? "none within 3 km" : p.bm + " m"} (any building; homes not told apart yet); a common buffer, not a legal minimum`);
+    const road = dist(p, "public_road");
+    add(road === undefined ? null : road != null && road <= 300, "a public road within 300 m", road === undefined ? "not computed yet" : `${fmtM(road)}; access for building and for the fire service`);
+    const hv = dist(p, "hv_line");
+    add(hv === undefined ? null : hv !== 0, "no high-voltage line across the plot", hv === undefined ? "not computed yet" : hv === 0 ? "a line crosses or touches it: the layout has to keep clear of it" : `nearest ${fmtM(hv)}`);
     add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
     add(p.wm >= 50, "compact: at least 50 m wide on average", `about ${p.wm} m`);
     const nat = [["np", "a national park or reserve"], ["lp", "a landscape park"], ["n2", "Natura 2000"]].filter(([k]) => (p[k] || 0) > 0.1 * p.ha).map(([, l]) => l);
@@ -430,12 +477,21 @@
     return `<b>${sc.met} of ${sc.known}</b> met for a ${state.kind === "bess" ? "battery" : "solar farm"}${sc.known < sc.total ? `; ${sc.total - sc.known} without data` : ""}` +
       `<ul class="checks">${c.map(x => `<li><span class="${x.ok == null ? "q" : x.ok ? "y" : "n"}">${x.ok == null ? "?" : x.ok ? "✓" : "✗"}</span> ${esc(x.label)} <span style="color:var(--muted)">(${esc(x.why)})</span></li>`).join("")}</ul>`;
   }
+  const DIST_LABELS = { home: "home", housing: "housing area", public_road: "public road", any_road: "any road or track", major_road: "motorway or main road",
+    railway: "railway", forest: "forest", standing_water: "lake or pond", river: "river or stream", hv_line: "high-voltage line", mv_line: "medium-voltage line",
+    substation: "substation (BDOT10k)", solar_farm: "solar farm", power_plant: "other power plant", industry: "industrial area", waste: "waste site", cemetery: "cemetery", airfield: "airfield" };
+  function distancesHtml(p) {
+    if (p.d == null) return "not computed yet";
+    return (index.distance_keys || []).map(k => `${DIST_LABELS[k] || k} <b>${dist(p, k) === 0 ? "on or touching" : fmtM(dist(p, k))}</b>`).join(" · ") +
+      `<br><span style="color:var(--muted)">From the plot's edge, BDOT10k. A solar farm nearby may be a host to share a connection with (cable pooling).</span>`;
+  }
   // What a source doesn't cover for this plot, and where to look instead.
   function gapsHtml(p) {
     const g = [];
     if (!p.klasy) g.push("soil classes: this county's service doesn't publish them (see Geoportal, or ask the county office)");
     if (!p.grupa) g.push("owner group: not published by this county's service");
     if (p.u == null) g.push("forest, water, roads and buildings: not checked yet");
+    else if (p.d == null) g.push("distances to homes, roads and lines: not computed yet");
     if (p.n2 == null) g.push("protected areas: not checked yet");
     if (p.q1 == null) g.push("flood areas: not checked yet");
     if (p.mp == null) g.push("zoning: not checked yet");
@@ -455,7 +511,8 @@
         nearest_building_m: q.bm ?? "", buildings_on_plot: q.nb ?? "", width_m: q.wm, soil_classes: q.klasy || "", owner_groups: groupsOf(q).map(x => OWNER[x] || x).join(" + "),
         natura2000_ha: q.n2 ?? "", park_or_reserve_ha: q.np ?? "", landscape_park_ha: q.lp ?? "", protected_landscape_ha: q.ol ?? "",
         flood_1pct_ha: q.q1 ?? "", flood_02pct_only_ha: q.q02 ?? "", general_plan_zone: z ? `${z[1]} (${ZONE_EN[z[0]] || z[2]})` : "", zone_allows_solar: z ? solarZone(q) : "",
-        local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total });
+        local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
+        ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])) });
     }));
     return rows;
   }
@@ -491,9 +548,11 @@
       [state.gap && `at least ${state.gap} m from the nearest building`, state.minWidth && `at least ${state.minWidth} m wide`,
        state.nature && `outside ${["national parks and nature reserves", "landscape parks", "Natura 2000", "protected landscape areas"].slice(0, state.nature).join(", ")}`,
        state.soil && "without class I–III farmland", state.owner && `owned by ${$("owner").selectedOptions[0].text}`,
-       state.flood && "out of the 1% flood area", state.zoning && {solar: "in a general-plan zone that allows solar farms", nohomes: "not in a housing, services or green zone", plan: "inside a published local plan"}[state.zoning]].filter(Boolean).map(x => ", " + x).join("") +
+       state.flood && "out of the 1% flood area", state.zoning && {solar: "in a general-plan zone that allows solar farms", nohomes: "not in a housing, services or green zone", plan: "inside a published local plan"}[state.zoning],
+       bufferText()].filter(Boolean).map(x => ", " + x).join("") +
       ` within ${state.km} km; the ${all.length - inSite.size} other plots are dashed${state.combine > 1 ? "" : " (try combining neighbouring plots)"}. ` +
       (checked < all.length ? `${all.length - checked} plots haven't been checked for forest, water and buildings yet and count at their full area. ` : "") +
+      (bufferText() && all.some(p => p.d == null) ? `${all.filter(p => p.d == null).length} plots have no distances yet and pass the distance filters. ` : "") +
       (state.nature ? "A plot counts as inside a protected area when more than a tenth of it is. " : "") +
       (state.soil ? `${all.filter(p => !p.klasy).length} plots have no classes in the register and stay in. ` : "") +
       (state.owner ? `${all.filter(p => !p.grupa).length} plots have no owner group in the register and are left out. ` : "") +
@@ -611,6 +670,7 @@
       ["On the plot", p.u == null ? "–" : [["forest and wooded land", p.f], ["water", p.w], ["built-up land", p.b], ["roads and railways", p.r]].filter(([, v]) => v > 0).map(([k, v]) => `${v.toFixed(2)} ha ${k}`).join(", ") || "none of these"],
       ["Buildings", p.u == null ? "–" : (p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"} away`)],
       ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
+      ["Distances", distancesHtml(p)],
       ["Protected areas", protectedText(p)],
       ["Land and soil classes", p.klasy ? p.klasy.split(/[,;]\s*/).filter(Boolean).map(x => `${esc(x)} <span style="color:var(--muted)">(${esc(decodeClass(x))})</span>`).join(", ") : "not published by this county's service"],
       ["Zoning", zoningText(p)],
@@ -624,7 +684,30 @@
     ].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
   }
 
+  function bufferText() {
+    const parts = BUFFERS.filter(([k]) => state.buf[k]).map(([k, label]) => `${state.buf[k]} m from ${label}`);
+    if (state.access) parts.push(`a public road within ${state.access} m`);
+    return parts.length ? parts.join(", ") : "";
+  }
+  function buildBuffers() {
+    $("bufgrid").innerHTML = BUFFERS.map(([k, label, steps]) => `<span>At least</span><span><select class="select" data-buf="${k}">${steps.map(v => `<option value="${v}">${v ? v + " m" : "any distance"}</option>`).join("")}</select> from ${label}</span>`).join("") +
+      `<span>A public road</span><span><select class="select" id="access">${ACCESS.map(v => `<option value="${v}">${v ? "within " + v + " m" : "at any distance"}</option>`).join("")}</select></span>`;
+  }
+  function syncBuffers() {
+    for (const el of $("bufgrid").querySelectorAll("select[data-buf]")) el.value = state.buf[el.dataset.buf] || 0;
+    $("access").value = state.access || 0;
+    const n = BUFFERS.filter(([k]) => state.buf[k]).length + (state.access ? 1 : 0);
+    $("buf-summary").textContent = n ? `(${n} set)` : "";
+    const match = Object.entries(PRESETS).find(([, pr]) => pr.access === state.access && BUFFERS.every(([k]) => (pr.buf[k] || 0) === (state.buf[k] || 0)));
+    $("preset").value = match ? match[0] : "";
+  }
   function bind() {
+    buildBuffers();
+    $("preset").addEventListener("change", e => { const pr = PRESETS[e.target.value]; state.buf = pr ? { ...pr.buf } : {}; state.access = pr ? pr.access : 0; syncBuffers(); render(); });
+    $("bufgrid").addEventListener("change", e => {
+      const el = e.target; if (el.dataset.buf) state.buf = { ...state.buf, [el.dataset.buf]: +el.value }; else if (el.id === "access") state.access = +el.value;
+      syncBuffers(); render(); });
+    syncBuffers();
     Object.assign(state, { usable: $("usable").checked, gap: +$("gap").value, minWidth: +$("width").value, nature: +$("nature").value, soil: $("soil").checked ? 1 : 0, owner: $("owner").value,
       flood: $("flood").checked ? 1 : 0, zoning: $("zoning").value, combine: +$("combine").value });
     $("group").addEventListener("change", e => selectGroup(e.target.value));
