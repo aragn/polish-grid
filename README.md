@@ -252,12 +252,26 @@ Everything else on the page is worked out in the browser from these fields:
   cemeteries, airfields) or when no public road is near enough. The buffers aren't cut out of
   the plot's area. Two presets ("solar" and "battery, common buffers") are starting points used
   in practice, not legal minimums.
-- **Checks:** up to 11 yes/no checks per plot for the chosen project: size, within 1 km of the
+- **Terrain:** `etl/land_terrain.py` reads the Copernicus DEM GLO-30 (about 30 m, from the
+  AWS open-data copy, only the window around each substation) and adds `el` (mean height, m),
+  `sl` (mean slope, degrees), `sf` (% flatter than 2°) and `ss` (% of the sloping part facing
+  south-east to south-west). It is a surface model, so trees and buildings steepen edges. The
+  page filters on mean slope and checks it: flat ground for a battery (70% under 2°), a gentle
+  or south-facing slope for solar.
+- **Building permits:** `etl/land_permits.py` reads GUNB's register of building permit decisions
+  since 2016 (one zip per province, every 28 days) and adds `gp`, each plot's own decisions as
+  [date, type, new, MW], and `gn`, the distance to the nearest solar, battery and wind decision
+  on another of our plots within 3 km. `data/land/permits.json` counts decisions by type per
+  precinct, since 2016 and since 2022. The type and MW are read from the free text; the free
+  text itself, the investor and the designer are never stored. A plot that already has a solar,
+  battery or wind permit fails a check and gets a badge.
+- **Checks:** up to 13 yes/no checks per plot for the chosen project: size, within 1 km of the
   substation, distance to the nearest home (30 m for solar, 150 m for a battery: common
   buffers, not legal minimums), a public road within 300 m, no high-voltage line across the
   plot, no buildings on the plot, width, protected areas, the 1% flood area (any part of it for
   a battery, because of the ban on storing polluting substances), class I–III soil, and the
-  general-plan zone. A check without data counts as neither.
+  general-plan zone, the slope, and no energy permit already on the plot. A check without data
+  counts as neither.
 - **Data gaps:** what a source doesn't cover for the plot (soil classes or owner groups the
   county doesn't publish, no plan in the urban register, a step not run yet).
 - **Downloads:** the sites in the list as CSV (one row per plot) or GeoJSON (with outlines),

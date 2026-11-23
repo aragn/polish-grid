@@ -23,6 +23,9 @@ on:
       zoning_budget:
         description: "minutes to spend on zoning (urban register, 10 features a request)"
         default: "120"
+      terrain_budget:
+        description: "minutes to spend on terrain (Copernicus DEM)"
+        default: "120"
       recheck:
         description: "recheck every plot: none, zoning, flood or both"
         default: "none"
@@ -49,7 +52,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install requests shapely pyproj pyogrio numpy pillow
+      - run: pip install requests shapely pyproj pyogrio numpy pillow rasterio
       - name: Fetch
         run: |
           python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '60' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
@@ -59,6 +62,10 @@ jobs:
         run: python etl/land_zoning.py --budget-minutes "${{ github.event.inputs.zoning_budget || '120' }}" ${{ (github.event.inputs.recheck == 'zoning' || github.event.inputs.recheck == 'both') && '--all' || '' }}
       - name: Flood areas on each plot (Wody Polskie)
         run: python etl/land_flood.py ${{ (github.event.inputs.recheck == 'flood' || github.event.inputs.recheck == 'both') && '--all' || '' }}
+      - name: Terrain on each plot (Copernicus DEM)
+        run: python etl/land_terrain.py --budget-minutes "${{ github.event.inputs.terrain_budget || '120' }}"
+      - name: Building permits on and near each plot (GUNB)
+        run: python etl/land_permits.py --budget-minutes 150
       - name: Forest, water, roads and buildings on each plot
         run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
       - name: Neighbouring plots
