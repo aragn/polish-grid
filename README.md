@@ -242,11 +242,22 @@ Everything else on the page is worked out in the browser from these fields:
   distance, narrower strips, one protected-area class fewer, class I–III soil, the 1% flood
   area, any owner or zoning, one more plot combined, one more km), with the number of sites
   it adds. Click one to apply it.
-- **Checks:** 9 yes/no checks per plot for the chosen project: size, within 1 km of the
-  substation, building distance (30 m for solar, 150 m for a battery: common buffers, not
-  legal minimums), no buildings on the plot, width, protected areas, the 1% flood area (any
-  part of it for a battery, because of the ban on storing polluting substances), class I–III
-  soil, and the general-plan zone. A check without data counts as neither.
+- **Distances:** `etl/land_constraints.py` also stores `d`, the distance in metres from each
+  plot's edge to the nearest object of 18 kinds in BDOT10k (homes, housing areas, public
+  roads, any road, motorways and main roads, railways, forest, lakes, rivers, high- and
+  medium-voltage lines, substations, solar farms, other power plants, industrial areas, waste
+  sites, cemeteries, airfields), in the order `index.json` lists as `distance_keys`; 0 when one
+  touches the plot, null when none is within 3 km. The page's distance filters leave a plot out
+  when one is closer than the buffer (homes, housing, high-voltage lines, railways, main roads,
+  cemeteries, airfields) or when no public road is near enough. The buffers aren't cut out of
+  the plot's area. Two presets ("solar" and "battery, common buffers") are starting points used
+  in practice, not legal minimums.
+- **Checks:** up to 11 yes/no checks per plot for the chosen project: size, within 1 km of the
+  substation, distance to the nearest home (30 m for solar, 150 m for a battery: common
+  buffers, not legal minimums), a public road within 300 m, no high-voltage line across the
+  plot, no buildings on the plot, width, protected areas, the 1% flood area (any part of it for
+  a battery, because of the ban on storing polluting substances), class I–III soil, and the
+  general-plan zone. A check without data counts as neither.
 - **Data gaps:** what a source doesn't cover for the plot (soil classes or owner groups the
   county doesn't publish, no plan in the urban register, a step not run yet).
 - **Downloads:** the sites in the list as CSV (one row per plot) or GeoJSON (with outlines),
