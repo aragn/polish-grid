@@ -7,6 +7,7 @@ congestion screening model:
   gen-jw          metered output of every centrally dispatched (JWCD) unit, 15 min
   his-wlk-cal     system balance: jg, jnwrb, wi, pv, jgm, swm_p, swm_np, demand
   przeplywy-mocy  metered cross-border flows per section (CZ-PL, PL-CZ, DE-PL, ...)
+  poze-redoze     MW of wind and solar PSE curtailed, for balance and for the network
 
 These are the data PSE submits to ENTSO-E (16.1.A per unit, 6.1.A load,
 12.1.G physical flows), read at the source so no ENTSO-E key is needed.
@@ -29,6 +30,7 @@ ENDPOINTS = {
     "gen-jw": "dtime_utc,power_plant,resource_code,value,operating_mode_eng",
     "his-wlk-cal": "dtime_utc,jg,jnwrb,wi,pv,jgm,swm_p,swm_np,demand",
     "przeplywy-mocy": "dtime_utc,section_code,value",
+    "poze-redoze": "dtime_utc,pv_red_balance,pv_red_network,wi_red_balance,wi_red_network",
 }
 
 

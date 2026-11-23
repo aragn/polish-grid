@@ -15,11 +15,15 @@ and N-1 loading changes on the lines it affects.
                           discharges in the --hours dearest (losses ignored)
   --mw      one or more sizes; each one is screened in full
 
-Every MW the new plant produces displaces the JWCD thermal units in proportion
-to their output that hour (when none run, the load takes it); battery
-charging is supplied the same way.  Border flows and the neighbours stay as
-measured.  The year is screened again with the same outages, ratings and
-contingencies as flows.py.
+What balances the new plant each hour:
+  - in hours when PSE curtailed wind or solar (poze-redoze, 2,535 hours in 2025),
+    up to the MW curtailed: existing wind and solar, curtailed more when the
+    plant produces and less when a battery charges, located like the fleet's
+    output that hour (the system had too much, so nothing else moves);
+  - otherwise, and for the rest: the JWCD thermal units in proportion to their
+    output that hour (when none run, the load).
+Border flows and the neighbours stay as measured.  The year is screened again
+with the same outages, ratings and contingencies as flows.py.
 
 Prints and writes W/out/whatif_<bus>_<tech>.json.
 """
@@ -112,22 +116,64 @@ class WhatIf:
         self.sink = sink / np.where(tot > 1, tot, 1)
         self.no_thermal = tot[:, 0] <= 1
         self.pop_share = self.inj["pop_share"]
+        # Hours when PSE curtailed wind or solar: the system already had too much, so a new plant's output
+        # is matched by curtailing existing wind and solar more (and battery charging by curtailing them
+        # less), up to the MW curtailed that hour.  Where that wind and solar sits: the fleet's output that
+        # hour (URE capacity and micro-PV times the weather), as in inputs.py.
+        self.curt = (self.inj["curt_pv"] + self.inj["curt_wi"]).astype("float64") if "curt_pv" in self.inj else np.zeros(len(self.hours))
+        idx = np.where(self.curt > 1.0)[0]
+        self.res_pos = np.full(len(self.hours), -1)
+        self.res_pos[idx] = np.arange(len(idx))
+        if len(idx):
+            def share(cf, cap):
+                x = cf[idx].astype("float64") @ cap.T.astype("float64")
+                s = x.sum(1, keepdims=True)
+                return x / np.where(s > 0, s, 1)
+            pv, wi = self.inj["curt_pv"][idx, None], self.inj["curt_wi"][idx, None]
+            res = pv * share(self.inj["cf_solar"], self.inj["pv_cap"]) + wi * share(self.inj["cf_wind"], self.inj["wind_cap"])
+            self.res = (res / self.curt[idx, None]).astype("float32")  # [curtailment hours, bus], rows sum to 1
+        else:
+            self.res = np.zeros((0, self.m.nb), dtype="float32")
+        Pr0 = self.m.state(frozenset())[0]
+        self._thF0 = self.sink @ Pr0[:, self.sink_buses].T  # [T, rows]: flow per MW taken from the thermal units
+        self._resF0 = self.res @ Pr0.T                      # [curtailment hours, rows]: per MW from wind and solar
+
+    def balance_weight(self, x, tt):
+        """Share of each hour's injection x (MW) met by curtailed wind and solar (the rest: thermal units)."""
+        c = self.curt[tt]
+        return np.where((np.abs(x) > 1e-9) & (c > 1.0), np.minimum(1.0, c / np.maximum(np.abs(x), 1e-9)), 0.0)
 
     def run(self, bus, p, mw, min_share=0.05):
         m = self.m
 
         def extra(tt, Pr):
-            # flow change per MW: PTDF of the bus less the PTDF of the sink, that hour
+            # flow change per MW: PTDF of the bus less the PTDF of what balances it that hour
+            x = p[tt] * mw
             d = Pr[:, bus][None, :] - self.sink[tt] @ Pr[:, self.sink_buses].T
             if self.no_thermal[tt].any():
                 d[self.no_thermal[tt]] = Pr[:, bus][None, :] - (self.pop_share @ Pr.T)[None, :]
+            a = self.balance_weight(x, tt)
+            k = np.where(a > 0)[0]
+            if len(k):
+                d_res = Pr[:, bus][None, :] - self.res[self.res_pos[tt[k]]] @ Pr.T
+                d[k] = a[k, None] * d_res + (1 - a[k, None]) * d[k]
             self._sens = np.maximum(getattr(self, "_sens", 0), np.abs(d).max(0))
-            return d * (p[tt] * mw)[:, None]
+            return d * x[:, None]
 
         # lines that carry min_share of the plant's output in some hour (base topology): only those are screened
         Pr = m.state(frozenset())[0]
-        d = Pr[:, bus][None, :] - self.sink @ Pr[:, self.sink_buses].T
-        subset = np.where(np.abs(d).max(0) >= min_share)[0]
+        sens = np.abs(Pr[:, bus][None, :] - self._thF0).max(0)
+        if len(self.res):
+            sens = np.maximum(sens, np.abs(Pr[:, bus][None, :] - self._resF0).max(0))
+        subset = np.where(sens >= min_share)[0]
+        x_all = p * mw
+        w = self.balance_weight(x_all, np.arange(len(p)))
+        self._res_share = float((w * np.abs(x_all)).sum() / max(np.abs(x_all).sum(), 1e-9))
+        out_, in_ = x_all > 0, x_all < 0
+        # of the energy it produces, the share that only adds to curtailment; of a battery's charging, the
+        # share that takes wind and solar PSE would otherwise have curtailed
+        self._into_curt = float((w * x_all)[out_].sum() / max(x_all[out_].sum(), 1e-9))
+        self._from_curt = float((w * -x_all)[in_].sum() / max(-x_all[in_].sum(), 1e-9)) if in_.any() else None
         self._sens = np.zeros(len(m.rows))
         inj = self.inj
         F, n1, arg, _, _ = screen_year(m, inj["P"], inj["gsk"].astype("float64"), list(inj["neighbours"]),
@@ -151,7 +197,10 @@ class WhatIf:
                          "share_of_output_max": round(float(self._sens[j]), 3)})
         rows.sort(key=lambda r: (-(r["n1_hours_after"] - r["n1_hours_before"]), -(r["n1_max_after"] - r["n1_max_before"])))
         added = sum(max(0, r["n1_hours_after"] - r["n1_hours_before"]) for r in rows)
-        return {"mw": mw, "added_n1_overload_hours": added, "branches": rows}
+        return {"mw": mw, "added_n1_overload_hours": added, "balanced_by_curtailment": round(self._res_share, 3),
+                "output_into_curtailment": round(self._into_curt, 3),
+                "charging_from_curtailment": None if self._from_curt is None else round(self._from_curt, 3),
+                "branches": rows}
 
 
 def batch(a):
@@ -179,7 +228,10 @@ def batch(a):
             p = profile(a.work, w.m, bus, tech, w.hours, 2, a.year, scale)
             r = w.run(bus, p, a.batch_mw, a.min_share)
             entry["tech"][tech] = {"full_load_hours": round(float(np.clip(p, 0, None).sum())),
-                                   "added_n1_overload_hours": r["added_n1_overload_hours"], "branches": r["branches"][:8]}
+                                   "added_n1_overload_hours": r["added_n1_overload_hours"],
+                                   "balanced_by_curtailment": r["balanced_by_curtailment"],
+                                   "output_into_curtailment": r["output_into_curtailment"],
+                                   "charging_from_curtailment": r["charging_from_curtailment"], "branches": r["branches"][:8]}
         done[b["id"]] = entry
         json.dump(done, open(path, "w", encoding="utf-8"), ensure_ascii=False)
         print(f"{n + 1}/{len(stations)} {b['name']} {b['kv']} kV: " +

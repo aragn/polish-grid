@@ -25,6 +25,8 @@ Rules (README, "Injections"):
   other           the rest of PSE's generation, spread by population.
   load            PSE's system demand, spread by population.
   SwePol          its metered flow at the converter's AC bus (Słupsk).
+  curtailment     PSE's hourly MW of solar and wind cut (poze-redoze), with the solar
+                  and wind capacity layout and weather, for whatif.py.
   closing         what is left (metering differences) goes onto the load.
 A place's population or capacity feeds its three nearest 110 kV substations
 within 25 km, weighted by 1 / distance^2.
@@ -268,6 +270,12 @@ def main():
             P[:, bidx[h["pl_ac_bus"]]] += border[c].values
     net_import = border.sum(axis=1).values
 
+    # ---- curtailment: MW of solar and wind PSE ordered cut (balance + network), for whatif.py
+    curt = read_pse(a.work, "poze-redoze")
+    cols = ["pv_red_balance", "pv_red_network", "wi_red_balance", "wi_red_network"]
+    curt[cols] = curt[cols].apply(pd.to_numeric, errors="coerce").fillna(0.0).abs()  # PSE writes cuts as negative MW
+    curt_h = curt.groupby("hour")[cols].mean().reindex(hours).fillna(0.0)
+
     # ---- closing: with SwePol and Ukraine in, Poland's injections must equal minus what the
     # synchronous neighbours modelled (DE, CZ, SK, LT) send it
     from_neighbours = sum(border[c].values for c in NEIGHBOURS if c in border.columns)
@@ -291,6 +299,10 @@ def main():
                         net_import=net_import, swm=(sysh["swm_p"] + sysh["swm_np"]).values, mismatch=mismatch,
                         border=border_mat, neighbours=np.array(NEIGHBOURS), gsk=gsk.astype("float32"),
                         pop_share=pop_share, k_wind=k_wind, k_solar=k_solar,
+                        curt_pv=(curt_h["pv_red_balance"] + curt_h["pv_red_network"]).values,
+                        curt_wi=(curt_h["wi_red_balance"] + curt_h["wi_red_network"]).values,
+                        pv_cap=(cap["PVA"] + micro).astype("float32"), wind_cap=cap["WIL"].astype("float32"),
+                        cf_solar=cf_solar.astype("float32"), cf_wind=cf_wind.astype("float32"),
                         jwcd_bus=np.array([bidx[u["bus"]] for u in units]),
                         jwcd_units=unit_h[[u["code"] for u in units]].values.astype("float32"),
                         jwcd_codes=np.array([u["code"] for u in units]), jwcd_plants=np.array([u["plant"] for u in units]))
@@ -303,7 +315,9 @@ def main():
                      "net_import_sections": net_import, "net_import_swm": (sysh["swm_p"] + sysh["swm_np"]).values}.items()},
             "mismatch_mw": {"mean": round(float(np.mean(mismatch)), 1), "mean_abs": round(float(np.mean(np.abs(mismatch))), 1),
                             "p99_abs": round(float(np.percentile(np.abs(mismatch), 99)), 1)},
-            "border_mean_mw": {c: round(float(border[c].mean()), 1) for c in border.columns}}
+            "border_mean_mw": {c: round(float(border[c].mean()), 1) for c in border.columns},
+            "curtailed_gwh": {k: round(float(curt_h[k].sum()) / 1e3, 1) for k in cols},
+            "curtailed_hours": int(((curt_h[cols].sum(axis=1)) > 0).sum())}
     json.dump(meta, open(os.path.join(a.work, "out", f"injections_{a.year}.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(json.dumps({k: v for k, v in meta.items() if k != "units"}, ensure_ascii=False, indent=1))
     for u in units:

@@ -1121,16 +1121,21 @@
     const block = t => {
       const v = s.tech[t];
       if (!v) return "";
+      const pct = x => x == null ? "–" : `${Math.round(x * 100)}%`;
+      const curt = t === "battery"
+        ? (v.from_curtailment != null ? `<div class="sub" style="margin:-4px 0 6px;color:var(--muted);font-size:12.5px">${pct(v.from_curtailment)} of its charging takes wind and solar PSE was curtailing that hour; ${pct(v.into_curtailment)} of its discharge falls in such hours</div>` : "")
+        : (v.into_curtailment != null ? `<div class="sub" style="margin:-4px 0 6px;color:var(--muted);font-size:12.5px">${pct(v.into_curtailment)} of its output falls in hours when PSE was already curtailing wind and solar: there it only adds to the curtailment</div>` : "");
       return `<h4>${TECH_NAME[t].replace(/^./, c => c.toUpperCase())}: ${fmtNum(v.added_hours)} more hours over 100% after an outage` +
-        `${t === "battery" ? "" : ` · ${fmtNum(v.full_load_hours)} full-load hours`}</h4>` +
+        `${t === "battery" ? "" : ` · ${fmtNum(v.full_load_hours)} full-load hours`}</h4>` + curt +
         (v.lines.length ? `<table class="years"><tr><th>Line</th><th>Hours before</th><th>Hours after</th><th>Worst loading</th><th>Share of the plant's output</th><th>Mostly after</th></tr>` +
           v.lines.map(x => `<tr><td>${esc(x.name)}</td><td>${fmtNum(x.before)}</td><td>${fmtNum(x.after)}</td><td>${Math.round(x.max_before * 100)}% → ${Math.round(x.max_after * 100)}%</td>` +
             `<td>${Math.round(x.share * 100)}%</td><td style="text-align:left">${esc(x.outage || "–")}</td></tr>`).join("") + `</table>`
           : `<div style="color:var(--muted);font-size:13px">No line that carries 5% or more of its output gets more hours over 100%.</div>`);
     };
     $("d-body").innerHTML = block("solar") + block("wind") + block("battery") +
-      `<div class="callout" style="margin-top:14px">Each MW the new plant produces replaces output of PSE's centrally dispatched thermal units in proportion to what they produce that hour; ` +
-      `the battery charges in the two cheapest and discharges in the two dearest hours of each day on Poland's day-ahead price. Border flows stay as measured. ` +
+      `<div class="callout" style="margin-top:14px">In hours when PSE was curtailing wind and solar (${fmtNum(CONG.data.meta.curtailed_hours)} hours of 2025), the new plant's output is matched by curtailing them more, and a battery's charging by curtailing them less, located like the fleet's output that hour; ` +
+      `in the other hours each MW replaces output of PSE's centrally dispatched thermal units in proportion to what they produce. ` +
+      `The battery charges in the two cheapest and discharges in the two dearest hours of each day on Poland's day-ahead price, with no regard for the grid. Border flows stay as measured. ` +
       `This is not a connection study: the operator's conditions decide.</div>`;
     $("detail").showModal();
   }
