@@ -125,6 +125,7 @@
           <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha on one plot</div>
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="usable" checked> Count only usable land: no forest, water, roads or buildings</label>
           <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0">no limit</option><option value="30">30 m</option><option value="50" selected>50 m</option><option value="100">100 m</option></select> on average</div>
+          <div class="row" style="margin-top:10px">Mean slope at most <select class="select" id="slope" style="width:auto"><option value="0">any slope</option><option value="2">2°</option><option value="5">5°</option><option value="10">10°</option></select></div>
           <div class="row" style="margin-top:10px">At least <select class="select" id="gap" style="width:auto"><option value="0">any distance</option><option value="50">50 m</option><option value="100">100 m</option><option value="250">250 m</option><option value="500">500 m</option></select> from the nearest building</div>
           <div class="row" style="margin-top:10px">Leave out plots in <select class="select" id="nature" style="width:auto"><option value="0">no protected area</option><option value="1" selected>national parks and nature reserves</option><option value="2">… and landscape parks</option><option value="3">… and Natura 2000</option><option value="4">… and protected landscape areas</option></select></div>
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="soil"> Leave out plots with class I–III farmland (where the register lists classes)</label>
@@ -174,8 +175,8 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0 };
-  let recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0 };
+  let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {};
 
   // Distances from data/land (etl/land_constraints.py): p.d[i] in metres for index.distance_keys[i]; 0 touching, null none
@@ -205,7 +206,7 @@
   // Every filter but the area; a site of neighbouring plots is built only from plots that pass it.
   function fitsOther(p) {
     return (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth)
-      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p) && buffersOk(p);
+      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p) && buffersOk(p) && !(state.slope && p.sl != null && p.sl > state.slope);
   }
   function fits(p) { return fitsOther(p) && areaOf(p) >= state.need; }
   // Neighbours are stored relative to the plot's precinct ("98/2" next to "280205_5.0022.98/1").
@@ -287,6 +288,7 @@
     protectedAreas = (await get("../data/land/protected.json").catch(() => ({ areas: {} }))).areas;
     zoning = await get("../data/land/zoning.json").catch(() => zoning);
     DK = Object.fromEntries((index.distance_keys || []).map((k, i) => [k, i]));
+    permits = await get("../data/land/permits.json").catch(() => permits);
     const groups = capacity.areas.filter(a => a.op !== "pse")
       .map(a => ({ a, sts: Object.entries(index.stations).filter(([, s]) => s.groups.includes(a.id)) }))
       .filter(g => g.sts.length)
@@ -415,6 +417,8 @@
     }
     if (state.access) { const i = ACCESS.indexOf(state.access), v2 = i < ACCESS.length - 1 ? ACCESS[i + 1] : 0;
       tries.push([{ access: v2 }, v2 ? `a public road within ${v2} m instead of ${state.access} m` : "no limit on the distance to a public road", "A longer access road to build."]); }
+    if (state.slope) { const i = [2, 5, 10].indexOf(state.slope), v2 = i < 2 ? [2, 5, 10][i + 1] : 0;
+      tries.push([{ slope: v2 }, v2 ? `slopes up to ${v2}° instead of ${state.slope}°` : "any slope", "Steeper ground costs more to build on."]); }
     if (state.combine < 8) { const next = [1, 2, 3, 5, 8].find(x => x > state.combine); tries.push([{ combine: next }, `combine up to ${next} neighbouring plots`, "Each plot may have a different owner."]); }
     if (state.km < 3) tries.push([{ km: state.km + 1 }, `look within ${state.km + 1} km of a substation`, "A longer cable to the substation."]);
     const saved = { ...state };
@@ -440,6 +444,7 @@
     if ("zoning" in change) $("zoning").value = state.zoning;
     if ("combine" in change) $("combine").value = state.combine;
     if ("buf" in change || "access" in change) syncBuffers();
+    if ("slope" in change) $("slope").value = state.slope;
     if ("km" in change) { [...$("radius").children].forEach(x => x.classList.toggle("on", +x.dataset.km === state.km)); renderStations(); }
     render();
   }
@@ -460,6 +465,12 @@
     add(hv === undefined ? null : hv !== 0, "no high-voltage line across the plot", hv === undefined ? "not computed yet" : hv === 0 ? "a line crosses or touches it: the layout has to keep clear of it" : `nearest ${fmtM(hv)}`);
     add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
     add(p.wm >= 50, "compact: at least 50 m wide on average", `about ${p.wm} m`);
+    if (bess) add(p.sf == null ? null : p.sf >= 70, "flat: at least 70% of it slopes under 2°", p.sf == null ? "not computed yet" : `${p.sf}% flat, mean slope ${p.sl}°`);
+    else add(p.sl == null ? null : p.sl <= 5 || (p.sl <= 10 && (p.ss || 0) >= 50), "gentle slope (mean up to 5°), or up to 10° facing south",
+      p.sl == null ? "not computed yet" : `mean slope ${p.sl}°${p.ss != null ? `, ${p.ss}% of the sloping part faces south` : ""}`);
+    const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
+    add(p.gp == null ? null : !taken.length, "no solar, battery or wind permit on the plot already",
+      p.gp == null ? "not read yet" : taken.length ? taken.map(g => `${PERMIT_EN[g[1]]} permit of ${fmtDate(g[0])}`).join("; ") : "none since 2016");
     const nat = [["np", "a national park or reserve"], ["lp", "a landscape park"], ["n2", "Natura 2000"]].filter(([k]) => (p[k] || 0) > 0.1 * p.ha).map(([, l]) => l);
     add(p.n2 == null ? null : !nat.length, "outside national parks, reserves, landscape parks and Natura 2000", p.n2 == null ? "not checked yet" : nat.length ? `in ${nat.join(" and ")}` : "outside");
     add(p.q1 == null ? null : bess ? !(p.q1 > 0) : !(p.q1 > 0.1 * p.ha), bess ? "no part in the 1% flood area" : "outside the 1% flood area",
@@ -485,6 +496,23 @@
     return (index.distance_keys || []).map(k => `${DIST_LABELS[k] || k} <b>${dist(p, k) === 0 ? "on or touching" : fmtM(dist(p, k))}</b>`).join(" · ") +
       `<br><span style="color:var(--muted)">From the plot's edge, BDOT10k. A solar farm nearby may be a host to share a connection with (cable pooling).</span>`;
   }
+  function terrainHtml(p) {
+    if (p.sl == null) return "not computed yet";
+    return `${p.el} m above sea level; mean slope <b>${p.sl}°</b>; ${p.sf}% flatter than 2°` +
+      (p.ss != null ? `; of the sloping part, ${p.ss}% faces south (south-east to south-west)` : "") +
+      `. <span style="color:var(--muted)">Copernicus DEM, about 30 m: a surface model, so trees and buildings make edges look steeper.</span>`;
+  }
+  const PERMIT_EN = { solar: "solar", battery: "battery", wind: "wind", house: "house", other: "other building or works" };
+  function permitsHtml(p) {
+    if (p.gp == null) return "not read yet";
+    const own = p.gp.length ? p.gp.slice(0, 6).map(([d, k, n, mw]) => `${fmtDate(d)}: ${PERMIT_EN[k] || k}${n ? ", new" : ""}${mw ? `, ${mw} MW` : ""}`).join("; ") +
+      (p.gp.length > 6 ? `; ${p.gp.length - 6} more` : "") : "none since 2016";
+    const near = (p.gn || []).map((d, i) => d == null ? null : `${["solar", "battery", "wind"][i]} ${fmtM(d)}`).filter(Boolean);
+    const c = permits.precincts[p.id.slice(0, p.id.lastIndexOf("."))] || {};
+    const prec = ["solar", "battery", "wind", "house"].map(k => `${c[k] || 0} ${k === "house" ? "houses" : k}${c[k + "_recent"] ? ` (${c[k + "_recent"]} since 2022)` : ""}`).join(", ");
+    return `On this plot: ${own}.<br>Nearest energy permit on another plot near a substation: ${near.length ? near.join(", ") : "none within 3 km"}.<br>` +
+      `In precinct ${esc(p.obreb)} since 2016: ${prec}. <span style="color:var(--muted)">GUNB register of building permits; who applied is not shown.</span>`;
+  }
   // What a source doesn't cover for this plot, and where to look instead.
   function gapsHtml(p) {
     const g = [];
@@ -493,6 +521,8 @@
     if (p.u == null) g.push("forest, water, roads and buildings: not checked yet");
     else if (p.d == null) g.push("distances to homes, roads and lines: not computed yet");
     if (p.n2 == null) g.push("protected areas: not checked yet");
+    if (p.sl == null) g.push("terrain: not computed yet");
+    if (p.gp == null) g.push("building permits: not read yet");
     if (p.q1 == null) g.push("flood areas: not checked yet");
     if (p.mp == null) g.push("zoning: not checked yet");
     else if (!p.pg?.length && !(p.mp > 0)) g.push("zoning: no plan for this plot in the urban register yet (ask the municipality)");
@@ -512,7 +542,10 @@
         natura2000_ha: q.n2 ?? "", park_or_reserve_ha: q.np ?? "", landscape_park_ha: q.lp ?? "", protected_landscape_ha: q.ol ?? "",
         flood_1pct_ha: q.q1 ?? "", flood_02pct_only_ha: q.q02 ?? "", general_plan_zone: z ? `${z[1]} (${ZONE_EN[z[0]] || z[2]})` : "", zone_allows_solar: z ? solarZone(q) : "",
         local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
-        ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])) });
+        ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])),
+        height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
+        energy_permits_on_plot: (q.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1])).map(g => `${g[1]} ${g[0]}`).join("; "),
+        m_to_solar_permit: q.gn?.[0] ?? "", m_to_battery_permit: q.gn?.[1] ?? "", m_to_wind_permit: q.gn?.[2] ?? "" });
     }));
     return rows;
   }
@@ -549,7 +582,7 @@
        state.nature && `outside ${["national parks and nature reserves", "landscape parks", "Natura 2000", "protected landscape areas"].slice(0, state.nature).join(", ")}`,
        state.soil && "without class I–III farmland", state.owner && `owned by ${$("owner").selectedOptions[0].text}`,
        state.flood && "out of the 1% flood area", state.zoning && {solar: "in a general-plan zone that allows solar farms", nohomes: "not in a housing, services or green zone", plan: "inside a published local plan"}[state.zoning],
-       bufferText()].filter(Boolean).map(x => ", " + x).join("") +
+       bufferText(), state.slope && `with a mean slope of at most ${state.slope}°`].filter(Boolean).map(x => ", " + x).join("") +
       `, at most ${state.km} km from a substation; the ${all.length - inSite.size} other plots are dashed${state.combine > 1 ? "" : " (try combining neighbouring plots)"}. ` +
       (checked < all.length ? `${all.length - checked} plots haven't been checked for forest, water and buildings yet and count at their full area. ` : "") +
       (bufferText() && all.some(p => p.d == null) ? `${all.filter(p => p.d == null).length} plots have no distances yet and pass the distance filters. ` : "") +
@@ -586,6 +619,7 @@
     b.push(`<span class="tag ${sc.known && sc.met === sc.known ? "good" : ""}" title="Checks met, of those with data (the plot card lists them)">checks ${sc.met}/${sc.known}</span>`);
     for (const [k, label] of [["np", "national park or reserve"], ["lp", "landscape park"], ["n2", "Natura 2000"], ["ol", "protected landscape"]])
       if ((p[k] || 0) > 0) b.push(`<span class="tag warn">${label} ${Math.round(100 * Math.min(p[k] / p.ha, 1))}%</span>`);
+    if ((p.gp || []).some(g => ["solar", "battery", "wind"].includes(g[1]))) b.push(`<span class="tag warn">energy permit on the plot</span>`);
     if ((p.q1 || 0) > 0) b.push(`<span class="tag warn">1% flood area ${Math.round(100 * Math.min(p.q1 / p.ha, 1))}%</span>`);
     if (solarZone(p)) b.push(`<span class="tag good">general plan allows solar</span>`);
     else if (zoneOf(p)) b.push(`<span class="tag">general plan: ${esc(ZONE_EN[zoneOf(p)[0]] || zoneOf(p)[2])}</span>`);
@@ -671,6 +705,8 @@
       ["Buildings", p.u == null ? "–" : (p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"} away`)],
       ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
       ["Distances", distancesHtml(p)],
+      ["Terrain", terrainHtml(p)],
+      ["Building permits", permitsHtml(p)],
       ["Protected areas", protectedText(p)],
       ["Land and soil classes", p.klasy ? p.klasy.split(/[,;]\s*/).filter(Boolean).map(x => `${esc(x)} <span style="color:var(--muted)">(${esc(decodeClass(x))})</span>`).join(", ") : "not published by this county's service"],
       ["Zoning", zoningText(p)],
@@ -709,7 +745,7 @@
       syncBuffers(); render(); });
     syncBuffers();
     Object.assign(state, { usable: $("usable").checked, gap: +$("gap").value, minWidth: +$("width").value, nature: +$("nature").value, soil: $("soil").checked ? 1 : 0, owner: $("owner").value,
-      flood: $("flood").checked ? 1 : 0, zoning: $("zoning").value, combine: +$("combine").value });
+      flood: $("flood").checked ? 1 : 0, zoning: $("zoning").value, combine: +$("combine").value, slope: +$("slope").value });
     $("group").addEventListener("change", e => selectGroup(e.target.value));
     window.addEventListener("hashchange", () => { const g = new URLSearchParams(location.hash.slice(1)).get("group"); if (g && g !== state.group && [...$("group").options].some(o => o.value === g)) { $("group").value = g; selectGroup(g); } });
     $("stations").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.station = b.dataset.sid || null; renderStations(); render(); });
@@ -725,6 +761,7 @@
     $("owner").addEventListener("change", e => { state.owner = e.target.value; render(); });
     $("flood").addEventListener("change", e => { state.flood = e.target.checked ? 1 : 0; render(); });
     $("zoning").addEventListener("change", e => { state.zoning = e.target.value; render(); });
+    $("slope").addEventListener("change", e => { state.slope = +e.target.value; render(); });
     $("combine").addEventListener("change", e => { state.combine = +e.target.value; render(); });
     $("radius").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.km = +b.dataset.km; [...$("radius").children].forEach(x => x.classList.toggle("on", x === b)); renderStations(); render(); });
     $("sort").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; [...$("sort").children].forEach(x => x.classList.toggle("on", x === b)); render(); });
@@ -742,7 +779,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 
