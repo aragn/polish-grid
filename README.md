@@ -236,6 +236,22 @@ largest neighbours that pass the filters, up to the number of plots the reader a
 Joining all touching plots into blocks doesn't work: 70,000 of the plots form one
 farmland mosaic.
 
+Everything else on the page is worked out in the browser from these fields:
+
+- **What would find more:** each active filter relaxed by one step (a shorter building
+  distance, narrower strips, one protected-area class fewer, class I–III soil, the 1% flood
+  area, any owner or zoning, one more plot combined, one more km), with the number of sites
+  it adds. Click one to apply it.
+- **Checks:** 9 yes/no checks per plot for the chosen project: size, within 1 km of the
+  substation, building distance (30 m for solar, 150 m for a battery: common buffers, not
+  legal minimums), no buildings on the plot, width, protected areas, the 1% flood area (any
+  part of it for a battery, because of the ban on storing polluting substances), class I–III
+  soil, and the general-plan zone. A check without data counts as neither.
+- **Data gaps:** what a source doesn't cover for the plot (soil classes or owner groups the
+  county doesn't publish, no plan in the urban register, a step not run yet).
+- **Downloads:** the sites in the list as CSV (one row per plot) or GeoJSON (with outlines),
+  including the check results.
+
 The page also decodes the register's land-use and soil-class symbols (`RIIIa`,
 `W/ŁIV`...) and owner groups 1–16 (§ 14 of the regulation on land and building
 registers, Dz.U. 2024 poz. 219). Its planning note follows art. 14(6a) of the planning
