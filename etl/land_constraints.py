@@ -11,6 +11,11 @@ by ROAD_HALF_WIDTH_M); the usable area left once all of them are taken out (over
 the nearest building (OT_BUBD_A, 0 when one stands on the plot) and the number of buildings on it.  Short keys:
 f, w, b, r (ha), u (usable ha), bm (m), nb.
 
+`d` is the distance in metres from the plot to the nearest object of each kind in DISTANCES (0 when one touches the
+plot, null when there is none within DISTANCE_SEARCH_M), in the order index.json lists as `distance_keys`.  These let
+the page apply any buffer (homes, public roads, power lines, forest, water...), as site-screening tools do.  A plot
+checked before the distances existed (no `d`) is checked again in full.
+
 BDOT10k comes per county (powiat) as a zip of GeoPackages, one per layer, from opendata.geoportal.gov.pl (schemat
 2021, EPSG:2180), which answers from GitHub's runners but not from every network.  The county is the first four
 digits of a plot's identifier.  Each county is downloaded once per run, read only within the box of its plots, and
@@ -45,6 +50,33 @@ ROAD_HALF_WIDTH_M = 4.0         # a road or railway line counts as an 8 m strip
 BUILDING_SEARCH_M = 3000
 LAYERS = {"forest": "OT_PTLZ_A", "water": "OT_PTWP_A", "built": "OT_PTZB_A", "transport": "OT_PTKM_A",
           "roads": "OT_SKDR_L", "rail": "OT_SKTR_L", "buildings": "OT_BUBD_A"}
+DISTANCE_SEARCH_M = 3000
+# Distances: key -> [(layer, test on the layer's attributes at row i)].  Attribute values as in BDOT10k schemat 2021.
+MAJOR_ROADS = ("autostrada", "droga ekspresowa", "droga główna ruchu przyśpieszonego", "droga główna")
+DISTANCES = {
+    "home": [("OT_BUBD_A", lambda f, i: f["FUNKCJAOGOLNABUDYNKU"][i] == "budynki mieszkalne" and f["KATEGORIAISTNIENIA"][i] != "zniszczony")],
+    "housing": [("OT_PTZB_A", lambda f, i: f["RODZAJ"][i] in ("jednorodzinna", "wielorodzinna"))],
+    "public_road": [("OT_SKDR_L", lambda f, i: f["KATEGORIAZARZADZANIA"][i] not in (None, "wewnętrzna"))],
+    "any_road": [("OT_SKDR_L", lambda f, i: True)],
+    "major_road": [("OT_SKDR_L", lambda f, i: f["KLASADROGI"][i] in MAJOR_ROADS)],
+    "railway": [("OT_SKTR_L", lambda f, i: f["KATEGORIAISTNIENIA"][i] != "nieczynny")],
+    "forest": [("OT_PTLZ_A", lambda f, i: f["RODZAJ"][i] == "las")],
+    "standing_water": [("OT_PTWP_A", lambda f, i: f["RODZAJ"][i] == "woda stojąca")],
+    "river": [("OT_PTWP_A", lambda f, i: f["RODZAJ"][i] == "woda płynąca"), ("OT_SWRS_L", lambda f, i: True)],
+    "hv_line": [("OT_SULN_L", lambda f, i: "wysokiego" in (f["RODZAJ"][i] or "") or "najwyższego" in (f["RODZAJ"][i] or ""))],
+    "mv_line": [("OT_SULN_L", lambda f, i: "średniego" in (f["RODZAJ"][i] or ""))],
+    "substation": [("OT_KUPG_A", lambda f, i: f["RODZAJ"][i] == "podstacja elektroenergetyczna")],
+    "solar_farm": [("OT_KUPG_A", lambda f, i: f["RODZAJ"][i] == "elektrownia" and f["RODZAJELEKTROWNI"][i] == "słoneczna")],
+    "power_plant": [("OT_KUPG_A", lambda f, i: f["RODZAJ"][i] in ("elektrownia", "elektrociepłownia") and f["RODZAJELEKTROWNI"][i] != "słoneczna")],
+    "industry": [("OT_PTZB_A", lambda f, i: f["RODZAJ"][i] == "przemysłowo-składowa")],
+    "waste": [("OT_KUPG_A", lambda f, i: f["RODZAJ"][i] == "składowisko odpadów")],
+    "cemetery": [("OT_KUSC_A", lambda f, i: str(f["RODZAJ"][i] or "").startswith("cmentarz"))],
+    "airfield": [("OT_KUKO_A", lambda f, i: f["RODZAJ"][i] == "lotnisko lub lądowisko")],
+}
+DISTANCE_KEYS = list(DISTANCES)
+DISTANCE_COLUMNS = {"OT_BUBD_A": ["FUNKCJAOGOLNABUDYNKU", "KATEGORIAISTNIENIA"], "OT_PTZB_A": ["RODZAJ"], "OT_SKDR_L": ["KATEGORIAZARZADZANIA", "KLASADROGI"],
+                    "OT_SKTR_L": ["KATEGORIAISTNIENIA"], "OT_PTLZ_A": ["RODZAJ"], "OT_PTWP_A": ["RODZAJ"], "OT_SWRS_L": [], "OT_SULN_L": ["RODZAJ"],
+                    "OT_KUPG_A": ["RODZAJ", "RODZAJELEKTROWNI"], "OT_KUSC_A": ["RODZAJ"], "OT_KUKO_A": ["RODZAJ"]}
 TO_2180 = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
 
 
@@ -79,21 +111,38 @@ def download(county, folder):
             time.sleep(20 * (attempt + 1))
 
 
-def read_layer(archive, suffix, folder, bbox):
-    """The geometries of one layer within bbox (EPSG:2180), or an empty list when the county has none."""
+def read_layer(archive, suffix, folder, bbox, columns=()):
+    """The geometries of one layer within bbox (EPSG:2180) and {column: values} of the columns asked for; empty when
+    the county has none.  A column the layer lacks comes back as all None."""
     names = [n for n in archive.namelist() if n.endswith(f"__{suffix}.gpkg")]
     if not names:
-        return []
+        return [], {c: [] for c in columns}
     archive.extract(names[0], folder)
     path = os.path.join(folder, names[0])
     try:
-        _meta, _fids, geometry, _fields = raw.read(path, columns=[], bbox=bbox)
+        meta, _fids, geometry, fields = raw.read(path, columns=list(columns), bbox=bbox)
     finally:
         os.remove(path)
     if geometry is None or len(geometry) == 0:
-        return []
+        return [], {c: [] for c in columns}
     shapes = shapely.from_wkb(geometry)
-    return [s for s in shapes if s is not None and not s.is_empty]
+    present = list(meta["fields"]) if meta.get("fields") is not None else []
+    cols = {c: (list(fields[present.index(c)]) if c in present else [None] * len(shapes)) for c in columns}
+    keep = [i for i, g in enumerate(shapes) if g is not None and not g.is_empty]
+    return [shapes[i] for i in keep], {c: [v[i] for i in keep] for c, v in cols.items()}
+
+
+def distances(shapes, tree_geoms):
+    """For each shape (in order), the distance in metres to the nearest of tree_geoms, 0 when touching, None beyond
+    DISTANCE_SEARCH_M."""
+    out = [None] * len(shapes)
+    if not tree_geoms:
+        return out
+    tree = shapely.STRtree(tree_geoms)
+    (inputs, _hits), dist = tree.query_nearest(shapes, max_distance=DISTANCE_SEARCH_M, return_distance=True, all_matches=False)
+    for i, d in zip(inputs, dist):
+        out[int(i)] = int(round(float(d)))
+    return out
 
 
 def county_values(county, plots, workdir):
@@ -107,16 +156,29 @@ def county_values(county, plots, workdir):
     bbox = (xmin - pad, ymin - pad, xmax + pad, ymax + pad)
     archive = zipfile.ZipFile(download(county, workdir))
     try:
-        layers = {key: read_layer(archive, suffix, workdir, bbox) for key, suffix in LAYERS.items()}
+        # Every layer once, with the columns the distances test.
+        read = {}
+        for suffix in sorted(set(LAYERS.values()) | set(DISTANCE_COLUMNS)):
+            read[suffix] = read_layer(archive, suffix, workdir, bbox, DISTANCE_COLUMNS.get(suffix, ()))
+        layers = {key: read[suffix][0] for key, suffix in LAYERS.items()}
     finally:
         archive.close()
         os.remove(os.path.join(workdir, f"{county}.zip"))
+    ids = list(shapes)
+    plot_list = [shapes[pid] for pid in ids]
+    nearest = {}
+    for key, sources in DISTANCES.items():
+        geoms = []
+        for suffix, test in sources:
+            layer_geoms, fields = read[suffix]
+            geoms += [g for i, g in enumerate(layer_geoms) if test(fields, i)]
+        nearest[key] = distances(plot_list, geoms)
     lines = [shapely.buffer(g, ROAD_HALF_WIDTH_M, cap_style="flat") for g in layers["roads"] + layers["rail"]]
     groups = {"f": layers["forest"], "w": layers["water"], "b": layers["built"], "r": layers["transport"] + lines}
     trees = {k: shapely.STRtree(v) if v else None for k, v in groups.items()}
     buildings = layers["buildings"]
     building_tree = shapely.STRtree(buildings) if buildings else None
-    out = {}
+    out, position = {}, {pid: k for k, pid in enumerate(ids)}
     for pid, shape in shapes.items():
         area = shape.area
         values, cut = {}, []
@@ -144,8 +206,15 @@ def county_values(county, plots, workdir):
                 values["bm"] = int(round(float(distance[0]))) if len(index) else None
         else:
             values["nb"], values["bm"] = 0, None
+        k = position[pid]
+        values["d"] = [nearest[key][k] for key in DISTANCE_KEYS]
         out[pid] = values
     return out
+
+
+def needs_check(plot):
+    """Not checked yet, or checked before the distances were added."""
+    return "u" not in plot or "d" not in plot
 
 
 def main(budget_minutes=240, only=None):
@@ -154,7 +223,7 @@ def main(budget_minutes=240, only=None):
     todo = {}
     for path in files:
         for plot in json.load(open(path, encoding="utf-8"))["plots"]:
-            if "u" not in plot:
+            if needs_check(plot):
                 todo.setdefault(plot["id"][:4], {})[plot["id"]] = plot
     counties = sorted(todo, key=lambda c: -len(todo[c]))
     if only:
@@ -196,7 +265,7 @@ def write(files, results):
         data = json.load(open(path, encoding="utf-8"))
         touched = False
         for plot in data["plots"]:
-            if "u" not in plot and plot["id"] in results:
+            if needs_check(plot) and plot["id"] in results:
                 plot.update(results[plot["id"]])
                 touched = True
         if touched:
@@ -209,6 +278,8 @@ def write(files, results):
             index["stations"][sid]["checked"] = sum(1 for p in plots if "u" in p)
             index["stations"][sid]["big_usable"] = sum(1 for p in plots if p.get("u", 0) >= 5)
     index["constraints_source"] = "BDOT10k (GUGiK), schemat 2021"
+    index["distance_keys"] = DISTANCE_KEYS
+    index["distance_search_m"] = DISTANCE_SEARCH_M
     json.dump(index, open(index_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     return changed
 
