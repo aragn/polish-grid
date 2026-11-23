@@ -36,6 +36,7 @@ def summary(v):
     lines = [x for x in v["branches"] if x.get("kind", "line") == "line"]
     worst = max(lines, key=lambda x: x["n1_max_after"]) if lines else None
     return {"full_load_hours": v["full_load_hours"],
+            "into_curtailment": v.get("output_into_curtailment"), "from_curtailment": v.get("charging_from_curtailment"),
             "added_hours": sum(max(0, x["n1_hours_after"] - x["n1_hours_before"]) for x in lines),
             "worst_after": worst["n1_max_after"] if worst else None,
             "worst_line": base_name(worst["name"]) if worst else None,
@@ -98,11 +99,12 @@ def main():
         "year": a.year,
         "meta": {"monitored": len(lines), "contingencies": scr["contingencies"], "outage_hours": scr["outage_hours"],
                  "outage_elements": scr["outages_matched"], "pst_mode": scr["pst_mode"], "sensitivity": sens,
+                 "curtailed_hours": inj.get("curtailed_hours"), "curtailed_gwh": inj.get("curtailed_gwh"),
                  "twh": inj["twh"], "weather_scale": inj["weather_scale"], "load_buses": inj["load_buses"],
                  "classes": net["classes"], "t_ref": net["t_ref"], "t_design": net["t_design"], "t_limited": net["t_limited"],
                  "sources": ["OpenStreetMap contributors (ODbL): Geofabrik extract of 1 January 2026 (Poland, 110 kV and up), "
                              "PyPSA-Eur prebuilt OSM network 0.7 (DE, CZ, SK, LT)",
-                             "PSE reporting API: unit output (gen-jw), system balance (his-wlk-cal), border flows (przeplywy-mocy)",
+                             "PSE reporting API: unit output (gen-jw), system balance (his-wlk-cal), border flows (przeplywy-mocy), wind and solar curtailment (poze-redoze)",
                              "ENTSO-E Transparency Platform: unavailability of transmission infrastructure (10.1.A/B)",
                              "URE: register of licensed renewable installations (Mapa OZE, 30 June 2025)",
                              "PSE: development plan 2025-2034 (lines it modernises)",

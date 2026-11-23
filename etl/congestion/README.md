@@ -52,7 +52,7 @@ connection:
 | Poland's grid from 110 kV up | OpenStreetMap, Geofabrik's snapshot of 1 January 2026 (`poland-260101.osm.pbf`), cleaned by PyPSA-Eur's `clean_osm_data` and `build_osm_network` | ODbL |
 | Neighbours' 220/400 kV grids (DE, CZ, SK, LT) and the tie lines | PyPSA-Eur's prebuilt OSM network, release 0.7 | ODbL |
 | Station names | `data/queue.json` (PSE's stations), then OSM's names | ODbL |
-| Unit output, system balance, border flows | PSE reporting API (`gen-jw`, `his-wlk-cal`, `przeplywy-mocy`). PSE submits the same data to ENTSO-E as 16.1.A, 6.1.A and 12.1.G | PSE, public |
+| Unit output, system balance, border flows, curtailment | PSE reporting API (`gen-jw`, `his-wlk-cal`, `przeplywy-mocy`, `poze-redoze`). PSE submits the same data to ENTSO-E as 16.1.A, 6.1.A and 12.1.G | PSE, public |
 | Outages of transmission elements | ENTSO-E Transparency Platform, unavailability of transmission infrastructure (10.1.A/B) | ENTSO-E, reuse with attribution |
 | Wind and PV installations | URE "Mapa OZE" register of licensed installations (30 June 2025), by town | URE, public |
 | Lines PSE modernises | PSE, Plan rozwoju sieci przesyłowej 2025–2034 (agreed 20 December 2024) | PSE, public |
@@ -198,15 +198,44 @@ hourly profile:
 - **Battery:** daily arbitrage on Poland's day-ahead price, charging in the
   two cheapest and discharging in the two dearest hours.
 
-Every MW it produces displaces the JWCD thermal units in proportion to their
-output that hour, and charging is supplied the same way. Border flows stay as
-measured. The year is screened again with the same outages, ratings and
-contingencies, on the lines that carry at least 5% of the plant's output.
-Two caveats:
+What balances the new plant each hour:
 
-- The displacement rule matters. In reality redispatch follows prices and
-  location, and the market may export the extra output instead.
-- A line already over 100% and a little more loaded also shows up.
+- **Hours with curtailment.** In 2025 PSE curtailed wind or solar in 2,535
+  hours: 982 GWh of solar and 395 GWh of wind, almost all for system balance
+  (PSE's `poze-redoze` report). In those hours the system already had too
+  much, so up to the MW curtailed:
+  - a new plant's output is matched by curtailing existing wind and solar more;
+  - a battery's charging is matched by curtailing them less.
+
+  That wind and solar is placed like the fleet's output that hour: URE's
+  installations and micro-PV times the weather, as in `inputs.py`. Nothing
+  else moves.
+- **Other hours, and the rest.** The new MW displace the JWCD thermal units in
+  proportion to their output that hour.
+
+Border flows stay as measured. The year is screened again with the same
+outages, ratings and contingencies, on the lines that carry at least 5% of
+the plant's output. The batch also records two shares:
+- how much of a plant's output falls in curtailment hours (where it only adds
+  to curtailment);
+- how much of a battery's charging takes wind and solar that PSE would
+  otherwise have curtailed.
+
+At Puławy, for example, 434 of the battery's 730 charging hours fall in
+curtailment hours. Its added overload hours still come from the evening
+discharge, when there is no surplus, so the curtailment rule changes them
+little.
+
+Three caveats:
+
+- **Curtailment has no location.** PSE publishes it for all of Poland, so it
+  is spread like the fleet's output. Network-driven curtailment (about 30 GWh
+  in 2025) is local in reality.
+- **The rule matters.** Outside surplus hours, real redispatch follows prices
+  and location, and the market may export the extra output instead. The
+  battery is dispatched on price alone, with no regard for the grid.
+- **Lines already over 100%.** One that the plant loads a little more also
+  shows up.
 
 ## Caveats
 
