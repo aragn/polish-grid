@@ -64,6 +64,8 @@ jobs:
         run: python etl/land_flood.py ${{ (github.event.inputs.recheck == 'flood' || github.event.inputs.recheck == 'both') && '--all' || '' }}
       - name: Terrain on each plot (Copernicus DEM)
         run: python etl/land_terrain.py --budget-minutes "${{ github.event.inputs.terrain_budget || '120' }}"
+      - name: Solar yield on each plot (Global Solar Atlas, from the copy in etl/)
+        run: python etl/land_solar.py
       - name: Building permits on and near each plot (GUNB)
         run: python etl/land_permits.py --budget-minutes 150
       - name: Forest, water, roads and buildings on each plot
