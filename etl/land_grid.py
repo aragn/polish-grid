@@ -10,14 +10,20 @@ few layers needed are read out of each county's zip, by HTTP range requests (abo
 
 * OT_SULN_L, power lines: medium voltage (in Poland 15, 20 or 30 kV), high voltage (110 kV) and extra-high voltage
   (220 or 400 kV), as BDOT10k classes them;
-* OT_KUPG_A, industrial sites: substations ("podstacja elektroenergetyczna"), with their names when given.
+* OT_KUPG_A, industrial sites: substations ("podstacja elektroenergetyczna"), with their names when given, and power
+  plants ("elektrownia") by kind, solar farms among them, with their outlines (no names: some are sole traders');
+* OT_BUWT_P, towers: wind turbines ("turbina wiatrowa"), with their height and whether they are built.
+
+Solar farms and wind turbines near a substation are possible hosts for a battery or another plant sharing their
+connection (cable pooling, Energy Law art. 7(1f) as amended by Dz.U. 2026 poz. 516).
 
 Low-voltage lines and MV/LV transformer stations aren't in BDOT10k; the page offers GUGiK's utility map (GESUT) for
 them, which draws only close in (1:2,000) and doesn't answer from every country.
 The substations of 110 kV and above that OpenStreetMap names (etl/osm_substations_110.json) are added for their names.
 
 Writes data/land/grid/<station>.json for each station: {"lines": {"ehv": [...], "hv": [...], "mv": [...]}, "subs":
-[[kind, name, lon, lat]]}, lines as [[lon, lat], ...] within RADIUS_M of the station, simplified to SIMPLIFY_M.
+[[kind, name, lon, lat]], "plants": [[kind, ha, [[lon, lat], ...]]], "turbines": [[lon, lat, height m, built 1/0]]},
+lines as [[lon, lat], ...] within RADIUS_M of the station, simplified to SIMPLIFY_M.  VERSION bumps redo every file.
 """
 
 import argparse
@@ -45,6 +51,8 @@ UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 RADIUS_M = 4000
 SIMPLIFY_M = 3.0
 REFRESH_DAYS = 180
+VERSION = 2              # 2: power plants and wind turbines
+PLANT_KIND = {"słoneczna": "solar", "wodna": "hydro", "wiatrowa": "wind"}
 LINE_CLASS = {"linia elektroenergetyczna najwyższego napięcia": "ehv", "linia elektroenergetyczna wysokiego napięcia": "hv",
               "linia elektroenergetyczna średniego napięcia": "mv"}
 TO_2180 = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
@@ -121,12 +129,22 @@ def county_objects(county, bbox, folder):
         k = LINE_CLASS.get(f["RODZAJ"][i])
         if k and g is not None and f["KATEGORIAISTNIENIA"][i] not in ("zniszczony",):
             lines[k].append(g)
-    subs = []
-    geoms, f = read_member(archive, "OT_KUPG_A", folder, bbox, ["RODZAJ", "NAZWA"])
+    subs, plants, turbines = [], [], []
+    geoms, f = read_member(archive, "OT_KUPG_A", folder, bbox, ["RODZAJ", "NAZWA", "RODZAJELEKTROWNI"])
     for i, g in enumerate(geoms):
-        if g is not None and f["RODZAJ"][i] == "podstacja elektroenergetyczna":
+        if g is None:
+            continue
+        if f["RODZAJ"][i] == "podstacja elektroenergetyczna":
             subs.append(("substation", f["NAZWA"][i] or "", g.representative_point(), g))
-    return lines, subs
+        elif f["RODZAJ"][i] in ("elektrownia", "elektrociepłownia"):
+            plants.append((PLANT_KIND.get(f["RODZAJELEKTROWNI"][i], "other"), g))
+    geoms, f = read_member(archive, "OT_BUWT_P", folder, bbox, ["RODZAJ", "WYSOKOSC", "KATEGORIAISTNIENIA"])
+    for i, g in enumerate(geoms):
+        if g is not None and f["RODZAJ"][i] == "turbina wiatrowa" and f["KATEGORIAISTNIENIA"][i] != "zniszczony":
+            height = f["WYSOKOSC"][i]
+            turbines.append((g, int(round(float(height))) if height not in (None, "") and float(height) == float(height) else None,
+                             0 if f["KATEGORIAISTNIENIA"][i] == "w budowie" else 1))
+    return lines, subs, plants, turbines
 
 
 def to_lonlat(geom):
@@ -154,8 +172,8 @@ def main(redo_all=False, budget_minutes=90):
     for sid, st in index["stations"].items():
         out_path = os.path.join(OUT, f"{sid}.json")
         if not redo_all and os.path.exists(out_path):
-            made = json.load(open(out_path, encoding="utf-8")).get("made", "2000-01-01")
-            if (today - datetime.date.fromisoformat(made)).days < REFRESH_DAYS:
+            old = json.load(open(out_path, encoding="utf-8"))
+            if old.get("v") == VERSION and (today - datetime.date.fromisoformat(old.get("made", "2000-01-01"))).days < REFRESH_DAYS:
                 continue
         if counties_of.get(sid):
             todo.append(sid)
@@ -175,7 +193,7 @@ def main(redo_all=False, budget_minutes=90):
     deadline = time.time() + capped(budget_minutes, 20, "Land grid") * 60
     folder = os.path.join(OUT, ".tmp")
     os.makedirs(folder, exist_ok=True)
-    found = {sid: {"lines": {"ehv": [], "hv": [], "mv": []}, "subs": []} for sid in todo}
+    found = {sid: {"lines": {"ehv": [], "hv": [], "mv": []}, "subs": [], "plants": [], "turbines": []} for sid in todo}
     done_counties, failed = set(), set()
     t0 = time.time()
     for n, (county, sids) in enumerate(sorted(by_county.items(), key=lambda kv: -len(kv[1]))):
@@ -183,7 +201,7 @@ def main(redo_all=False, budget_minutes=90):
             break
         area = shapely.union_all([centres[s] for s in sids])
         try:
-            lines, subs = county_objects(county, area.bounds, folder)
+            lines, subs, plants, turbines = county_objects(county, area.bounds, folder)
         except Exception as error:  # noqa: BLE001 -- a county that fails is tried again next run
             failed.add(county)
             print(f"Land grid: {county} failed: {str(error)[:160]}", flush=True)
@@ -199,6 +217,18 @@ def main(redo_all=False, budget_minutes=90):
                 if point.within(circle):
                     lon, lat = TO_4326.transform(point.x, point.y)
                     found[sid]["subs"].append([kind, name, round(lon, 5), round(lat, 5)])
+            for kind, shape in plants:
+                if shape.intersects(circle):
+                    outline = shapely.simplify(shape, 5.0)
+                    rings = [p.exterior for p in getattr(outline, "geoms", [outline]) if p.geom_type == "Polygon"]
+                    for ring in rings:
+                        xs, ys = ring.xy
+                        lon, lat = TO_4326.transform(list(xs), list(ys))
+                        found[sid]["plants"].append([kind, round(shape.area / 10000, 1), [[round(a, 5), round(b, 5)] for a, b in zip(lon, lat)]])
+            for point, height, built in turbines:
+                if point.within(circle):
+                    lon, lat = TO_4326.transform(point.x, point.y)
+                    found[sid]["turbines"].append([round(lon, 5), round(lat, 5), height, built])
         if (n + 1) % 20 == 0:
             print(f"Land grid: {n + 1}/{len(by_county)} counties, {time.time() - t0:.0f} s", flush=True)
     os.rmdir(folder)
@@ -213,7 +243,7 @@ def main(redo_all=False, budget_minutes=90):
                 kv = "/".join(str(int(v) // 1000) for v in str(voltage).split(";") if v.strip().isdigit())
                 label = " · ".join(t for t in (name, operator if operator != name else "", f"{kv} kV" if kv else "") if t)
                 found[sid]["subs"].append(["osm", label, round(lon, 5), round(lat, 5)])
-        json.dump({"station": sid, "made": today.isoformat(), "radius_m": RADIUS_M, **found[sid]},
+        json.dump({"station": sid, "made": today.isoformat(), "v": VERSION, "radius_m": RADIUS_M, **found[sid]},
                   open(os.path.join(OUT, f"{sid}.json"), "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
         written += 1
     print(f"Land grid: {len(done_counties)} counties read ({len(failed)} failed) in {time.time() - t0:.0f} s; {written} substations mapped, "
