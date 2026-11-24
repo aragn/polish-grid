@@ -179,7 +179,8 @@ def main(force=False, only=None, budget_minutes=90):
             pid = plot["id"]
             if pid[:2] not in provinces or pid[:2] in failed:
                 continue
-            gp = sorted(([d, k, n, mw] for d, k, n, mw, _ in on_plot.get(pid, ())), reverse=True)
+            # Newest first; the MW can be missing, so it isn't part of the sort key.
+            gp = sorted(([d, k, n, mw] for d, k, n, mw, _ in on_plot.get(pid, ())), key=lambda g: (g[0], g[1], g[2]), reverse=True)
             gn = [nearest[k].get(pid) for k in TYPES]
             if plot.get("gp") != gp or plot.get("gn") != gn:
                 plot["gp"], plot["gn"] = gp, gn
