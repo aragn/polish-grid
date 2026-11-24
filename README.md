@@ -267,6 +267,17 @@ Everything else on the page is worked out in the browser from these fields:
   the plots but letting clicks through. Low-voltage lines and transformer stations aren't in
   BDOT10k: the map offers GUGiK's utility map (GESUT, layer `przewod_elektroenergetyczny`) as an
   extra layer, which draws only at 1:2,000 and doesn't answer from every country.
+- **Possible cable-pooling hosts:** the same step stores BDOT10k's power plants with their outlines
+  (`plants`, solar farms among them; no names, since some are sole traders') and wind turbines
+  (`turbines`, `OT_BUWT_P` "turbina wiatrowa", with height and whether built). The map draws them,
+  and the plot card notes a solar farm within 3 km as a possible host to share a connection with.
+- **Steps for a developer:** a panel with the steps for the chosen project type: land and zoning,
+  the environmental decision, connection conditions (since 30 April 2026, Dz.U. 2026 poz. 516: fee
+  PLN 1/kW up to 100,000; advance PLN 60/kW up to 6 million; conditions valid one year), the
+  connection agreement (security within 14 days; a final building permit within 24 months),
+  sharing an existing connection (cable pooling for any installation or battery, art. 7(1f); a
+  second point of consumption without new conditions, art. 7(1bb)–(1bg); brownfield checks),
+  and the building permit. Checked against the acts in force on 24 November 2026.
 - **Solar yield:** `etl/land_solar.py` adds `py`, the Global Solar Atlas PVOUT (kWh per kWp a
   year, 1999–2018, about 1 km) at each plot's centre, from `etl/gsa_pvout_poland.tif`. That file
   was downloaded once by hand from globalsolaratlas.info/download/poland, because the atlas's
