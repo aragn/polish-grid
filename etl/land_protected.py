@@ -23,6 +23,7 @@ import datetime
 import glob
 import json
 import os
+import re
 import sys
 import time
 
@@ -129,11 +130,13 @@ def plot_shape(plot):
 
 
 # Files in data/land/ that aren't one substation's plots.
-NOT_STATIONS = ("index.json", "protected.json", "protected_shapes.json", "zoning.json")
+# Station files are named after their operator (etl/land.py station_id); the lookups beside them (index, protected,
+# zoning, permits...) are not, so new lookups don't need to be listed anywhere.
+STATION_FILE = re.compile(r"^(tauron|energa|pge|enea|stoen)-.+\.json$")
 
 
 def station_files():
-    return sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if os.path.basename(f) not in NOT_STATIONS)
+    return sorted(f for f in glob.glob(os.path.join(LAND, "*.json")) if STATION_FILE.match(os.path.basename(f)))
 
 
 GROUPS = {"n2": ("n2k",), "np": ("PL01", "PL02"), "lp": ("PL03",), "ol": ("PL04",)}
