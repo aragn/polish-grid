@@ -139,6 +139,7 @@
     .s-leg span { color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; display:flex; align-items:center; gap:6px; }
     .s-leg span i { width:8px; height:8px; border-radius:50%; display:inline-block; flex:none; }
     .s-leg b { display:block; font-size:15px; margin:2px 0 0 14px; font-variant-numeric:tabular-nums; }
+    .s-tech { color:var(--muted-2); font-size:11px; margin-left:4px; }
     .s-over { display:block; font-style:normal; color:var(--warn); font-size:11px; margin:1px 0 0 14px; }
     .s-cap { color:var(--muted-2); font-size:11.5px; line-height:1.45; margin-top:8px; }
     .obars { display:flex; gap:6px; align-items:flex-end; height:118px; border:1px solid var(--border); border-radius:10px; padding:10px 10px 6px; background:var(--panel-2); }
@@ -843,6 +844,8 @@
     const q = a.queue || {}, dir = kind === "dem" ? "out" : "in";
     const free = Math.max(0, valueOf(a, kind, y) || 0), waiting = q[`pending_${dir}`] || 0, held = q[`held_${dir}`] || 0;
     // The published room is already net of the agreed projects; the waiting ones would come out of it if granted.
+    const conn = q.connected || [];
+    const cMw = c => dir === "in" ? c[2] : c[3], connMw = list => list.reduce((t, c) => t + cMw(c), 0);
     const afterQueue = Math.max(0, free - waiting), over = Math.max(0, waiting - free), total = free + held;
     const placed = s.lat != null;
     const sat = placed ? (saturation.stations || []).find(x => x.lat != null && (kmBetween(s, x) < 1.5 || (a.op === "pse" && foldName(x.station || x.name) === foldName(s.name)))) : null;
@@ -887,8 +890,17 @@
       `<div class="s-leg">${parts.map(p => `<div><span><i style="background:${p.color}"></i>${esc(p.label)}</span><b>${fmtMw(p.shown ?? p.v)}</b>` +
         `${p.note ? `<em class="s-over">${esc(p.note)}</em>` : ""}</div>`).join("")}</div></div>` +
       `<div class="s-cap">${a.op === "pse" ? "PSE's published figure (step 2) for this station" : `One figure for the whole group of ${a.stations.length} stations: what connects at any of them uses it up`}. ` +
-      `${fmtMw(free)} free, already net of the ${fmtMw(held)} agreed. The ring is the room before those agreements (${fmtMw(total)}); the applications not yet decided would come out of the free room if granted. ` +
+      `${fmtMw(free)} free, already net of the ${fmtMw(held)} in connection conditions or agreements. ` +
+      (held > free ? `The operator has promised more than is still free: conditions are often tied to grid work still to be built (new transformers, line upgrades) and to staged connection dates, so the agreed share is a commitment, not room the grid has today. `
+        : `The agreed projects are commitments the operator has already made, so they sit beside the free room in the ring; the ring is not a measure of the grid. `) +
+      `The applications not yet decided would come out of the free room if granted. ` +
       `Waiting and agreed are the projects in our queue data matched to ${a.op === "pse" ? "the station" : "the group"} by name, ${dir === "in" ? "to feed in" : "to take out"}, so they are approximate.</div></div>` +
+      (conn.length ? `<div class="s-sec"><h5>Already connected</h5>` +
+        `<div class="m-row"><span>${fmtNum(conn.length)} project${conn.length > 1 ? "s" : ""}, latest ${fmtDate(conn[0][4])}</span><b>${fmtMw(connMw(conn))}</b></div>` +
+        conn.filter(c => cMw(c) >= 1).sort((x, y) => cMw(y) - cMw(x)).slice(0, 3).map(c =>
+          { const tech = TECH_LABEL[c[1]] || c[1], named = c[0] && !/^[A-ZŁŚŻ]{1,5}$/.test(c[0]);
+            return `<div class="m-row"><span>${esc(named ? c[0] : tech)} <span class="s-tech">${esc([named ? tech : "", c[4] ? fmtDate(c[4]) : ""].filter(Boolean).join(" · "))}</span></span><b>${fmtMw(cMw(c))}</b></div>`; }).join("") +
+        `<div class="s-cap">Projects that connected while on the operators' lists of applicants (PSE's since 2015, the distribution operators' since 2024), ${dir === "in" ? "MW to feed in" : "MW to take out"}; the largest are listed. Older plants aren't in these lists. They are already in the grid, so they are neither in the free room nor in the ring.</div></div>` : "") +
       `<div class="s-sec"><h5>Outlook by year, ${SIDE_KIND[kind]}</h5>${outlookBars(a, kind)}` +
       `<div class="s-cap">${esc(op.name)}, ${a.op === "tauron" ? `read ${fmtDate(op.read)}` : `as of ${fmtDate(op.asof)}`}. The operator's own outlook for each year, not a history.</div></div>` +
       `<div class="s-sec">${rows.join("")}</div>` +
@@ -913,7 +925,7 @@
       if (img === $("s-img")) { $("s-sat").classList.add("empty"); $("s-cap").textContent = "No aerial image could be loaded."; }
     };
     img.src = src.gugik;
-    setTimeout(() => { if (!img.complete || !img.naturalWidth) fallback(); }, 8000);
+    setTimeout(() => { if (!img.complete || !img.naturalWidth) fallback(); }, 5000);
   }
 
   function renderNotes() {

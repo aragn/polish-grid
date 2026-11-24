@@ -69,6 +69,7 @@ ENEA_PAGE = "https://www.operator.enea.pl/przylaczone-i-dostepne-moce-oze"
 STOEN_PAGE = "https://www.stoen.pl/strona/siec"
 LIVE = {"application", "study", "conditions", "agreement"}
 PENDING = {"application", "study"}          # not yet in the operators' values
+CONNECTED = {"operating"}                    # connected while on an operator's list
 NAMES = {"tauron": "TAURON Dystrybucja", "energa": "Energa-Operator", "pge": "PGE Dystrybucja", "pse": "PSE"}
 
 
@@ -415,14 +416,19 @@ def queue_projects():
         path = os.path.join(ROOT, "data", name)
         if os.path.exists(path):
             for p in json.load(open(path, encoding="utf-8"))["projects"]:
-                if p.get("phase") in LIVE and not p.get("left"):
+                if (p.get("phase") in LIVE and not p.get("left")) or p.get("phase") in CONNECTED:
                     out.append(p)
     return out
 
 
 def tally(projects):
     q = {"pending_in": 0.0, "pending_out": 0.0, "held_in": 0.0, "held_out": 0.0, "n_pending": 0, "n_held": 0, "storage_mw": 0.0, "by_tech": {}}
+    connected = []
     for p in projects:
+        if p["phase"] in CONNECTED:
+            day = ((p.get("milestones") or {}).get("connected") or {}).get("date")
+            connected.append([p.get("name") or p.get("type") or "", p.get("technology") or "other", round(p.get("mw_in") or 0, 1), round(p.get("mw_out") or 0, 1), day])
+            continue
         side = "pending" if p["phase"] in PENDING else "held"
         q[f"{side}_in"] += p.get("mw_in") or 0
         q[f"{side}_out"] += p.get("mw_out") or 0
@@ -430,7 +436,11 @@ def tally(projects):
         if p.get("technology") in ("storage", "hybrid"):
             q["storage_mw"] += p.get("mw") or 0
         q["by_tech"][p.get("technology") or "other"] = round(q["by_tech"].get(p.get("technology") or "other", 0) + (p.get("mw") or 0), 1)
-    return {k: (round(v, 1) if isinstance(v, float) else v) for k, v in q.items()}
+    q = {k: (round(v, 1) if isinstance(v, float) else v) for k, v in q.items()}
+    if connected:
+        # [name, technology, MW in, MW out, connection date], newest first.
+        q["connected"] = sorted(connected, key=lambda c: c[4] or "", reverse=True)
+    return q
 
 
 def build(tauron, energa, pge, pse):
