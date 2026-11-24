@@ -10,10 +10,10 @@ few layers needed are read out of each county's zip, by HTTP range requests (abo
 
 * OT_SULN_L, power lines: medium voltage (in Poland 15, 20 or 30 kV), high voltage (110 kV) and extra-high voltage
   (220 or 400 kV), as BDOT10k classes them;
-* OT_KUPG_A, industrial sites: substations ("podstacja elektroenergetyczna"), with their names when given;
-* OT_BUZT_P and OT_BUZT_A, technical structures: transformer stations, where BDOT10k has them.
+* OT_KUPG_A, industrial sites: substations ("podstacja elektroenergetyczna"), with their names when given.
 
-Low-voltage lines aren't in BDOT10k; the page offers GUGiK's utility map (GESUT) for them, which draws only close in.
+Low-voltage lines and MV/LV transformer stations aren't in BDOT10k; the page offers GUGiK's utility map (GESUT) for
+them, which draws only close in (1:2,000) and doesn't answer from every country.
 The substations of 110 kV and above that OpenStreetMap names (etl/osm_substations_110.json) are added for their names.
 
 Writes data/land/grid/<station>.json for each station: {"lines": {"ehv": [...], "hv": [...], "mv": [...]}, "subs":
@@ -126,11 +126,6 @@ def county_objects(county, bbox, folder):
     for i, g in enumerate(geoms):
         if g is not None and f["RODZAJ"][i] == "podstacja elektroenergetyczna":
             subs.append(("substation", f["NAZWA"][i] or "", g.representative_point(), g))
-    for suffix in ("OT_BUZT_P", "OT_BUZT_A"):
-        geoms, f = read_member(archive, suffix, folder, bbox, ["RODZAJ", "NAZWA"])
-        for i, g in enumerate(geoms):
-            if g is not None and "transformator" in str(f["RODZAJ"][i] or "").lower():
-                subs.append(("transformer", f["NAZWA"][i] or "", g if g.geom_type == "Point" else g.representative_point(), None))
     return lines, subs
 
 
