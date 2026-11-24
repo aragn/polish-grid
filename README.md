@@ -278,6 +278,20 @@ Everything else on the page is worked out in the browser from these fields:
   sharing an existing connection (cable pooling for any installation or battery, art. 7(1f); a
   second point of consumption without new conditions, art. 7(1bb)–(1bg); brownfield checks),
   and the building permit. Checked against the acts in force on 24 November 2026.
+- **Soil classes:** the legal soil class (I–VI) is on 86k of the 318k plots, where the county's
+  EGiB service publishes it. KIEG (GUGiK's integration of the county services) has nothing more:
+  none of 40 sampled counties without classes had them there (24 Nov 2026). The map offers GUGiK's
+  soil-agricultural map (agricultural soil complexes, WMS layer `0` of
+  `mapy.geoportal.gov.pl/wss/service/pub/guest/MapaGlebowoRolnicza/MapServer/WMSServer`, drawn from
+  about 1:50,000 in) as a layer to look at: GUGiK says the free service is for viewing, so nothing
+  is read from it into our data.
+  - **The more granular version can be bought:** the soil-agricultural map as vector data (GML,
+    1:5,000) from GUGiK's central resource (PZGiK), at the base rate of PLN 15 per map sheet (Table
+    14, item 2, of the annex to the Geodetic and Cartographic Law, Dz.U. 2026 poz. 1389; indexed
+    yearly, +4.5% in 2026; the exact fee comes in GUGiK's fee calculation). The area within 3 km of
+    the 774 substations is about 16,800 km², some 6,500 sheets of 2.5 × 2 km: roughly PLN
+    100,000–125,000. It is free for public tasks, education and research. With it, each plot could
+    get an estimated soil quality (the complex, not the legal class).
 - **Solar yield:** `etl/land_solar.py` adds `py`, the Global Solar Atlas PVOUT (kWh per kWp a
   year, 1999–2018, about 1 km) at each plot's centre, from `etl/gsa_pvout_poland.tif`. That file
   was downloaded once by hand from globalsolaratlas.info/download/poland, because the atlas's
