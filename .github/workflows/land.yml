@@ -3,7 +3,8 @@
 # and what lies on them from BDOT10k (etl/land_constraints.py). Zoning comes from the urban register (etl/land_zoning.py),
 # flood areas from Wody Polskie (etl/land_flood.py), and etl/land_blocks.py lists each plot's neighbours. Each run works through what is new or older than 90 days for up to the budgets,
 # then commits data/land; the next run carries on.  The budgets are capped by one deadline for the job (LAND_DEADLINE,
-# etl/land_budget.py) 10 minutes before its timeout, and the commit runs even when a step fails, so a run never loses its work.
+# etl/land_budget.py) 10 minutes before its timeout. Each data step runs even when an earlier one failed (the job still
+# shows as failed), and the commit runs in any case, so a run never loses its work.
 name: Update land plots
 
 on:
@@ -57,22 +58,31 @@ jobs:
         run: |
           python etl/land.py --budget-minutes "${{ github.event.inputs.budget || '60' }}" ${{ github.event.inputs.only && format('--only {0}', github.event.inputs.only) || '' }}
       - name: Natura 2000 and other protected areas on each plot (EEA)
+        if: ${{ !cancelled() }}
         run: python etl/land_protected.py ${{ github.event.inputs.protected_all == 'true' && '--all' || '' }}
       - name: Zoning on each plot (urban register)
+        if: ${{ !cancelled() }}
         run: python etl/land_zoning.py --budget-minutes "${{ github.event.inputs.zoning_budget || '120' }}" ${{ (github.event.inputs.recheck == 'zoning' || github.event.inputs.recheck == 'both') && '--all' || '' }}
       - name: Flood areas on each plot (Wody Polskie)
+        if: ${{ !cancelled() }}
         run: python etl/land_flood.py ${{ (github.event.inputs.recheck == 'flood' || github.event.inputs.recheck == 'both') && '--all' || '' }}
       - name: Terrain on each plot (Copernicus DEM)
+        if: ${{ !cancelled() }}
         run: python etl/land_terrain.py --budget-minutes "${{ github.event.inputs.terrain_budget || '120' }}"
       - name: Solar yield on each plot (Global Solar Atlas, from the copy in etl/)
+        if: ${{ !cancelled() }}
         run: python etl/land_solar.py
       - name: Building permits on and near each plot (GUNB)
+        if: ${{ !cancelled() }}
         run: python etl/land_permits.py --budget-minutes 150
       - name: Power lines and substations around each substation (BDOT10k)
+        if: ${{ !cancelled() }}
         run: python etl/land_grid.py --budget-minutes 60
       - name: Forest, water, roads and buildings on each plot
+        if: ${{ !cancelled() }}
         run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
       - name: Neighbouring plots
+        if: ${{ !cancelled() }}
         run: python etl/land_blocks.py
       - name: Commit
         if: always()
