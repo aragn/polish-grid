@@ -7,4 +7,5 @@ json.dump(idx, open("data/land/index.json", "w", encoding="utf-8"))
 subprocess.run([sys.executable, "etl/land_grid.py", "--all", "--budget-minutes", "25"], check=True)
 for f in sorted(glob.glob("data/land/grid/*.json")):
     d = json.load(open(f, encoding="utf-8"))
+    if d.get("v") != 2: continue
     print(os.path.basename(f), os.path.getsize(f), "plants", collections.Counter(p[0] for p in d["plants"]), "turbines", len(d["turbines"]), "built", sum(t[3] for t in d["turbines"]))
