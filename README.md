@@ -258,6 +258,12 @@ Everything else on the page is worked out in the browser from these fields:
   south-east to south-west). It is a surface model, so trees and buildings steepen edges. The
   page filters on mean slope and checks it: flat ground for a battery (70% under 2°), a gentle
   or south-facing slope for solar.
+- **Solar yield:** `etl/land_solar.py` adds `py`, the Global Solar Atlas PVOUT (kWh per kWp a
+  year, 1999–2018, about 1 km) at each plot's centre, from `etl/gsa_pvout_poland.tif`. That file
+  was downloaded once by hand from globalsolaratlas.info/download/poland, because the atlas's
+  terms don't allow automated access, and is kept here under its CC BY 4.0 licence, with the
+  citation the atlas asks for on the page. Across the plots it runs from 964 to 1,145 (median
+  1,092), so it matters far less than the grid connection.
 - **Building permits:** `etl/land_permits.py` reads GUNB's register of building permit decisions
   since 2016 (one zip per province, every 28 days) and adds `gp`, each plot's own decisions as
   [date, type, new, MW], and `gn`, the distance to the nearest solar, battery and wind decision

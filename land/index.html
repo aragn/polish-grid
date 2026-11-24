@@ -502,6 +502,7 @@
       (p.ss != null ? `; of the sloping part, ${p.ss}% faces south (south-east to south-west)` : "") +
       `. <span style="color:var(--muted)">Copernicus DEM, about 30 m: a surface model, so trees and buildings make edges look steeper.</span>`;
   }
+  const PV_MEDIAN = 1092;   // median PVOUT of all plots in data/land (kWh/kWp a year), Global Solar Atlas
   const PERMIT_EN = { solar: "solar", battery: "battery", wind: "wind", house: "house", other: "other building or works" };
   function permitsHtml(p) {
     if (p.gp == null) return "not read yet";
@@ -543,7 +544,7 @@
         flood_1pct_ha: q.q1 ?? "", flood_02pct_only_ha: q.q02 ?? "", general_plan_zone: z ? `${z[1]} (${ZONE_EN[z[0]] || z[2]})` : "", zone_allows_solar: z ? solarZone(q) : "",
         local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
         ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])),
-        height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
+        solar_kwh_per_kwp: q.py ?? "", height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
         energy_permits_on_plot: (q.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1])).map(g => `${g[1]} ${g[0]}`).join("; "),
         m_to_solar_permit: q.gn?.[0] ?? "", m_to_battery_permit: q.gn?.[1] ?? "", m_to_wind_permit: q.gn?.[2] ?? "" });
     }));
@@ -706,6 +707,7 @@
       ["Nearest substation", `${esc(st.name || "")}, ${p.km.toFixed(2)} km`],
       ["Distances", distancesHtml(p)],
       ["Terrain", terrainHtml(p)],
+      ["Solar yield", p.py ? `about <b>${p.py.toLocaleString("en")} kWh per kWp a year</b> for a ground-mounted array at the best fixed tilt, ${p.py >= PV_MEDIAN ? `${((p.py / PV_MEDIAN - 1) * 100).toFixed(0)}% above` : `${((1 - p.py / PV_MEDIAN) * 100).toFixed(0)}% below`} the median of the plots here (${PV_MEDIAN.toLocaleString("en")}). <span style="color:var(--muted)">Global Solar Atlas, 1999–2018 average, about 1 km; across Poland it varies by only about ±5%.</span>` : "not read yet"],
       ["Building permits", permitsHtml(p)],
       ["Protected areas", protectedText(p)],
       ["Land and soil classes", p.klasy ? p.klasy.split(/[,;]\s*/).filter(Boolean).map(x => `${esc(x)} <span style="color:var(--muted)">(${esc(decodeClass(x))})</span>`).join(", ") : "not published by this county's service"],
@@ -779,7 +781,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 
