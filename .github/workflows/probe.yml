@@ -1,0 +1,15 @@
+name: probe (temporary)
+on:
+  push:
+    branches: [land-phase-c]
+    paths: [probe/**, .github/workflows/probe.yml]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install requests && python probe/probe.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kowr
+          path: out/
