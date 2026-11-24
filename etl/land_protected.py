@@ -132,7 +132,7 @@ def plot_shape(plot):
 # Files in data/land/ that aren't one substation's plots.
 # Station files are named after their operator (etl/land.py station_id); the lookups beside them (index, protected,
 # zoning, permits...) are not, so new lookups don't need to be listed anywhere.
-STATION_FILE = re.compile(r"^(tauron|energa|pge|enea|stoen)-.+\.json$")
+STATION_FILE = re.compile(r"^(tauron|energa|pge|enea|stoen|pse)-.+\.json$")
 
 
 def station_files():

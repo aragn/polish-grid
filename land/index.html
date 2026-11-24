@@ -198,7 +198,7 @@
   const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
-  const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
+  const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE", pse: "PSE" };
   const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {}, gridCache = {};
@@ -438,11 +438,13 @@
     zoning = await get("../data/land/zoning.json").catch(() => zoning);
     DK = Object.fromEntries((index.distance_keys || []).map((k, i) => [k, i]));
     permits = await get("../data/land/permits.json").catch(() => permits);
-    const groups = capacity.areas.filter(a => a.op !== "pse")
+    const roomOf = a => Math.max(a.gen["2030"] || 0, a.dem["2030"] || 0);
+    const bench = a => a.op === "pse" || roomOf(a) < index.rule.min_room_mw;
+    const groups = capacity.areas
       .map(a => ({ a, sts: Object.entries(index.stations).filter(([, s]) => s.groups.includes(a.id)) }))
       .filter(g => g.sts.length)
-      .sort((x, y) => Math.max(y.a.gen["2030"] || 0, y.a.dem["2030"] || 0) - Math.max(x.a.gen["2030"] || 0, x.a.dem["2030"] || 0));
-    $("group").innerHTML = groups.map(({ a, sts }) => `<option value="${esc(a.id)}">${esc(a.name)} · ${OPS[a.op]} · 2030: ${Math.round(a.gen["2030"] || 0)} MW in, ${Math.round(a.dem["2030"] || 0)} MW out · ${sts.length} substations</option>`).join("");
+      .sort((x, y) => bench(x.a) - bench(y.a) || roomOf(y.a) - roomOf(x.a));
+    $("group").innerHTML = groups.map(({ a, sts }) => `<option value="${esc(a.id)}">${bench(a) ?"Benchmark (no room): " : ""}${esc(a.name)} · ${OPS[a.op]} · 2030: ${Math.round(a.gen["2030"] || 0)} MW in, ${Math.round(a.dem["2030"] || 0)} MW out · ${sts.length} substation${sts.length === 1 ? "" : "s"}</option>`).join("");
     const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
     $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
       `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +

@@ -7,7 +7,8 @@ Land plots (działki ewidencyjne) around the substations of the groups with room
 
 Which substations: those of the distribution groups (TAURON, Energa, PGE) with room for at least MIN_ROOM_MW of
 generation or demand in TARGET_YEAR in data/grid_capacity.json, placed at a known substation (the operator's own
-coordinates, an OpenStreetMap substation of that name, or the 110 kV substation nearest the town it is named after).
+coordinates, an OpenStreetMap substation of that name, or the 110 kV substation nearest the town it is named after),
+and the BENCHMARK groups whatever their room.
 
 Plots: GUGiK's collective WFS of the land and building registers (EGiB, "Usługa zbiorcza", built from every
 county's service) for a square of RADIUS_KM around each substation.  It answers from GitHub's runners but not
@@ -55,6 +56,9 @@ VERSION = 3              # bump to re-fetch everything (2: outlines simplified c
 PAGE = 1000
 NS = {"gml": "http://www.opengis.net/gml/3.2"}
 PLACED = {"substation", "operator", "near"}
+# Benchmark groups: fetched whatever their room (even full, or PSE's own substations), to check the screening against
+# projects that already got a connection there.  Narew (PSE, 400/110 kV): MEE Turośń Kościelna, 200 MW, agreed 2021.
+BENCHMARK = {"pse-narew"}
 
 
 def station_id(op, station):
@@ -66,13 +70,14 @@ def shortlist():
     data = json.load(open(os.path.join(ROOT, "data", "grid_capacity.json"), encoding="utf-8"))
     stations = {}
     for area in data["areas"]:
-        if area["op"] == "pse":
+        bench = area["id"] in BENCHMARK
+        if area["op"] == "pse" and not bench:
             continue
         room = max(area["gen"].get(TARGET_YEAR) or 0, area["dem"].get(TARGET_YEAR) or 0)
-        if room < MIN_ROOM_MW:
+        if room < MIN_ROOM_MW and not bench:
             continue
         for s in area["stations"]:
-            if s.get("lat") is None or s.get("how") not in PLACED:
+            if s.get("lat") is None or (s.get("how") not in PLACED and not (bench and s.get("how") == "station")):
                 continue
             sid = station_id(area["op"], s)
             entry = stations.setdefault(sid, {"id": sid, "name": s["name"], "code": s.get("code", ""), "op": area["op"], "lat": s["lat"], "lon": s["lon"],
