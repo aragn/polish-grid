@@ -280,6 +280,22 @@ Everything else on the page is worked out in the browser from these fields:
   precinct, since 2016 and since 2022. The type and MW are read from the free text; the free
   text itself, the investor and the designer are never stored. A plot that already has a solar,
   battery or wind permit fails a check and gets a badge.
+- **Project types:** solar PV, battery, onshore wind and data centre, each with its own size,
+  checks and rules on the card.
+  - **Onshore wind:** each plot is a possible turbine position (1 ha). With "apply the wind act" on
+    (Dz.U. 2024 poz. 317, the consolidated text in force; the 2025 bill for 500 m was vetoed) a plot
+    is left out when its edge is under 700 m from a home (art. 4(1), the least a local plan may set;
+    otherwise 10 × the total height); when more than a tenth of it is in a national park, reserve,
+    landscape park or Natura 2000 (art. 4c(1)); when it is closer than 10 × the height to a
+    national park or 500 m to a reserve (art. 4c(2)); or when it is closer to a 220/400 kV line
+    than 3 rotor diameters or 2 × the height (art. 4a). The page works these out from the protected
+    areas and grid lines it already holds. The card also covers the local plan (art. 3), the
+    environmental decision (regulation of 10 Sep 2019 as amended in 2026: 30 m or more, and 100 MW
+    or more for a full assessment) and aviation (Aviation Law, art. 87 and 87¹).
+  - **Data centre:** size from IT load × PUE × ha per MW, plus 2 ha; checks for the group's demand
+    room in 2030, a high-voltage line within 1 km, flat ground, no flooding even at 0.2%, and a
+    general-plan zone for industry or services. The card covers planning, generators (an
+    environmental decision may be needed from 25 MW thermal input) and the 2026 connection fees.
 - **Checks:** up to 13 yes/no checks per plot for the chosen project: size, within 1 km of the
   substation, distance to the nearest home (30 m for solar, 150 m for a battery: common
   buffers, not legal minimums), a public road within 300 m, no high-voltage line across the

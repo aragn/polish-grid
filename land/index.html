@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Polish Grid · Land</title>
-  <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 1 ha or more within 3 km, filtered by the size a solar farm or battery needs, on satellite imagery.">
+  <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 1 ha or more within 3 km, filtered for a solar farm, battery, onshore wind turbine or data centre and the Polish rules for each, on satellite imagery.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
@@ -122,10 +122,19 @@
         </div>
         <div class="box">
           <h3>Project</h3>
-          <div class="seg" id="kind"><button type="button" data-kind="pv" class="on">Solar PV</button><button type="button" data-kind="bess">Battery</button></div>
+          <div class="seg" id="kind"><button type="button" data-kind="pv" class="on">Solar PV</button><button type="button" data-kind="bess">Battery</button><button type="button" data-kind="wind">Onshore wind</button><button type="button" data-kind="dc">Data centre</button></div>
           <div class="row" style="margin-top:10px" id="pv-inputs"><input class="input" id="mwp" type="number" min="0" step="1" value="20"> MWp at <input class="input" id="haper" type="number" min="0.3" step="0.1" value="1.2"> ha per MWp</div>
           <div class="row" style="margin-top:10px" id="bess-inputs" hidden><input class="input" id="mw" type="number" min="0" step="5" value="50"> MW / <input class="input" id="mwh" type="number" min="0" step="10" value="100"> MWh</div>
-          <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha on one plot</div>
+          <div id="wind-inputs" hidden>
+            <div class="row" style="margin-top:10px"><input class="input" id="turbines" type="number" min="1" step="1" value="8"> turbines of <input class="input" id="tmw" type="number" min="0.5" step="0.5" value="6"> MW</div>
+            <div class="row" style="margin-top:8px">Total height <input class="input" id="tiph" type="number" min="50" step="5" value="200"> m, rotor <input class="input" id="rotor" type="number" min="40" step="5" value="160"> m</div>
+            <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="windlaw" checked> Apply the wind act: 700 m from homes; not in national parks, reserves, landscape parks or Natura 2000; 500 m from reserves and 10 × the height from national parks; from 220/400 kV lines 3 rotor diameters or 2 × the height</label>
+          </div>
+          <div id="dc-inputs" hidden>
+            <div class="row" style="margin-top:10px"><input class="input" id="itmw" type="number" min="1" step="5" value="50"> MW of IT load, PUE <input class="input" id="pue" type="number" min="1" step="0.05" value="1.3"></div>
+            <div class="row" style="margin-top:8px"><input class="input" id="hapermw" type="number" min="0.05" step="0.05" value="0.25"> ha per MW of grid demand, plus 2 ha</div>
+          </div>
+          <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha <span id="need-unit">on one plot</span></div>
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="usable" checked> Count only usable land: no forest, water, roads or buildings</label>
           <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0">no limit</option><option value="30">30 m</option><option value="50" selected>50 m</option><option value="100">100 m</option></select> on average</div>
           <div class="row" style="margin-top:10px">Mean slope at most <select class="select" id="slope" style="width:auto"><option value="0">any slope</option><option value="2">2°</option><option value="5">5°</option><option value="10">10°</option></select></div>
@@ -178,7 +187,7 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0 };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {}, gridCache = {};
   let gridLayer, gridLabels, gridLayerGroup;
@@ -206,6 +215,9 @@
           L.marker(mid, { pane: "gridlabels", interactive: false, keyboard: false, icon: L.divIcon({ className: "", html: `<div class="gl-label" style="color:${st.color}">${st.label}</div>`, iconSize: [0, 0] }) }).addTo(gridLabels); }
       }
     }
+    ehvLines = stations.flatMap(s => gridCache[s.sid]?.lines?.ehv || []).map(line => ({ lines: [line], area: false, bbox: bboxOf(line) }));
+    distCache.clear();
+    if (state.kind === "wind") render();
     for (const s of stations) for (const x of gridCache[s.sid]?.subs || []) subs.push(x);
     // One marker per place: OpenStreetMap's named substations first, then BDOT10k's farther than 150 m from them.
     const placed = [];
@@ -240,11 +252,72 @@
     if (state.access) { const d = dist(p, "public_road"); if (d !== undefined && (d == null || d > state.access)) return false; }
     return true;
   }
+  // Distances from a plot to lines or polygons the page already holds (220/400 kV lines from data/land/grid, national
+  // parks and reserves from data/land/protected_shapes.json), in metres, on a local flat projection; 0 when touching.
+  let protectedRaw = [], ehvLines = [];
+  const distCache = new Map();
+  function toXY(lat0) { const kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110574; return ([lon, lat]) => [lon * kx, lat * ky]; }
+  function segDist(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, t = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0;
+    return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+  }
+  function inRing(x, y, ring) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  const bboxOf = pts => pts.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
+  // shapes: [{bbox (lon/lat), lines: [[[lon, lat], ...]], area: true when the lines are polygon rings}]; within: metres to look.
+  function nearestTo(p, shapes, within) {
+    const lat0 = p.geom[0][0][0][1], f = toXY(lat0);
+    const plotRings = p.geom.flatMap(poly => poly).map(r => r.map(f));
+    const pb = bboxOf(plotRings.flat()), pad = within / 70000;
+    let best = Infinity;
+    for (const sh of shapes) {
+      if (sh.bbox[0] > pb[2] / (111320 * Math.cos(lat0 * Math.PI / 180)) + pad || sh.bbox[2] < pb[0] / (111320 * Math.cos(lat0 * Math.PI / 180)) - pad ||
+          sh.bbox[1] > pb[3] / 110574 + pad || sh.bbox[3] < pb[1] / 110574 - pad) continue;
+      for (const line of sh.lines) {
+        const pts = line.map(f);
+        for (const [x, y] of pts) if (plotRings.some(r => inRing(x, y, r))) return 0;
+        if (sh.area && plotRings.some(r => r.some(([x, y]) => inRing(x, y, pts)))) return 0;
+        for (const r of plotRings) for (let i = 1; i < r.length; i++) for (let k = 1; k < pts.length; k++) {
+          const d = Math.min(segDist(r[i][0], r[i][1], pts[k - 1][0], pts[k - 1][1], pts[k][0], pts[k][1]),
+                             segDist(pts[k][0], pts[k][1], r[i - 1][0], r[i - 1][1], r[i][0], r[i][1]));
+          if (d < best) best = d;
+        }
+      }
+    }
+    return best === Infinity ? null : Math.round(best);
+  }
+  function cachedDist(p, key, shapes, within) {
+    const k = p.id + "|" + key;
+    if (!distCache.has(k)) distCache.set(k, nearestTo(p, shapes, within));
+    return distCache.get(k);
+  }
+  const parkDist = p => cachedDist(p, "PL01", protectedRaw.filter(x => x.kind === "PL01"), 4000);
+  const reserveDist = p => cachedDist(p, "PL02", protectedRaw.filter(x => x.kind === "PL02"), 1000);
+  const ehvDist = p => cachedDist(p, "ehv", ehvLines, 2000);
+  // The wind act (Dz.U. 2024 poz. 317): art. 4(1), 4a, 4c.  A plot passes when its edge keeps the distances, so a large
+  // plot that keeps them only on its far side is left out (the turbine can stand anywhere inside it).
+  function windOk(p) {
+    if (state.kind !== "wind" || !state.windLaw) return true;
+    const t = turbine(), home = dist(p, "home");
+    if (home != null && home < 700) return false;
+    if (["np", "lp", "n2"].some(k => (p[k] || 0) > 0.1 * p.ha)) return false;
+    const park = parkDist(p), reserve = reserveDist(p), ehv = ehvDist(p);
+    if (park != null && park < 10 * t.height) return false;
+    if (reserve != null && reserve < 500) return false;
+    if (ehv != null && ehv < Math.max(3 * t.rotor, 2 * t.height)) return false;
+    return true;
+  }
   function areaOf(p) { return state.usable && p.u != null ? p.u : p.ha; }
   // Every filter but the area; a site of neighbouring plots is built only from plots that pass it.
   function fitsOther(p) {
     return (!state.gap || p.bm == null || p.bm >= state.gap) && (!state.minWidth || p.wm >= state.minWidth)
-      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p) && buffersOk(p) && !(state.slope && p.sl != null && p.sl > state.slope);
+      && !blockedByNature(p) && !(state.soil && goodSoil(p).length) && ownerOk(p) && !(state.flood && (p.q1 || 0) > 0.1 * p.ha) && zoningOk(p) && buffersOk(p) && windOk(p) && !(state.slope && p.sl != null && p.sl > state.slope);
   }
   function fits(p) { return fitsOther(p) && areaOf(p) >= state.need; }
   // Neighbours are stored relative to the plot's precinct ("98/2" next to "280205_5.0022.98/1").
@@ -315,8 +388,15 @@
   }
   async function get(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(`${path}: ${r.status}`); return r.json(); }
 
+  const KIND_EN = { pv: "solar farm", bess: "battery", wind: "wind turbine", dc: "data centre" };
+  const turbine = () => ({ n: +$("turbines").value || 1, mw: +$("tmw").value || 0, height: +$("tiph").value || 200, rotor: +$("rotor").value || 160 });
+  const gridDemand = () => Math.round((+$("itmw").value || 0) * (+$("pue").value || 1));
   function needOf() {
     if (state.kind === "pv") return Math.round((+$("mwp").value || 0) * (+$("haper").value || 0) * 10) / 10;
+    // A turbine's foundation, crane pad and access take about 0.5-1 ha; each plot listed is one possible turbine position.
+    if (state.kind === "wind") return 1;
+    // A data centre campus: buildings, cooling, generators and its own 110 kV substation, about 0.25 ha per MW of grid demand.
+    if (state.kind === "dc") return Math.round((gridDemand() * (+$("hapermw").value || 0.25) + 2) * 10) / 10;
     // A battery: about 2 ha per 100 MWh of containers and spacing, plus 0.5 ha for its substation and access.
     return Math.round((0.5 + (+$("mwh").value || 0) * 0.02) * 10) / 10;
   }
@@ -335,7 +415,7 @@
     const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
     $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
       `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +
-      `Pick a group, say what you want to build, and the plots with enough usable land (forest, water, roads and buildings taken out), outside the protected areas and on the soil and owners you choose, within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
+      `Pick a group, say what you want to build (solar, a battery, onshore wind or a data centre), and the plots with enough usable land (forest, water, roads and buildings taken out), outside the protected areas and on the soil and owners you choose, within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
     map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([52.1, 19.4], 6);
     const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" });
     const labels = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "" });
@@ -348,6 +428,9 @@
     map.createPane("nature").style.zIndex = 350;
     const natureLayer = L.layerGroup(), natureRenderer = L.canvas({ pane: "nature" });
     get("../data/land/protected_shapes.json").then(d => {
+      protectedRaw = d.shapes.filter(([id]) => protectedAreas[id]).map(([id, rings]) => ({ id, kind: protectedAreas[id][0], lines: rings, area: true, bbox: bboxOf(rings.flat()) }));
+      distCache.clear();
+      if (state.kind === "wind") render();
       for (const [id, rings] of d.shapes) {
         const a = protectedAreas[id]; if (!a) continue;
         const c = NATURE_STYLE[a[0]] || NATURE_STYLE.n2k;
@@ -497,40 +580,66 @@
   // Score card: yes/no checks for the project chosen, from the data on the page (ok: true, false, or null for no data).
   const HOUSING_ZONES = ["SW", "SJ", "SZ", "SU", "SH", "SC", "SN"];
   function checksOf(p, area) {
-    const bess = state.kind === "bess", c = [], add = (ok, label, why) => c.push({ ok, label, why });
+    const kind = state.kind, bess = kind === "bess", wind = kind === "wind", dc = kind === "dc", c = [], add = (ok, label, why) => c.push({ ok, label, why });
     add(area >= state.need, `at least ${state.need} ha${state.usable ? " usable" : ""}`, `${area.toFixed(1)} ha`);
     add(p.km <= 1, "within 1 km of the substation", `${p.km.toFixed(1)} km; the shorter the cable, the cheaper the connection`);
-    const minGap = bess ? 150 : 30, home = dist(p, "home");
-    if (home !== undefined) add(home == null || home >= minGap, `nearest home at least ${minGap} m away`, `${fmtM(home)}; a common buffer ${bess ? "for a battery's noise and fire risk" : "for a solar farm"}, not a legal minimum`);
+    if (dc) { const area0 = capacity.areas.find(a => a.id === state.group), room = Math.round(area0?.dem?.["2030"] || 0), need = gridDemand();
+      add(room >= need, `room to take out ${need} MW in the group in 2030`, `${room} MW of demand room in the operator's figures; a data centre is a load, so it needs room to take power out`); }
+    if (wind) { const room = Math.round(capacity.areas.find(a => a.id === state.group)?.gen?.["2030"] || 0), t = turbine();
+      add(room >= t.n * t.mw, `room to feed in ${t.n * t.mw} MW in the group in 2030`, `${room} MW of generation room in the operator's figures`); }
+    const minGap = { bess: 150, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home");
+    const gapWhy = wind ? `the wind act's minimum, which the local plan may set (art. 4(1)); without one it is 10 × the total height, ${10 * turbine().height} m`
+      : `a common buffer ${bess ? "for a battery's noise and fire risk" : dc ? "for a data centre's cooling and generator noise" : "for a solar farm"}, not a legal minimum`;
+    if (home !== undefined) add(home == null || home >= minGap, `nearest home at least ${minGap} m away`, `${fmtM(home)}; ${gapWhy}`);
     else add(p.u == null ? null : p.bm == null || p.bm >= minGap, `nearest building at least ${minGap} m away`,
-      p.u == null ? "not checked yet" : `${p.bm == null ? "none within 3 km" : p.bm + " m"} (any building; homes not told apart yet); a common buffer, not a legal minimum`);
+      p.u == null ? "not checked yet" : `${p.bm == null ? "none within 3 km" : p.bm + " m"} (any building; homes not told apart yet); ${gapWhy}`);
     const road = dist(p, "public_road");
-    add(road === undefined ? null : road != null && road <= 300, "a public road within 300 m", road === undefined ? "not computed yet" : `${fmtM(road)}; access for building and for the fire service`);
+    add(road === undefined ? null : road != null && road <= 300, "a public road within 300 m", road === undefined ? "not computed yet" : `${fmtM(road)}; access for building${wind ? " (turbine parts need wide, firm roads)" : ""} and for the fire service`);
     const hv = dist(p, "hv_line");
-    add(hv === undefined ? null : hv !== 0, "no high-voltage line across the plot", hv === undefined ? "not computed yet" : hv === 0 ? "a line crosses or touches it: the layout has to keep clear of it" : `nearest ${fmtM(hv)}`);
-    add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
-    add(p.wm >= 50, "compact: at least 50 m wide on average", `about ${p.wm} m`);
-    if (bess) add(p.sf == null ? null : p.sf >= 70, "flat: at least 70% of it slopes under 2°", p.sf == null ? "not computed yet" : `${p.sf}% flat, mean slope ${p.sl}°`);
-    else add(p.sl == null ? null : p.sl <= 5 || (p.sl <= 10 && (p.ss || 0) >= 50), "gentle slope (mean up to 5°), or up to 10° facing south",
+    if (dc) add(hv === undefined ? null : hv != null && hv <= 1000, "a high-voltage line within 1 km", hv === undefined ? "not computed yet" : `${fmtM(hv)}; a data centre of this size connects at 110 kV`);
+    else add(hv === undefined ? null : hv !== 0, "no high-voltage line across the plot", hv === undefined ? "not computed yet" : hv === 0 ? "a line crosses or touches it: the layout has to keep clear of it" : `nearest ${fmtM(hv)}`);
+    if (wind) { const t = turbine(), need = Math.max(3 * t.rotor, 2 * t.height), e = ehvDist(p);
+      add(ehvLines.length || e != null ? (e == null || e >= need) : null, `at least ${need} m from 220/400 kV lines`, e == null ? "none within 2 km" : `${fmtM(e)}; the wind act, art. 4a: 3 rotor diameters or 2 × the total height, the greater`);
+      const park = parkDist(p), reserve = reserveDist(p);
+      add(protectedRaw.length ? (park == null || park >= 10 * t.height) && (reserve == null || reserve >= 500) : null, `at least ${10 * t.height} m from national parks and 500 m from reserves`,
+        `national park ${park == null ? "none within 4 km" : fmtM(park)}, reserve ${reserve == null ? "none within 1 km" : fmtM(reserve)}; the wind act, art. 4c(2)`); }
+    if (!wind) add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
+    if (!wind) add(p.wm >= 50, "compact: at least 50 m wide on average", `about ${p.wm} m`);
+    if (bess || dc) add(p.sf == null ? null : p.sf >= 70, "flat: at least 70% of it slopes under 2°", p.sf == null ? "not computed yet" : `${p.sf}% flat, mean slope ${p.sl}°`);
+    else if (kind === "pv") add(p.sl == null ? null : p.sl <= 5 || (p.sl <= 10 && (p.ss || 0) >= 50), "gentle slope (mean up to 5°), or up to 10° facing south",
       p.sl == null ? "not computed yet" : `mean slope ${p.sl}°${p.ss != null ? `, ${p.ss}% of the sloping part faces south` : ""}`);
     const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
     add(p.gp == null ? null : !taken.length, "no solar, battery or wind permit on the plot already",
       p.gp == null ? "not read yet" : taken.length ? taken.map(g => `${PERMIT_EN[g[1]]} permit of ${fmtDate(g[0])}`).join("; ") : "none since 2016");
     const nat = [["np", "a national park or reserve"], ["lp", "a landscape park"], ["n2", "Natura 2000"]].filter(([k]) => (p[k] || 0) > 0.1 * p.ha).map(([, l]) => l);
-    add(p.n2 == null ? null : !nat.length, "outside national parks, reserves, landscape parks and Natura 2000", p.n2 == null ? "not checked yet" : nat.length ? `in ${nat.join(" and ")}` : "outside");
-    add(p.q1 == null ? null : bess ? !(p.q1 > 0) : !(p.q1 > 0.1 * p.ha), bess ? "no part in the 1% flood area" : "outside the 1% flood area",
-      p.q1 == null ? "not checked yet" : p.q1 > 0 ? `${Math.min(p.q1, p.ha).toFixed(2)} ha in it${bess ? "; storing substances that could pollute water is banned there" : ""}` : "outside");
+    add(p.n2 == null ? null : !nat.length, "outside national parks, reserves, landscape parks and Natura 2000",
+      p.n2 == null ? "not checked yet" : nat.length ? `in ${nat.join(" and ")}${wind ? ": the wind act bans turbines there (art. 4c(1))" : ""}` : "outside");
+    const strict = bess || dc;
+    add(p.q1 == null ? null : strict ? !(p.q1 > 0) : !(p.q1 > 0.1 * p.ha), strict ? "no part in the 1% flood area" : "outside the 1% flood area",
+      p.q1 == null ? "not checked yet" : p.q1 > 0 ? `${Math.min(p.q1, p.ha).toFixed(2)} ha in it${strict ? "; building there needs a water-law permit, and storing substances that could pollute water (fuel, coolant, electrolyte) is banned" : ""}` : "outside");
+    if (dc) add(p.q02 == null ? null : !(p.q02 > 0), "not flooded even in a 0.2% flood", p.q02 == null ? "not checked yet" : p.q02 > 0 ? `${Math.min(p.q02, p.ha).toFixed(2)} ha flooded once in 500 years or if an embankment fails` : "outside");
     add(!p.klasy ? null : !goodSoil(p).length, "no class I–III farmland", !p.klasy ? "this county's service doesn't publish soil classes" : goodSoil(p).length ? goodSoil(p).join(", ") : "none listed");
-    const z = zoneOf(p);
-    add(p.mp == null || !z ? null : bess ? !HOUSING_ZONES.includes(z[0]) : solarZone(p), bess ? "general-plan zone isn't housing, services or green space" : "general-plan zone allows solar farms",
+    const z = zoneOf(p), uses = z ? [...z[4], ...z[5]] : [];
+    const zone = { pv: [solarZone(p), "general-plan zone allows solar farms"], bess: [z && !HOUSING_ZONES.includes(z[0]), "general-plan zone isn't housing, services or green space"],
+      wind: [uses.includes("PEW"), "general-plan zone allows wind farms"], dc: [z && (["SP", "SU"].includes(z[0]) || uses.some(u => ["P", "PS", "U"].includes(u))), "general-plan zone allows industry or services"] }[kind];
+    add(p.mp == null || !z ? null : !!zone[0], zone[1],
       p.mp == null ? "not checked yet" : !z ? `no general plan in the urban register yet${p.mp > 0 ? "; a local plan covers the plot, so check what it allows" : ""}` : `zone ${z[1]}, ${ZONE_EN[z[0]] || z[2]}`);
     return c;
+  }
+  function rulesHtml() {
+    const t = turbine();
+    return {
+      pv: "Ground-mounted solar needs a local plan (MPZP) on class I–III farmland and forest at any size, on class IV above 150 kW, elsewhere above 1 MW (planning act, art. 14(6a)); class I–III farmland also needs the agriculture minister's consent (farmland protection act, art. 7(2)). An array of 2 ha or more (0.5 ha in protected areas) may need an environmental decision (regulation of 10 Sep 2019, § 3(1)(54a)).",
+      bess: "A battery isn't a renewable source, so the solar planning rule doesn't apply: a local plan, or a planning decision (WZ) where the general plan allows one. Class I–III farmland needs the agriculture minister's consent. Fire safety and noise set the distances in practice.",
+      wind: `A turbine can be sited only on the basis of a local plan (wind act, Dz.U. 2024 poz. 317, art. 3). Distance to homes: 10 × the total height (${10 * t.height} m here) unless the local plan sets a smaller one, never under 700 m (art. 4(1)). From 220/400 kV lines: 3 rotor diameters or 2 × the total height, the greater (${Math.max(3 * t.rotor, 2 * t.height)} m here; art. 4a). Not in national parks, reserves, landscape parks or Natura 2000; 10 × the height from national parks, 500 m from reserves (art. 4c). Turbines of 30 m or more may need an environmental decision, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 2(1)(5) and § 3(1)(6)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹). A 500 m minimum passed parliament in 2025 but was vetoed; 700 m still applies.`,
+      dc: "No law is specific to data centres: they need a local plan, or a planning decision (WZ) where the general plan allows one, in a zone for industry or services. Backup generators of 25 MW thermal input or more (10 MW on solid fuel) may need an environmental decision (regulation of 10 Sep 2019, § 3(1)(4)). As a large load, the connection follows the Energy Law: since 30 April 2026 a non-refundable application fee of PLN 1 per kW (at most PLN 100,000) and an advance of PLN 60 per kW (at most PLN 6 million). Class I–III farmland needs the agriculture minister's consent.",
+    }[state.kind] + ` <span style="color:var(--muted)">General information, not legal advice; check the current acts.</span>`;
   }
   const scoreOf = c => { const known = c.filter(x => x.ok != null); return { met: known.filter(x => x.ok).length, known: known.length, total: c.length }; };
   const siteArea = p => { const s = sites.find(x => x.lead.id === p.id); return s ? s.area : areaOf(p); };
   function checksHtml(p) {
     const c = checksOf(p, siteArea(p)), sc = scoreOf(c);
-    return `<b>${sc.met} of ${sc.known}</b> met for a ${state.kind === "bess" ? "battery" : "solar farm"}${sc.known < sc.total ? `; ${sc.total - sc.known} without data` : ""}` +
+    return `<b>${sc.met} of ${sc.known}</b> met for a ${KIND_EN[state.kind]}${sc.known < sc.total ? `; ${sc.total - sc.known} without data` : ""}` +
       `<ul class="checks">${c.map(x => `<li><span class="${x.ok == null ? "q" : x.ok ? "y" : "n"}">${x.ok == null ? "?" : x.ok ? "✓" : "✗"}</span> ${esc(x.label)} <span style="color:var(--muted)">(${esc(x.why)})</span></li>`).join("")}</ul>`;
   }
   const DIST_LABELS = { home: "home", housing: "housing area", public_road: "public road", any_road: "any road or track", major_road: "motorway or main road",
@@ -622,7 +731,10 @@
     const inSite = new Set(sites.flatMap(s => s.plots.map(q => q.id)));
     const ok = sites;
     const checked = all.filter(p => p.u != null).length;
-    $("need-note").innerHTML = `${state.kind === "pv" ? "Ground-mounted PV takes about 1–1.5 ha per MWp, with spacing." : "A battery takes about 2 ha per 100 MWh with spacing, plus about 0.5 ha for its substation and access."} ` +
+    const t = turbine();
+    $("need-note").innerHTML = `${{ pv: "Ground-mounted PV takes about 1–1.5 ha per MWp, with spacing.", bess: "A battery takes about 2 ha per 100 MWh with spacing, plus about 0.5 ha for its substation and access.",
+      wind: `Each plot listed is a possible turbine position (about 1 ha for the foundation, crane pad and access); ${t.n} turbines need positions about ${Math.round(4 * t.rotor / 100) * 100} m apart (4 rotor diameters), so pick them across several plots.${state.windLaw ? " The wind act's distances are applied." : " The wind act's distances are not applied."}`,
+      dc: `${gridDemand()} MW of grid demand (${+$("itmw").value || 0} MW of IT load × PUE ${+$("pue").value || 1}).` }[state.kind]} ` +
       `<b>${ok.length}</b> ${state.combine > 1 ? `sites (one plot, or up to ${state.combine} neighbouring plots)` : "plots"} with at least ${state.need} ha${state.usable ? " of usable land" : ""}` +
       [state.gap && `at least ${state.gap} m from the nearest building`, state.minWidth && `at least ${state.minWidth} m wide`,
        state.nature && `outside ${["national parks and nature reserves", "landscape parks", "Natura 2000", "protected landscape areas"].slice(0, state.nature).join(", ")}`,
@@ -742,6 +854,7 @@
     $("card").innerHTML = [
       ...(selectedSite.size ? [["Site", siteText(p)]] : []),
       ["Checks", checksHtml(p)],
+      [`Rules for a ${KIND_EN[state.kind]}`, rulesHtml()],
       ["Identifier", esc(p.id)],
       ["Municipality", `${esc(p.gmina)} (precinct ${esc(p.obreb)})`],
       ["Area", `${p.ha.toFixed(2)} ha from its outline${p.ha_egib ? `; ${p.ha_egib} ha in the register` : ""}`],
@@ -792,13 +905,17 @@
       syncBuffers(); render(); });
     syncBuffers();
     Object.assign(state, { usable: $("usable").checked, gap: +$("gap").value, minWidth: +$("width").value, nature: +$("nature").value, soil: $("soil").checked ? 1 : 0, owner: $("owner").value,
-      flood: $("flood").checked ? 1 : 0, zoning: $("zoning").value, combine: +$("combine").value, slope: +$("slope").value });
+      flood: $("flood").checked ? 1 : 0, zoning: $("zoning").value, combine: +$("combine").value, slope: +$("slope").value, windLaw: $("windlaw").checked ? 1 : 0 });
     $("group").addEventListener("change", e => selectGroup(e.target.value));
     window.addEventListener("hashchange", () => { const g = new URLSearchParams(location.hash.slice(1)).get("group"); if (g && g !== state.group && [...$("group").options].some(o => o.value === g)) { $("group").value = g; selectGroup(g); } });
     $("stations").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.station = b.dataset.sid || null; renderStations(); render(); });
     $("kind").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.kind = b.dataset.kind; [...$("kind").children].forEach(x => x.classList.toggle("on", x === b));
-      $("pv-inputs").hidden = state.kind !== "pv"; $("bess-inputs").hidden = state.kind !== "bess"; $("need").value = needOf(); render(); });
-    for (const id of ["mwp", "haper", "mw", "mwh"]) $(id).addEventListener("input", () => { $("need").value = needOf(); render(); });
+      for (const k of ["pv", "bess", "wind", "dc"]) $(`${k}-inputs`).hidden = state.kind !== k;
+      $("need-unit").textContent = state.kind === "wind" ? "per turbine position" : "on one plot";
+      if (state.kind === "wind" && state.nature < 3) { state.nature = 3; $("nature").value = 3; }
+      $("need").value = needOf(); render(); });
+    for (const id of ["mwp", "haper", "mw", "mwh", "turbines", "tmw", "tiph", "rotor", "itmw", "pue", "hapermw"]) $(id).addEventListener("input", () => { distCache.clear(); $("need").value = needOf(); render(); });
+    $("windlaw").addEventListener("change", e => { state.windLaw = e.target.checked ? 1 : 0; render(); });
     $("need").addEventListener("input", render);
     $("usable").addEventListener("change", e => { state.usable = e.target.checked; render(); });
     $("gap").addEventListener("change", e => { state.gap = +e.target.value; render(); });
