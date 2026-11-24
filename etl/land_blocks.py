@@ -4,7 +4,7 @@ Neighbouring plots on the Land tab:
     python etl/land_blocks.py
 
 A solar farm or battery site is often several neighbouring plots.  This finds, for every plot in data/land/, the plots
-of 1 ha or more that touch it (within TOUCH_M, since outlines are simplified to about 1.5 m), and stores them as `nx`.
+of data/land (0.5 ha or more) that touch it (within TOUCH_M, since outlines are simplified to about 1.5 m), and stores them as `nx`.
 A neighbour in the same precinct is written as just its number ("98/2" for "280205_5.0022.98/2").  The page grows a
 site from a plot by adding its largest neighbours that pass the reader's filters, until the project fits or the site
 has as many plots as the reader allows.  Joining every touching plot into one block doesn't work: Polish farmland is a
@@ -74,7 +74,7 @@ def main():
             json.dump(data, open(path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
             changed += 1
     counts = [len(v) for v in result.values()]
-    print(f"Land neighbours: {len(plots)} plots, {len(result)} touch another plot of 1 ha or more "
+    print(f"Land neighbours: {len(plots)} plots, {len(result)} touch another plot "
           f"(on average {sum(counts) / max(len(counts), 1):.1f} neighbours), {changed} station files updated")
     return changed > 0
 

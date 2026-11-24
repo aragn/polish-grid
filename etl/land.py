@@ -50,9 +50,9 @@ UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 TARGET_YEAR = "2030"
 MIN_ROOM_MW = 50
 RADIUS_KM = 3.0
-MIN_AREA_HA = 1.0
+MIN_AREA_HA = 0.5          # 1.0 until Nov 2026: a real site is often a strip of small plots (MEE Turośń Kościelna's third plot is under 1 ha)
 REFRESH_DAYS = 90
-VERSION = 3              # bump to re-fetch everything (2: outlines simplified correctly; 3: every page, not just the first)
+VERSION = 4              # bump to re-fetch everything (2: outlines simplified correctly; 3: every page, not just the first; 4: plots from 0.5 ha)
 PAGE = 1000
 NS = {"gml": "http://www.opengis.net/gml/3.2"}
 PLACED = {"substation", "operator", "near"}
@@ -269,7 +269,7 @@ def main(budget_minutes=50, only=None):
             done += 1
             added += len(plots) - kept
             if done <= 5 or done % 20 == 0:
-                print(f"Land: {done}/{len(todo)} ({sid}: {matched} plots in the square, {len(plots)} of 1 ha or more, was {before}; {kept} unchanged)", flush=True)
+                print(f"Land: {done}/{len(todo)} ({sid}: {matched} plots in the square, {len(plots)} of {MIN_AREA_HA:g} ha or more, was {before}; {kept} unchanged)", flush=True)
                 json.dump(index, open(index_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     # Stations no longer shortlisted stay on disk but leave the index.
     index["stations"] = {sid: v for sid, v in index["stations"].items() if sid in wanted}

@@ -15,7 +15,7 @@ data), nor the free text itself.
 
 Adds to each plot `gp`, its own decisions as [date, type, new 1/0, MW or null], newest first; and `gn`, the distance
 in metres to the nearest solar, battery and wind decision on another plot of data/land within NEAR_M, as
-[solar, battery, wind] (null when none; only decisions on parcels of 1 ha or more within 3 km of a substation have
+[solar, battery, wind] (null when none; only decisions on parcels of 0.5 ha or more within 3 km of a substation have
 an outline here).  data/land/permits.json counts the decisions by type in each precinct of the plots, since 2016
 and since PRECINCT_RECENT.
 """

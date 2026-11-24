@@ -177,7 +177,7 @@ from `data/generation/PL/`.
 
 ## Land page
 
-`land/` shows the registered land plots (działki ewidencyjne) of 1 ha or more within
+`land/` shows the registered land plots (działki ewidencyjne) of 0.5 ha or more (1 ha until November 2026) within
 3 km of the substations of the groups with room for at least 50 MW of generation or
 demand in 2030, on Esri satellite imagery, filtered by the area a solar farm (MWp x ha
 per MWp) or a battery (about 2 ha per 100 MWh plus 0.5 ha) needs. `etl/land.py` reads
@@ -230,7 +230,7 @@ so instead the WMS draws the areas with our own SLD (two FeatureTypeStyles, so t
 under the Water Law, art. 16(34). `q02` is the further hectares flooded only at 0.2% or
 if an embankment fails.
 
-`etl/land_blocks.py` stores each plot's touching neighbours of 1 ha or more (`nx`,
+`etl/land_blocks.py` stores each plot's touching neighbours (`nx`,
 written relative to the precinct). The page grows a site from a plot by adding its
 largest neighbours that pass the filters, up to the number of plots the reader allows.
 Joining all touching plots into blocks doesn't work: 70,000 of the plots form one

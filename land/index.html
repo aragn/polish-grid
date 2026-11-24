@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Polish Grid · Land</title>
-  <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 1 ha or more within 3 km, filtered for a solar farm, battery, onshore wind turbine or data centre and the Polish rules for each, on satellite imagery.">
+  <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 0.5 ha or more within 3 km, filtered for a solar farm, battery, onshore wind turbine or data centre and the Polish rules for each, on satellite imagery.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <style>
@@ -143,7 +143,7 @@
           </div>
           <div class="row" style="margin-top:10px">Needs at least <input class="input" id="need" type="number" min="0" step="0.1" value="24"> ha <span id="need-unit">on one plot</span></div>
           <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="usable" checked> Count only usable land: no forest, water, roads or buildings</label>
-          <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0">no limit</option><option value="30">30 m</option><option value="50" selected>50 m</option><option value="100">100 m</option></select> on average</div>
+          <div class="row" style="margin-top:10px">Leave out strips narrower than <select class="select" id="width" style="width:auto"><option value="0" selected>no limit</option><option value="30">30 m</option><option value="50">50 m</option><option value="100">100 m</option></select> on average</div>
           <div class="row" style="margin-top:10px">Mean slope at most <select class="select" id="slope" style="width:auto"><option value="0">any slope</option><option value="2">2°</option><option value="5">5°</option><option value="10">10°</option></select></div>
           <div class="row" style="margin-top:10px">At least <select class="select" id="gap" style="width:auto"><option value="0">any distance</option><option value="50">50 m</option><option value="100">100 m</option><option value="250">250 m</option><option value="500">500 m</option></select> from the nearest building</div>
           <div class="row" style="margin-top:10px">Leave out plots in <select class="select" id="nature" style="width:auto"><option value="0">no protected area</option><option value="1" selected>national parks and nature reserves</option><option value="2">… and landscape parks</option><option value="3">… and Natura 2000</option><option value="4">… and protected landscape areas</option></select></div>
@@ -183,7 +183,7 @@
       </aside>
       <section class="map-box">
         <div id="map"></div>
-        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
       </section>
     </div>
     <footer id="footer"></footer>
@@ -199,7 +199,7 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE", pse: "PSE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 0, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {}, gridCache = {};
   let gridLayer, gridLabels, gridLayerGroup;
@@ -446,7 +446,7 @@
       .sort((x, y) => bench(x.a) - bench(y.a) || roomOf(y.a) - roomOf(x.a));
     $("group").innerHTML = groups.map(({ a, sts }) => `<option value="${esc(a.id)}">${bench(a) ?"Benchmark (no room): " : ""}${esc(a.name)} · ${OPS[a.op]} · 2030: ${Math.round(a.gen["2030"] || 0)} MW in, ${Math.round(a.dem["2030"] || 0)} MW out · ${sts.length} substation${sts.length === 1 ? "" : "s"}</option>`).join("");
     const total = Object.values(index.stations).reduce((s, x) => s + x.n, 0);
-    $("intro").innerHTML = `Every registered land plot of 1 ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
+    $("intro").innerHTML = `Every registered land plot of ${index.rule.min_ha ?? 1} ha or more within 3 km of the substations of the groups that have room for at least ${index.rule.min_room_mw} MW of generation or demand in ${index.rule.year} ` +
       `(see <a href="../grid/">Grid capacity</a>): ${total.toLocaleString("en")} plots around ${Object.keys(index.stations).length} of ${index.shortlisted} substations so far. ` +
       `Pick a group, say what you want to build (solar, a battery, onshore wind or a data centre), and the plots with enough usable land (forest, water, roads and buildings taken out), outside the protected areas and on the soil and owners you choose, within the distance you choose are outlined in red on satellite imagery. Plot outlines come from the land registers (EGiB); owners are not shown.`;
     map = L.map("map", { zoomControl: true, preferCanvas: true }).setView([52.1, 19.4], 6);
@@ -528,7 +528,7 @@
     for (const s of stations) {
       const on = !state.station || state.station === s.sid;
       L.circleMarker([s.lat, s.lon], { radius: 7, color: "#fff", weight: 2, fillColor: cssVar("--station"), fillOpacity: on ? 1 : 0.4 })
-        .bindTooltip(`<b>${esc(s.name)}</b>${s.code ? " " + esc(s.code) : ""}<br>${s.how === "near" ? "Placed at the 110 kV substation nearest the town of that name" : "Substation"} · ${s.n} plots of 1 ha+`)
+        .bindTooltip(`<b>${esc(s.name)}</b>${s.code ? " " + esc(s.code) : ""}<br>${s.how === "near" ? "Placed at the 110 kV substation nearest the town of that name" : "Substation"} · ${s.n} plots of ${index.rule.min_ha ?? 1} ha+`)
         .on("click", () => { state.station = state.station === s.sid ? null : s.sid; renderStations(); render(); }).addTo(stationLayer);
       if (on) for (const r of [1, 2, 3]) L.circle([s.lat, s.lon], { radius: r * 1000, color: cssVar("--station"), weight: r === state.km ? 1.6 : 0.8, opacity: 0.8, dashArray: r === state.km ? null : "4 4", fill: false, interactive: false }).addTo(ringLayer);
     }
@@ -640,7 +640,8 @@
       add(protectedRaw.length ? (park == null || park >= 10 * t.height) && (reserve == null || reserve >= 500) : null, `at least ${10 * t.height} m from national parks and 500 m from reserves`,
         `national park ${park == null ? "none within 4 km" : fmtM(park)}, reserve ${reserve == null ? "none within 1 km" : fmtM(reserve)}; the wind act, art. 4c(2)`); }
     if (!wind) add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
-    if (!wind) add(p.wm >= 50, "compact: at least 50 m wide on average", `about ${p.wm} m`);
+    // 30 m: nine in ten of the plots that already got a solar or battery permit of 1 MW or more are at least that wide.
+    if (!wind) add(p.wm >= 30, "not a thin strip: at least 30 m wide on average", `about ${p.wm} m; a narrower plot only works joined to its neighbours`);
     if (bess || dc) add(p.sf == null ? null : p.sf >= 70, "flat: at least 70% of it slopes under 2°", p.sf == null ? "not computed yet" : `${p.sf}% flat, mean slope ${p.sl}°`);
     else if (kind === "pv") add(p.sl == null ? null : p.sl <= 5 || (p.sl <= 10 && (p.ss || 0) >= 50), "gentle slope (mean up to 5°), or up to 10° facing south",
       p.sl == null ? "not computed yet" : `mean slope ${p.sl}°${p.ss != null ? `, ${p.ss}% of the sloping part faces south` : ""}`);
@@ -921,7 +922,7 @@
       ["Identifier", esc(p.id)],
       ["Municipality", `${esc(p.gmina)} (precinct ${esc(p.obreb)})`],
       ["Area", `${p.ha.toFixed(2)} ha from its outline${p.ha_egib ? `; ${p.ha_egib} ha in the register` : ""}`],
-      ["Shape", `about ${p.wm} m wide on average${p.wm < 50 ? " (a narrow strip)" : ""}`],
+      ["Shape", `about ${p.wm} m wide on average${p.wm < 30 ? " (a thin strip)" : ""}`],
       ["Usable", p.u == null ? "not checked yet" : `<b>${p.u.toFixed(2)} ha</b> once forest, water, built-up and transport land are taken out`],
       ["On the plot", p.u == null ? "–" : [["forest and wooded land", p.f], ["water", p.w], ["built-up land", p.b], ["roads and railways", p.r]].filter(([, v]) => v > 0).map(([k, v]) => `${v.toFixed(2)} ha ${k}`).join(", ") || "none of these"],
       ["Buildings", p.u == null ? "–" : (p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"} away`)],
