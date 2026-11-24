@@ -258,6 +258,15 @@ Everything else on the page is worked out in the browser from these fields:
   south-east to south-west). It is a surface model, so trees and buildings steepen edges. The
   page filters on mean slope and checks it: flat ground for a battery (70% under 2°), a gentle
   or south-facing slope for solar.
+- **Power lines on the map:** `etl/land_grid.py` writes `data/land/grid/<station>.json`, the
+  BDOT10k power lines within 4 km of each shortlisted substation by class (medium voltage,
+  110 kV, 220/400 kV) and its substations, plus the names and voltages of the 110 kV+
+  substations OpenStreetMap has (`etl/osm_substations_110.json`). Only the two layers needed are
+  read out of each county's BDOT10k zip, by HTTP range requests (about 2 MB of 100–400 MB, some
+  12 s a county). Redone every 180 days. The map draws the lines by voltage with labels, above
+  the plots but letting clicks through. Low-voltage lines and transformer stations aren't in
+  BDOT10k: the map offers GUGiK's utility map (GESUT, layer `przewod_elektroenergetyczny`) as an
+  extra layer, which draws only at 1:2,000 and doesn't answer from every country.
 - **Solar yield:** `etl/land_solar.py` adds `py`, the Global Solar Atlas PVOUT (kWh per kWp a
   year, 1999–2018, about 1 km) at each plot's centre, from `etl/gsa_pvout_poland.tif`. That file
   was downloaded once by hand from globalsolaratlas.info/download/poland, because the atlas's

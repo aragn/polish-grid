@@ -68,6 +68,8 @@ jobs:
         run: python etl/land_solar.py
       - name: Building permits on and near each plot (GUNB)
         run: python etl/land_permits.py --budget-minutes 150
+      - name: Power lines and substations around each substation (BDOT10k)
+        run: python etl/land_grid.py --budget-minutes 60
       - name: Forest, water, roads and buildings on each plot
         run: python etl/land_constraints.py --budget-minutes "${{ github.event.inputs.constraints_budget || '240' }}"
       - name: Neighbouring plots
