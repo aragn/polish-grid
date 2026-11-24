@@ -93,6 +93,9 @@
     .checks { list-style:none; margin:3px 0 0; padding:0; }
     .checks li { margin:2px 0; }
     .checks .y { color:var(--c3); font-weight:700; } .checks .n { color:var(--warn); font-weight:700; } .checks .q { color:var(--muted); font-weight:700; }
+    .gl-label { font:700 11px/1.1 system-ui,-apple-system,"Segoe UI",sans-serif; white-space:nowrap; letter-spacing:.2px; text-shadow:0 0 2px #000,0 0 3px #000,0 0 4px #000; pointer-events:none; transform:translate(-50%,-50%); }
+    .gl-sub { width:11px; height:11px; border:2px solid #fff; background:#111; box-shadow:0 0 0 1.5px #000; }
+    .gl-sub.small { width:8px; height:8px; border-width:1.5px; }
     footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
     @media (max-width: 1100px) { .layout { grid-template-columns:1fr; } .map-box { min-height:520px; } }
     @media (max-width: 640px) { .topbar, main { padding-left:16px; padding-right:16px; } .nav { overflow-x:auto; flex-wrap:nowrap; min-width:0; } .map-box { min-height:420px; } }
@@ -159,7 +162,7 @@
       </aside>
       <section class="map-box">
         <div id="map"></div>
-        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 1 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div></div>
       </section>
     </div>
     <footer id="footer"></footer>
@@ -177,7 +180,42 @@
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE" };
   const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 50, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0 };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
-  const cache = {};
+  const cache = {}, gridCache = {};
+  let gridLayer, gridLabels, gridLayerGroup;
+  const GRID_STYLE = { ehv: { color: "#ff2d55", weight: 3.2, label: "220/400 kV" }, hv: { color: "#ff9500", weight: 2.6, label: "110 kV" }, mv: { color: "#32ade6", weight: 1.5, label: "" } };
+  // Power lines (BDOT10k) and substations (BDOT10k, names from OpenStreetMap) within 4 km of the group's substations:
+  // data/land/grid/<station>.json from etl/land_grid.py.  Drawn above the plots but without catching clicks.
+  async function drawGrid() {
+    gridLayer.clearLayers(); gridLabels.clearLayers();
+    await Promise.all(stations.map(async s => { if (!(s.sid in gridCache)) gridCache[s.sid] = await get(`../data/land/grid/${encodeURIComponent(s.sid)}.json`).catch(() => null); }));
+    const seen = new Set(), subs = [], labelled = [];
+    const km = (a, b) => Math.hypot((a[0] - b[0]) * 68, (a[1] - b[1]) * 111);
+    for (const k of ["mv", "hv", "ehv"]) for (const s of stations) for (const line of gridCache[s.sid]?.lines?.[k] || []) {
+      const key = k + line[0].join() + line[line.length - 1].join() + line.length;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const ll = line.map(([lon, lat]) => [lat, lon]), st = GRID_STYLE[k];
+      L.polyline(ll, { color: "#000", weight: st.weight + 2.2, opacity: 0.55, interactive: false, pane: "grid" }).addTo(gridLayer);
+      L.polyline(ll, { color: st.color, weight: st.weight, opacity: 0.95, interactive: false, pane: "grid" }).addTo(gridLayer);
+      if (st.label) {
+        let length = 0;
+        for (let i = 1; i < line.length; i++) length += km(line[i - 1], line[i]);
+        const midLL = line[Math.floor(line.length / 2)];
+        // One label per line of 1 km or more, none closer than 500 m to another (they pile up where lines meet).
+        if (length > 1 && !labelled.some(p => km(p, midLL) < 0.5)) { labelled.push(midLL); const mid = ll[Math.floor(ll.length / 2)];
+          L.marker(mid, { pane: "gridlabels", interactive: false, keyboard: false, icon: L.divIcon({ className: "", html: `<div class="gl-label" style="color:${st.color}">${st.label}</div>`, iconSize: [0, 0] }) }).addTo(gridLabels); }
+      }
+    }
+    for (const s of stations) for (const x of gridCache[s.sid]?.subs || []) subs.push(x);
+    // One marker per place: OpenStreetMap's named substations first, then BDOT10k's farther than 150 m from them.
+    const placed = [];
+    for (const [kind, name, lon, lat] of subs.sort((a, b) => (a[0] === "osm" ? 0 : 1) - (b[0] === "osm" ? 0 : 1))) {
+      if (placed.some(([x, y]) => km([x, y], [lon, lat]) < 0.15)) continue;
+      placed.push([lon, lat]);
+      L.marker([lat, lon], { pane: "gridlabels", keyboard: false, icon: L.divIcon({ className: "", html: `<div class="gl-sub ${kind === "osm" ? "" : "small"}"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] }) })
+        .bindTooltip(`${esc(name || "Substation")}<br><span style="color:var(--muted)">${kind === "osm" ? "OpenStreetMap" : "BDOT10k"}</span>`).addTo(gridLabels);
+    }
+  }
 
   // Distances from data/land (etl/land_constraints.py): p.d[i] in metres for index.distance_keys[i]; 0 touching, null none
   // within 3 km.  undefined: not computed yet for this plot.
@@ -316,6 +354,11 @@
         L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: c.color, weight: 1.4, opacity: 0.9, dashArray: c.dash, fillColor: c.color, fillOpacity: 0.13, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(natureLayer);
       }
     }).catch(() => {});
+    map.createPane("grid").style.zIndex = 450; map.getPane("grid").style.pointerEvents = "none";
+    map.createPane("gridlabels").style.zIndex = 460;
+    gridLayer = L.layerGroup(); gridLabels = L.layerGroup();
+    const gridAll = gridLayerGroup = L.layerGroup([gridLayer, gridLabels]);
+    const utility = L.tileLayer.wms("https://integracja.gugik.gov.pl/cgi-bin/KrajowaIntegracjaUzbrojeniaTerenu", { layers: "przewod_elektroenergetyczny", format: "image/png", transparent: true, minZoom: 18, maxZoom: 20, attribution: "GESUT © GUGiK" });
     const FLOOD_RULES = '<FeatureTypeStyle><Rule><PolygonSymbolizer><Fill><CssParameter name="fill">#64d2ff</CssParameter><CssParameter name="fill-opacity">0.25</CssParameter></Fill></PolygonSymbolizer></Rule></FeatureTypeStyle>' +
       '<FeatureTypeStyle><Rule><ogc:Filter><ogc:Or>' + ["scenariusz Q 10% (raz na 10 lat)", "scenariusz Q 1% (raz na 100 lat)", "scenariusz H 1% (raz na 100 lat)"].map(n => `<ogc:PropertyIsEqualTo><ogc:PropertyName>loo_qualitativelikelihood</ogc:PropertyName><ogc:Literal>${n}</ogc:Literal></ogc:PropertyIsEqualTo>`).join("") +
       '</ogc:Or></ogc:Filter><PolygonSymbolizer><Fill><CssParameter name="fill">#0a84ff</CssParameter><CssParameter name="fill-opacity">0.4</CssParameter></Fill></PolygonSymbolizer></Rule></FeatureTypeStyle>';
@@ -323,9 +366,10 @@
       ["NZ.Fluvial", "NZ.SeaWater"].map(l => `<NamedLayer><Name>${l}</Name><UserStyle>${FLOOD_RULES}</UserStyle></NamedLayer>`).join("") + '</StyledLayerDescriptor>';
     const flood = L.tileLayer.wms("https://wody.isok.gov.pl/wss/INSPIRE/INSPIRE_NZ_HY_MZPMRP_WMS", { layers: "NZ.Fluvial,NZ.SeaWater", styles: ",", format: "image/png", transparent: true, minZoom: 14, maxZoom: 20, SLD_BODY: FLOOD_SLD, attribution: "Flood hazard maps © Wody Polskie" });
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
-      { "Place names": labels, "Protected areas (EEA)": natureLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
+      { "Place names": labels, "Power lines and substations (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Protected areas (EEA)": natureLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
     natureLayer.addTo(map);
     ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map);
+    map.addLayer(gridLayerGroup);
     bind();
     const hash = new URLSearchParams(location.hash.slice(1));
     const start = hash.get("group") && groups.some(g => g.a.id === hash.get("group")) ? hash.get("group") : groups[0]?.a.id;
@@ -351,6 +395,7 @@
       `(<a href="../grid/">Grid capacity</a>). ${stations.length} substations with plots${missing > 0 ? `, ${missing} not fetched yet or placed only roughly` : ""}. Click one to show only its plots.`;
     history.replaceState(null, "", `#group=${encodeURIComponent(id)}`);
     renderStations();
+    drawGrid();
     const bounds = L.latLngBounds(stations.map(s => [s.lat, s.lon]));
     map.invalidateSize();
     if (bounds.isValid()) map.fitBounds(bounds.pad(0.15), { maxZoom: 13 });
@@ -781,7 +826,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Power lines: BDOT10k (GUGiK), medium, high and extra-high voltage as it classes them (in Poland 15–30, 110 and 220/400 kV), and its substations, with names of substations of 110 kV and above from OpenStreetMap contributors (ODbL); low-voltage lines only in GUGiK's utility map (GESUT). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 
