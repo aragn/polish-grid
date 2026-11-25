@@ -274,10 +274,15 @@ Everything else on the page is worked out in the browser from these fields:
 - **Steps for a developer:** a panel with the steps for the chosen project type: land and zoning,
   the environmental decision, connection conditions (since 30 April 2026, Dz.U. 2026 poz. 516: fee
   PLN 1/kW up to 100,000; advance PLN 60/kW up to 6 million; conditions valid one year), the
-  connection agreement (security within 14 days; a final building permit within 24 months),
+  connection agreement (security within 14 days; a final building permit within 24 months, 36 for
+  wind, for 80% of the capacity, and for a battery 80% of the power and of the energy; art. 7(2a)),
+  flexible and configurable agreements where the grid is full (art. 7¹ and 7²), the permit
+  deadlines for agreements signed before 30 April 2026 (art. 13–14 of the amending act),
   sharing an existing connection (cable pooling for any installation or battery, art. 7(1f); a
   second point of consumption without new conditions, art. 7(1bb)–(1bg); brownfield checks),
-  and the building permit. Checked against the acts in force on 24 November 2026.
+  and the building permit. The amending act is the government's bill UC84 (Sejm print 2150); the
+  deregulation act Dz.U. 2026 poz. 900 changed only a cross-reference in it. Checked against the
+  acts in force on 25 November 2026.
 - **Soil classes:** the legal soil class (I–VI) is on 86k of the 318k plots, where the county's
   EGiB service publishes it. KIEG (GUGiK's integration of the county services) has nothing more:
   none of 40 sampled counties without classes had them there (24 Nov 2026). The map offers GUGiK's
