@@ -80,7 +80,12 @@
     .find-list button span { display:block; color:var(--muted); font-size:11.5px; margin-top:1px; }
     .find-list button.on, .find-list button:hover { background:var(--panel-2); }
     .find-list .none { padding:8px 10px; color:var(--muted); font-size:12.5px; }
-    .map-hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted-2); font-size:11.5px; pointer-events:none; }
+    .map-aerial { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; pointer-events:none; }
+    .map-aerial-btn { position:absolute; right:12px; bottom:10px; z-index:2; border:1px solid var(--border); background:var(--panel); color:var(--text); border-radius:8px; padding:6px 11px; font-size:12px; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.12); }
+    .map-aerial-btn.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .map-wrap.aerial .map-hint { color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.9); }
+    .map-wrap.aerial .map-hint a { color:#fff; }
+    .map-hint { position:absolute; bottom:10px; left:12px; right:110px; color:var(--muted-2); font-size:11.5px; pointer-events:none; }
     .legend { position:absolute; top:12px; right:12px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:11.5px; color:var(--muted); z-index:2; }
     .legend div { display:flex; align-items:center; gap:6px; margin-top:3px; }
     .legend i { width:11px; height:11px; border-radius:50%; display:inline-block; }
@@ -245,7 +250,9 @@
       </div>
       <div class="map-layout">
         <div class="map-wrap">
+          <img class="map-aerial" id="map-aerial" alt="" hidden>
           <div id="map"></div>
+          <button class="map-aerial-btn" type="button" id="aerial-btn" aria-pressed="false" title="Show satellite imagery under the map">Satellite</button>
           <div class="find" id="find"><input type="search" id="find-q" placeholder="Find a substation or group" aria-label="Find a substation or group" autocomplete="off" spellcheck="false"><div class="find-list" id="find-list" role="listbox" hidden></div></div>
           <button class="map-back" type="button" id="map-back">← All of Poland</button>
           <div class="legend" id="legend"></div>
@@ -406,7 +413,7 @@
   const fmtMonth = m => { const [y, mo] = m.split("-"); return `${MONTHS[+mo - 1]} ${y}`; };
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
 
-  const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, region: null, sort: "value", plan: "draft" };
+  const state = { mode: "gen", year: 2030, min: 50, ops: new Set(["tauron", "energa", "pge", "pse"]), spokes: true, newSt: true, sat: false, lines: true, aerial: false, region: null, sort: "value", plan: "draft" };
   let timeline;
   let data, geo, gridLines, saturation, chart, curt, curtMonth, curtHour;
   const curtState = { unit: "gwh", year: null };
@@ -445,6 +452,11 @@
     curt = await get("../data/curtailment.json").catch(() => null);
     echarts.registerMap("poland", geo);
     chart = echarts.init($("map"), null, { renderer: "canvas" });
+    // The map's box grows with the side column after the first draw: keep the chart (and the imagery) the box's size.
+    new ResizeObserver(() => {
+      if (chart.getWidth() !== $("map").clientWidth || chart.getHeight() !== $("map").clientHeight) chart.resize();
+      clearTimeout(aerialTimer); aerialTimer = setTimeout(aerialUpdate, 250);
+    }).observe($("map"));
     chart.on("click", params => {
       if (params.componentType === "geo" || (params.componentType === "series" && params.seriesType === "map")) {
         state.region = state.region ? null : params.name; draw(true); renderRank(); return;
@@ -546,13 +558,51 @@
         textStyle: { color: cssVar("--text"), fontSize: 12 }, extraCssText: "box-shadow:0 8px 24px rgba(0,0,0,.25);border-radius:8px;", formatter: tooltip },
       geo: { map: "poland", roam: false, aspectScale: 0.64, layoutCenter: ["50%", "50%"], layoutSize: "96%",
         ...(state.region ? { boundingCoords: regionBounds(state.region) } : {}),
-        itemStyle: { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.9 },
-        regions: state.region ? geo.features.filter(f => f.properties.name !== state.region).map(f => ({ name: f.properties.name, itemStyle: { areaColor: cssVar("--map-faded"), opacity: 0.6 } })) : [],
-        emphasis: { label: { show: false }, itemStyle: { areaColor: cssVar("--hover") } }, select: { disabled: true }, tooltip: { show: false }, label: { show: false } },
+        itemStyle: state.aerial ? { areaColor: "rgba(0,0,0,0)", borderColor: "rgba(255,255,255,.7)", borderWidth: 1 } : { areaColor: cssVar("--map-land"), borderColor: cssVar("--map-border"), borderWidth: 0.9 },
+        regions: state.region ? geo.features.filter(f => f.properties.name !== state.region).map(f => ({ name: f.properties.name, itemStyle: { areaColor: state.aerial ? "rgba(0,0,0,.55)" : cssVar("--map-faded"), opacity: state.aerial ? 1 : 0.6 } })) : [],
+        emphasis: { label: { show: false }, itemStyle: { areaColor: state.aerial ? "rgba(255,255,255,.12)" : cssVar("--hover") } }, select: { disabled: true }, tooltip: { show: false }, label: { show: false } },
       series
     }, true);
     $("map-back").style.display = state.region ? "" : "none";
-    $("map-hint").textContent = (state.region ? `${state.region} · ` : "Click a voivodeship to zoom in · ") + "hover a group to see its stations, click it for every year and the queue there";
+    $("map-hint").textContent = (state.region ? `${state.region} · ` : "Click a voivodeship to zoom in · ") + "hover a group to see its stations, click it for every year and the queue there" +
+      (state.aerial ? " · Imagery: Esri, Maxar, Earthstar Geographics and the GIS user community" : "");
+    aerialUpdate();
+  }
+
+  // Satellite imagery under the map: the map's projection is linear in longitude and latitude, so one image in
+  // EPSG:4326 for the box the chart shows lines up with it.  Esri World Imagery's export, sized to the chart.
+  let aerialKey = null, aerialTimer = null;
+  function aerialUpdate() {
+    const img = $("map-aerial"), wrap = $("map").parentElement;
+    wrap.classList.toggle("aerial", state.aerial);
+    if (!state.aerial) { img.hidden = true; aerialKey = null; return; }
+    const w = chart.getWidth(), h = chart.getHeight();
+    const nw = chart.convertFromPixel({ geoIndex: 0 }, [0, 0]), se = chart.convertFromPixel({ geoIndex: 0 }, [w, h]);
+    if (!nw || !se) return;
+    // The server keeps its pixels square in degrees, but the chart squeezes longitude (aspectScale), so ask for an
+    // image as wide as square-degree pixels need and let the browser stretch it to the chart.
+    const lonSpan = se[0] - nw[0], latSpan = nw[1] - se[1], wide = h * lonSpan / latSpan;
+    const k = Math.min(window.devicePixelRatio || 1, 2, 4096 / wide, 4096 / h);
+    const bbox = [nw[0], se[1], se[0], nw[1]].map(v => v.toFixed(5)).join(",");
+    const iw = Math.round(wide * k), ih = Math.round(h * k);
+    const key = `${bbox}|${iw}x${ih}`;
+    if (key === aerialKey) { img.hidden = false; return; }
+    aerialKey = key;
+    const url = `https://services.arcgisonline.com/arcgis/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&imageSR=4326` +
+      `&size=${iw},${ih}&format=jpg&f=image`;
+    const next = new Image();
+    next.onload = () => { if (aerialKey === key && state.aerial) { img.src = url; img.hidden = false; } };
+    next.onerror = () => { if (aerialKey === key) $("map-hint").textContent = "The satellite imagery didn't load (Esri World Imagery). The map works without it."; };
+    next.src = url;
+  }
+  function aerialToggle(on) {
+    state.aerial = on;
+    const b = $("aerial-btn");
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-pressed", String(on));
+    b.textContent = on ? "Map" : "Satellite";
+    b.title = on ? "Back to the plain map" : "Show satellite imagery under the map";
+    draw(true);
   }
 
   function row(label, value, color = "transparent") {
@@ -1068,6 +1118,7 @@
     $("plan").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.plan = b.dataset.plan; [...$("plan").children].forEach(x => x.classList.toggle("on", x === b)); renderNew(); draw(false); });
     $("curt-unit").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.unit = b.dataset.unit; [...$("curt-unit").children].forEach(x => x.classList.toggle("on", x === b)); renderCurtailment(); });
     $("curt-year").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.year = b.dataset.year; renderCurtailment(); });
+    $("aerial-btn").addEventListener("click", () => aerialToggle(!state.aerial));
     window.addEventListener("resize", () => { chart.resize(); if (timeline) timeline.resize(); if (curtMonth) curtMonth.resize(); if (curtHour) curtHour.resize(); });
     $("theme").addEventListener("click", () => {
       const root = document.documentElement, dark = getComputedStyle(root).colorScheme.includes("dark");
