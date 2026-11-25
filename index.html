@@ -470,7 +470,8 @@
   const state = {
     month: 0, hidden: new Set(["refused", "withdrawn"]), region: null, metric: "count",
     search: "", sort: "mw", page: 0, timer: null, lines: true, stations: true,
-    grids: new Set(["pse", "tauron", "enea", "pge", "energa", "stoen"]), dsoLoading: true, onlyCm: false, saturation: true
+    grids: new Set(["pse", "tauron", "enea", "pge", "energa", "stoen"]), dsoLoading: true, onlyCm: false, saturation: true,
+    group: null   // {id, name, ids}: only the projects matched to one group of the Grid capacity page ("#group=<area id>")
   };
   const GRID_SHORT = { pse: "PSE", tauron: "TAURON", enea: "ENEA", pge: "PGE", energa: "ENERGA", stoen: "STOEN" };
   const DSO_GRIDS = ["tauron", "enea", "pge", "energa", "stoen"];
@@ -524,6 +525,7 @@
   }
   const hiddenCell = (tech, phase) => state.hidden.has(tech) || state.hidden.has(phase) || state.hidden.has(`${tech}|${phase}`);
   function matchesSearch(project) {
+    if (state.group && !state.group.ids.has(project.id)) return false;
     if (!state.search) return true;
     const text = [project.name, project.applicant, project.station, project.stations.join(" "), project.region, project.type, project.pse_id, techRow(project).label, GRID_SHORT[gridOf(project)]].join(" ").toLowerCase();
     return state.search.toLowerCase().split(/\s+/).every(word => text.includes(word));
@@ -557,8 +559,22 @@
     echarts.registerMap("poland", geo);
     placeProjects();
     setup();
+    await groupFromHash(get);
     renderAll(true);
     loadDso(get);
+  }
+
+  /* "#group=<area id>" (from a group's card on the Grid capacity page): only the projects matched to that group's
+     stations, by the ids data/grid_capacity.json keeps for it. */
+  async function groupFromHash(get) {
+    const match = /^#group=(.+)$/.exec(location.hash);
+    if (!match) return;
+    try {
+      const area = (await get("data/grid_capacity.json")).areas.find(a => a.id === decodeURIComponent(match[1]));
+      if (area && area.queue && area.queue.ids) state.group = { id: area.id, name: area.name, ids: new Set(area.queue.ids) };
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   /* The distribution operators' lists: a larger file, drawn when it arrives. */
@@ -804,6 +820,7 @@
     const placed = items.filter(item => item.project.x != null);
     const mw = items.reduce((sum, item) => sum + (item.mw || 0), 0);
     document.getElementById("count").innerHTML = `<b>${items.length.toLocaleString("en")}</b> projects · <b>${fmtGw(mw)}</b>` +
+      `${state.group ? ` at the stations of <b>${esc(state.group.name)}</b> (<a href="grid/#group=${encodeURIComponent(state.group.id)}">Grid capacity</a>, <a href="#" id="clear-group">show all</a>)` : ""}` +
       `${state.region ? ` in <b>${esc(state.region)}</b>` : ""}${state.search ? ` matching “${esc(state.search)}”` : ""}` +
       `${items.length - placed.length ? ` · ${items.length - placed.length} without a placeable station` : ""}`;
 
@@ -1403,6 +1420,13 @@
     };
     const applyPreset = name => { state.hidden = new Set(presets[name]); state.page = 0; state.month = queue.months.length - 1; renderAll(false); };
     document.getElementById("only-cm").addEventListener("change", event => { state.onlyCm = event.target.checked; state.page = 0; renderAll(false); });
+    document.getElementById("count").addEventListener("click", event => {
+      if (event.target.id !== "clear-group") return;
+      event.preventDefault();
+      state.group = null; state.page = 0;
+      window.history.replaceState(null, "", location.pathname + location.search);   // "history" is the queue history here
+      renderAll(false);
+    });
     document.getElementById("grids").addEventListener("click", event => {
       const button = event.target.closest("button[data-grid]");
       if (!button) return;

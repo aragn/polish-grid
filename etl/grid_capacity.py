@@ -437,6 +437,9 @@ def tally(projects):
             q["storage_mw"] += p.get("mw") or 0
         q["by_tech"][p.get("technology") or "other"] = round(q["by_tech"].get(p.get("technology") or "other", 0) + (p.get("mw") or 0), 1)
     q = {k: (round(v, 1) if isinstance(v, float) else v) for k, v in q.items()}
+    # Every matched project's id (queue.json and queue_dso.json share one id space), for the queue page's
+    # "#group=<area id>" filter, so the link from a group lists exactly the projects counted here.
+    q["ids"] = sorted({p["id"] for p in projects if p.get("id") is not None})
     if connected:
         # [name, technology, MW in, MW out, connection date], newest first.
         q["connected"] = sorted(connected, key=lambda c: c[4] or "", reverse=True)
