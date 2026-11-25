@@ -169,7 +169,7 @@
         <details class="box rules" id="rules-box">
           <summary>Steps for a developer <span id="rules-kind" style="text-transform:none;letter-spacing:0;font-weight:500"></span></summary>
           <ol id="rules-steps"></ol>
-          <div class="count">General information, not legal advice. Checked against the acts in force on 24 November 2026; check the current texts before you rely on them.</div>
+          <div class="count">General information, not legal advice. Checked against the acts in force on 25 November 2026 (the Energy Law as amended by Dz.U. 2026 poz. 516, the government's bill UC84, and poz. 900); check the current texts before you rely on them.</div>
         </details>
         <div class="box">
           <h3 id="list-title">Plots</h3>
@@ -682,7 +682,13 @@
     }[k];
     const steps = [land, env,
       `<b>Connection conditions.</b> Apply to the operator (the DSO, or PSE at 220/400 kV). Above 1 kV: a non-refundable application fee of PLN 1 per kW, at most PLN 100,000 (Energy Law, art. 7(8b1)), and an advance of PLN 60 per kW, at most PLN 6 million (art. 7(8a)–(8b)). Electricity conditions are now valid one year, not two (art. 7(8i)), so run the cable route, land and permit work in parallel.`,
-      `<b>Connection agreement.</b> Lodge the security within 14 days of signing, or the agreement lapses (art. 7(8c9)). It also lapses if you don't report a final building permit within 24 months (art. 7(2a)); for solar, a permit for at least 80% of the capacity.`,
+      `<b>Connection agreement.</b> Lodge the security within 14 days of signing, or the agreement lapses (art. 7(8c9)). It also lapses if you don't report a final building permit to the operator in time (art. 7(2a)): ${{
+        pv: "within 24 months, covering the panels and inverters for at least 80% of the capacity in the agreement",
+        bess: "within 24 months, covering the battery modules and inverters for at least 80% of the power and 80% of the energy capacity in the agreement",
+        wind: "within 36 months, covering turbines for at least 80% of the capacity in the agreement",
+        dc: "within 24 months, covering the equipment for at least 50% of the load in the agreement (for equipment in a building, the building's permit)" }[k]}.`,
+      `<b>If the grid is full.</b> The operator may offer a <i>flexible</i> agreement, with limits on feed-in or offtake until the grid expansion in its approved plan is done, and for at most three years after the plant is finished (Energy Law, art. 7¹); or, where even the planned expansion won't make room, a <i>configurable</i> agreement, with limits that can vary with the time of day, the state of the grid, other plants' output or the system's reserves, may last indefinitely, and a connection fee at real cost (art. 7²). Both are the operator's offer to make, not a right. ${k === "bess" ? "A battery can often live with such limits, since it can be told when not to charge or discharge." : ""}`,
+      `<b>Agreements signed before 30 April 2026</b> (yours or a host's) have their own permit deadlines (art. 13–14 of Dz.U. 2026 poz. 516). Signed before 30 April 2022: a final building permit had to be reported by 30 July 2026 (wind: 30 October 2026), unless part of the plant was already connected. Signed from 30 April 2022: by 30 October 2028 (wind: 30 October 2029). Otherwise the agreement lapses by law.`,
       `<b>Or use an existing connection.</b> Since 30 April 2026 two or more installations, batteries included, can share one connection point above 1 kV, owned by one or several companies (cable pooling, art. 7(1f)); no advance is charged for the added installation (art. 7(8a)). A customer can also add a second point of consumption inside an existing connection without new conditions, as long as the total stays within the contracted capacity (art. 7(1bb)–(1bg)). For a brownfield host, check the connection agreement, 12 months of meter data, who owns the transformer and its condition, and the host's finances. Solar farms and wind turbines near the substations are on the map.`,
       `<b>Building permit,</b> then construction and the operator's acceptance tests. ${k === "pv" ? "A battery added at the solar farm can use the same connection (cable pooling)." : k === "bess" ? "A battery next to a solar or wind farm can share its connection (cable pooling)." : ""}`,
     ];
