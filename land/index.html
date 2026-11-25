@@ -904,7 +904,12 @@
         ([...basic, ...extra].includes("PEF") ? "<b>Solar farms are among this zone's uses.</b>" : "Solar farms aren't among this zone's uses, and a local plan has to keep to them."));
     }
     for (const id of p.mpz || []) { const m = zoning.plans[id]; if (m) out.push(`Local plan: ${esc(m[0])} (in force since ${fmtDate(m[1])}).`); }
-    if (!out.length) return "No general or local plan in the urban register covers this plot. Many municipalities haven't published their plans there yet: ask the municipality, or look on Geoportal.";
+    const [plansUnread, zonesUnread] = p.mpx || [0, 0];
+    const unreadNote = plansUnread || zonesUnread
+      ? ` The register couldn't return ${plansUnread ? `${plansUnread} local plan${plansUnread === 1 ? "" : "s"}` : ""}${plansUnread && zonesUnread ? " and " : ""}${zonesUnread ? `${zonesUnread} general-plan zone${zonesUnread === 1 ? "" : "s"}` : ""} near this substation (a broken record on its side), so one may cover this plot: check on Geoportal.`
+      : "";
+    if (!out.length) return "No general or local plan in the urban register covers this plot. Many municipalities haven't published their plans there yet: ask the municipality, or look on Geoportal." + unreadNote;
+    if (unreadNote) out.push(unreadNote.trim());
     return out.join("<br>") + ` <a href="https://rejestr-urbanistyczny.gov.pl/published" target="_blank" rel="noopener">Urban register</a>`;
   }
   function floodText(p) {

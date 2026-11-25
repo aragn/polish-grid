@@ -72,31 +72,65 @@ def polygons(element):
     return shapely.make_valid(out[0] if len(out) == 1 else shapely.MultiPolygon(out))
 
 
+class Unreadable(Exception):
+    """The register answers 400 "Invalid request" to any page holding certain features (a broken record on its
+    side: the same page asked for one feature at a time returns all the others)."""
+
+
+def get_page(service, typename, box, start, count):
+    params = {"service": "WFS", "version": "2.0.0", "request": "GetFeature", "typeNames": typename, "count": count,
+              "startIndex": start, "bbox": f"{box[0]},{box[1]},{box[2]},{box[3]},urn:ogc:def:crs:EPSG::4326"}
+    for attempt in range(5):
+        try:
+            response = requests.get(WFS.format(service=service), params=params, headers=UA, timeout=180)
+            if response.status_code == 400 and b"Invalid request" in response.content:
+                raise Unreadable(f"{typename} at {start} in {box}")
+            response.raise_for_status()
+            root = ET.fromstring(response.content)
+            if root.tag.endswith("ExceptionReport"):
+                raise ValueError(response.text[:200])
+            return root
+        except (requests.RequestException, ET.ParseError, ValueError):
+            if attempt == 4:
+                raise
+            time.sleep(10 * (attempt + 1))
+
+
 def get_features(service, typename, box):
-    """All features of typename within box (lat/lon: south, west, north, east), as ElementTree members."""
-    members, start = [], 0
+    """All features of typename within box (lat/lon: south, west, north, east), as ElementTree members, and how many
+    the register couldn't return (see Unreadable)."""
+    members, start, skipped = [], 0, 0
     while True:
-        params = {"service": "WFS", "version": "2.0.0", "request": "GetFeature", "typeNames": typename, "count": PAGE,
-                  "startIndex": start, "bbox": f"{box[0]},{box[1]},{box[2]},{box[3]},urn:ogc:def:crs:EPSG::4326"}
-        for attempt in range(5):
-            try:
-                response = requests.get(WFS.format(service=service), params=params, headers=UA, timeout=180)
-                response.raise_for_status()
-                root = ET.fromstring(response.content)
-                if root.tag.endswith("ExceptionReport"):
-                    raise ValueError(response.text[:200])
-                break
-            except (requests.RequestException, ET.ParseError, ValueError):
-                if attempt == 4:
-                    raise
-                time.sleep(10 * (attempt + 1))
-        page = [m[0] for m in root.findall("wfs:member", NS) if len(m)]
+        try:
+            root = get_page(service, typename, box, start, PAGE)
+            page = [m[0] for m in root.findall("wfs:member", NS) if len(m)]
+            got = len(page)
+        except Unreadable:
+            # One feature at a time through this page, leaving out the unreadable ones.
+            page, got, root = [], 0, None
+            for i in range(start, start + PAGE):
+                try:
+                    one = get_page(service, typename, box, i, 1)
+                except Unreadable:
+                    skipped += 1
+                    got += 1
+                    continue
+                found = [m[0] for m in one.findall("wfs:member", NS) if len(m)]
+                root = one
+                if not found:
+                    break
+                page += found
+                got += 1
+            if root is None:          # nothing readable in this page: still step past it
+                root = ET.Element("x")
         members += page
-        matched = int(root.get("numberMatched", "0") or 0) if (root.get("numberMatched") or "").isdigit() else None
-        start += len(page)
+        matched = int(root.get("numberMatched")) if (root.get("numberMatched") or "").isdigit() else None
+        start += got
         # The register returns at most 10 features a page, whatever count asks for: follow numberMatched.
-        if not page or (matched is not None and start >= matched) or (matched is None and len(page) < 10):
-            return members
+        if not got or (matched is not None and start >= matched) or (matched is None and got < 10):
+            if skipped:
+                print(f"Land zoning: {skipped} {typename} the register can't return in {box}", flush=True)
+            return members, skipped
 
 
 def text(el, local):
@@ -115,7 +149,8 @@ def kpt(href):
 
 def local_plans(box):
     out = {}
-    for f in get_features("app-mpzp", "app-mpzp:AktPlanowaniaPrzestrzennego", box):
+    features, skipped = get_features("app-mpzp", "app-mpzp:AktPlanowaniaPrzestrzennego", box)
+    for f in features:
         status = (titles(f, "status") or [("", "")])[0][1]
         if status and "wiążący" not in status:
             continue
@@ -127,12 +162,13 @@ def local_plans(box):
         lokal = f.find(".//{*}idIIP//{*}lokalnyId")
         pid = f"{ident.text}/{lokal.text}" if ident is not None and lokal is not None else f.get("{http://www.opengis.net/gml/3.2}id")
         out[pid] = {"title": " ".join((text(f, "tytul") or "").split()), "from": text(f, "obowiazujeOd"), "geom": geom}
-    return out
+    return out, skipped
 
 
 def plan_zones(box):
     out = {}
-    for f in get_features("app-pog", "app-pog:StrefaPlanistyczna", box):
+    features, skipped = get_features("app-pog", "app-pog:StrefaPlanistyczna", box)
+    for f in features:
         status = (titles(f, "status") or [("", "")])[0][1]
         if status and "wiążący" not in status:
             continue
@@ -150,7 +186,7 @@ def plan_zones(box):
                     "basic": [kpt(h) for h, _ in basic], "extra": [kpt(h) for h, _ in extra],
                     "profile_names": {kpt(h): t for h, t in basic + extra},
                     "built": text(f, "maksUdzialPowierzchniZabudowy"), "height": text(f, "maksWysokoscZabudowy"), "geom": geom}
-    return out
+    return out, skipped
 
 
 def box_of(shapes, pad_m=50):
@@ -187,12 +223,13 @@ def main(budget_minutes=120, redo_all=False, only=None):
     shapes = {pid: s for pid, s in shapes.items() if s is not None and not s.is_empty}
     deadline = time.time() + capped(budget_minutes, 30, "Land zoning") * 60
     plans, zones, done_ids, done, failed = {}, {}, set(), 0, 0
+    unread = {}   # plot id -> local plans and general-plan zones the register couldn't return around its substation
     t0 = time.time()
 
     def fetch(sid):
         mine = [shapes[pid] for pid in by_station[sid] if pid in shapes]
         if not mine:
-            return sid, {}, {}
+            return sid, ({}, 0), ({}, 0)
         box = box_of(mine)
         return sid, local_plans(box), plan_zones(box)
 
@@ -205,7 +242,7 @@ def main(budget_minutes=120, redo_all=False, only=None):
                 future.cancel()
                 continue
             try:
-                sid, p, z = future.result()
+                sid, (p, p_skipped), (z, z_skipped) = future.result()
             except Exception as error:  # noqa: BLE001 -- one substation's failure doesn't stop the others
                 failed += 1
                 print(f"Land zoning: a substation failed: {str(error)[:160]}", flush=True)
@@ -213,6 +250,10 @@ def main(budget_minutes=120, redo_all=False, only=None):
             plans.update(p)
             zones.update(z)
             done_ids.update(by_station[sid])
+            if p_skipped or z_skipped:
+                for pid in by_station[sid]:
+                    old = unread.get(pid, (0, 0))
+                    unread[pid] = (max(old[0], p_skipped), max(old[1], z_skipped))
             done += 1
             if done % 50 == 0:
                 print(f"Land zoning: {done}/{len(by_station)} substations, {len(plans)} local plans, {len(zones)} zones, {time.time() - t0:.0f} s", flush=True)
@@ -233,6 +274,9 @@ def main(budget_minutes=120, redo_all=False, only=None):
         else:
             covered = 0.0
         results[pid] = {"mp": round(min(covered, shape.area / 10000), 2), "mpz": [k for k, _ in mp][:5], "pg": pg[:4]}
+        # "mpx": [local plans, general-plan zones] near the plot that the register couldn't return, so "no plan" may be wrong.
+        if pid in unread:
+            results[pid]["mpx"] = list(unread[pid])
 
     # Write the plots, then the lookup of the plans and zones they point at.
     used_plans, used_zones, changed = set(), set(), 0
@@ -241,6 +285,7 @@ def main(budget_minutes=120, redo_all=False, only=None):
         touched = False
         for plot in data["plots"]:
             if plot["id"] in results:
+                plot.pop("mpx", None)
                 plot.update(results[plot["id"]])
                 touched = True
             used_plans.update(plot.get("mpz", []))
