@@ -825,7 +825,7 @@
       (q.n_pending ? `<dt>Not yet decided</dt><dd><b>${q.n_pending}</b> applications (filed or under study): ${fmtMw(q.pending_in)} to feed in, ${fmtMw(q.pending_out)} to take out. These are not yet subtracted: each one granted takes room from the figures above.</dd>` : `<dt>Not yet decided</dt><dd>No application waiting in our data.</dd>`) +
       `<dt>Conditions or agreement</dt><dd><b>${q.n_held}</b> projects: ${fmtMw(q.held_in)} in, ${fmtMw(q.held_out)} out. Already subtracted from the figures above.</dd>` +
       `<dt>By technology</dt><dd>${esc(tech)}</dd></dl>` +
-      `<div class="count"><a href="../">Open the connection queue</a> for the projects themselves. ${a.op === "tauron" ? "Matched by the GPZ code in TAURON's list." : "Matched by station name."}</div>`;
+      `<div class="count"><a href="../#group=${encodeURIComponent(a.id)}">Open these projects in the connection queue</a>. ${a.op === "tauron" ? "Matched by the GPZ code in TAURON's list." : "Matched by station name."}</div>`;
   }
 
   function openArea(a, st) {
