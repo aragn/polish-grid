@@ -71,7 +71,15 @@
     .map-layout { display:grid; grid-template-columns:minmax(0, 1fr) 480px; border-top:1px solid var(--border); }
     .map-wrap { position:relative; min-height:680px; border-right:1px solid var(--border); }
     #map { position:absolute; inset:0; }
-    .map-back { position:absolute; top:12px; left:12px; display:none; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; z-index:2; }
+    .map-back { position:absolute; top:54px; left:12px; display:none; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer; z-index:2; }
+    .find { position:absolute; top:12px; left:12px; width:min(300px, calc(100% - 24px)); z-index:3; }
+    .find input { width:100%; box-sizing:border-box; border:1px solid var(--border); background:var(--panel); color:var(--text); border-radius:8px; padding:8px 10px; font:inherit; font-size:13px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .find input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+    .find-list { margin-top:4px; background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.14); }
+    .find-list button { display:block; width:100%; text-align:left; border:0; background:none; color:var(--text); padding:7px 10px; font:inherit; font-size:13px; cursor:pointer; }
+    .find-list button span { display:block; color:var(--muted); font-size:11.5px; margin-top:1px; }
+    .find-list button.on, .find-list button:hover { background:var(--panel-2); }
+    .find-list .none { padding:8px 10px; color:var(--muted); font-size:12.5px; }
     .map-hint { position:absolute; bottom:10px; left:12px; right:12px; color:var(--muted-2); font-size:11.5px; pointer-events:none; }
     .legend { position:absolute; top:12px; right:12px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:8px 10px; font-size:11.5px; color:var(--muted); z-index:2; }
     .legend div { display:flex; align-items:center; gap:6px; margin-top:3px; }
@@ -164,6 +172,8 @@
     .d-head { display:flex; justify-content:space-between; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); }
     .d-head h2 { margin:0; font-size:18px; }
     .d-head p { margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+    .d-btns { display:flex; gap:8px; flex:none; align-items:flex-start; }
+    .d-link { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:8px; height:34px; padding:0 11px; cursor:pointer; font-size:12.5px; white-space:nowrap; }
     .d-close { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:8px; width:34px; height:34px; cursor:pointer; font-size:18px; flex:none; }
     .d-body { padding:16px 20px 20px; }
     .d-body h4 { margin:18px 0 8px; font-size:13px; }
@@ -236,6 +246,7 @@
       <div class="map-layout">
         <div class="map-wrap">
           <div id="map"></div>
+          <div class="find" id="find"><input type="search" id="find-q" placeholder="Find a substation or group" aria-label="Find a substation or group" autocomplete="off" spellcheck="false"><div class="find-list" id="find-list" role="listbox" hidden></div></div>
           <button class="map-back" type="button" id="map-back">← All of Poland</button>
           <div class="legend" id="legend"></div>
           <div class="map-hint" id="map-hint">Click a voivodeship to zoom in, a group to open it</div>
@@ -360,7 +371,7 @@
   <dialog id="detail" aria-labelledby="d-title">
     <div class="d-wrap" id="d-wrap">
       <div class="d-main">
-        <div class="d-head"><div><h2 id="d-title"></h2><p id="d-sub"></p></div><button class="d-close" type="button" id="d-close" aria-label="Close">×</button></div>
+        <div class="d-head"><div><h2 id="d-title"></h2><p id="d-sub"></p></div><div class="d-btns"><button class="d-link" type="button" id="d-link" hidden title="Copy a link that opens this card">Copy link</button><button class="d-close" type="button" id="d-close" aria-label="Close">×</button></div></div>
         <div class="d-body" id="d-body"></div>
       </div>
       <aside class="d-side" id="d-side" hidden aria-label="Station"></aside>
@@ -445,6 +456,7 @@
     chart.on("mouseout", () => highlight(null));
     bind();
     render(true);
+    openFromHash();
   }
 
   // Point-in-polygon for the zoom by voivodeship.
@@ -784,8 +796,69 @@
       `<h4>Queue at these stations</h4>${queueBlock(a)}` +
       (a.op !== "pse" && Math.max(a.gen["2030"] || 0, a.dem["2030"] || 0) >= 50 ? `<div class="callout" style="margin-top:14px"><b><a href="../land/#group=${encodeURIComponent(a.id)}">Find land near these substations →</a></b> Plots of 1 ha or more within 3 km, on satellite imagery.</div>` : "") +
       (a.op !== "pse" ? `<div class="count" style="margin-top:12px">The transmission grid above: PSE publishes 0 MW for new generation at every one of its stations (step 2, ${fmtDate(data.operators.pse.asof)}), so the distribution figures already allow for what PSE has agreed.</div>` : "");
-    $("detail").showModal();
+    if (!$("detail").open) $("detail").showModal();
     showSide(a, st || defaultStation(a));
+    setLink(a, st);
+  }
+
+  // Links to a card: #group=<id>&station=<code or name>&for=<mode>&year=<year>, kept in the address bar while it is open.
+  const BASE_TITLE = document.title;
+  const slugOf = s => s.code || foldName(s.name).replace(/ /g, "-");
+  function setLink(a, s) {
+    const p = new URLSearchParams({ group: a.id });
+    if (s) p.set("station", slugOf(s));
+    p.set("for", state.mode);
+    p.set("year", state.year);
+    history.replaceState(null, "", `#${p}`);
+    document.title = `${s ? s.name : a.name} · ${BASE_TITLE}`;
+    $("d-link").hidden = false;
+    $("d-link").textContent = "Copy link";
+  }
+  function clearLink() {
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    document.title = BASE_TITLE;
+    $("d-link").hidden = true;
+  }
+  function openFromHash() {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const a = data.areas.find(x => x.id === p.get("group"));
+    if (!a) return;
+    const mode = p.get("for"), y = +p.get("year");
+    if (MODES[mode]) { state.mode = mode; [...$("mode").children].forEach(b => b.classList.toggle("on", b.dataset.mode === mode)); }
+    if (data.years.map(Number).includes(y)) { state.year = y; $("year").value = y; }
+    render(false);
+    const slug = p.get("station");
+    openArea(a, slug ? a.stations.find(x => slugOf(x) === slug) || null : null);
+  }
+
+  // Search: every station of every group (TAURON's also by code) and the groups by name.
+  let findIndex = null, findHits = [], findSel = 0;
+  function buildFind() {
+    findIndex = [];
+    for (const a of data.areas) {
+      const where = a.op === "pse" ? "PSE, 220/400 kV station" : `${OPS[a.op].short}, group ${a.name}`;
+      a.stations.forEach(st => findIndex.push({ a, st, name: st.name, where, key: foldName(`${st.name} ${st.code || ""}`) }));
+      if (a.op !== "pse" && !a.stations.some(st => st.name === a.name)) findIndex.push({ a, st: null, name: a.name, where: `${OPS[a.op].short}, group of ${a.stations.length} stations`, key: foldName(a.name) });
+    }
+  }
+  function findRender() {
+    const list = $("find-list"), q = foldName($("find-q").value);
+    if (!q) { list.hidden = true; findHits = []; return; }
+    if (!findIndex) buildFind();
+    const rank = h => h.key.startsWith(q) ? 0 : h.key.includes(" " + q) ? 1 : h.key.includes(q) ? 2 : 9;
+    findHits = findIndex.map(h => [rank(h), h]).filter(x => x[0] < 9).sort((x, y) => x[0] - y[0] || x[1].name.localeCompare(y[1].name, "pl")).slice(0, 8).map(x => x[1]);
+    findSel = 0;
+    list.innerHTML = findHits.length ? findHits.map((h, i) => `<button type="button" role="option" data-k="${i}" class="${i === findSel ? "on" : ""}">${esc(h.name)}<span>${esc(h.where)}</span></button>`).join("")
+      : `<div class="none">No substation or group by that name. ENEA's and Stoen's areas are not covered.</div>`;
+    list.hidden = false;
+  }
+  function findPick(i) {
+    const h = findHits[i];
+    if (!h) return;
+    $("find-q").value = "";
+    $("find-list").hidden = true;
+    $("find-q").blur();
+    openArea(h.a, h.st);
   }
 
 
@@ -959,14 +1032,39 @@
     });
     $("rank").addEventListener("mouseover", e => { const tr = e.target.closest("tr[data-id]"); if (tr) highlight(tr.dataset.id); });
     $("rank").addEventListener("mouseleave", () => highlight(null));
-    $("d-close").addEventListener("click", () => $("detail").close());
+    $("d-close").addEventListener("click", () => { $("detail").close(); clearLink(); });
     $("d-body").addEventListener("click", e => {
       const link = e.target.closest("[data-st]");
       if (!link || !sideArea) return;
       e.preventDefault();
       showSide(sideArea, sideArea.stations[+link.dataset.st]);
+      setLink(sideArea, sideStation);
     });
-    $("detail").addEventListener("click", e => { if (e.target === $("detail")) $("detail").close(); });
+    // Closing by the button or the backdrop clears the link at once; Escape and any other way through these events.
+    $("detail").addEventListener("cancel", clearLink);
+    $("detail").addEventListener("close", clearLink);
+    $("d-link").addEventListener("click", async () => {
+      const b = $("d-link");
+      try { await navigator.clipboard.writeText(location.href); b.textContent = "Copied"; }
+      catch (e) { window.prompt("Copy this link:", location.href); }
+      setTimeout(() => { b.textContent = "Copy link"; }, 1600);
+    });
+    $("find-q").addEventListener("input", findRender);
+    $("find-q").addEventListener("focus", findRender);
+    $("find-q").addEventListener("keydown", e => {
+      const n = findHits.length;
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (!n) return;
+        e.preventDefault();
+        findSel = (findSel + (e.key === "ArrowDown" ? 1 : n - 1)) % n;
+        [...$("find-list").children].forEach((b, i) => b.classList.toggle("on", i === findSel));
+      } else if (e.key === "Enter") { e.preventDefault(); findPick(findSel); }
+      else if (e.key === "Escape") { $("find-q").value = ""; findRender(); }
+    });
+    $("find-list").addEventListener("mousedown", e => { const b = e.target.closest("button[data-k]"); if (b) { e.preventDefault(); findPick(+b.dataset.k); } });
+    $("find-q").addEventListener("blur", () => setTimeout(() => { $("find-list").hidden = true; }, 100));
+    window.addEventListener("hashchange", openFromHash);
+    $("detail").addEventListener("click", e => { if (e.target === $("detail")) { $("detail").close(); clearLink(); } });
     $("plan").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.plan = b.dataset.plan; [...$("plan").children].forEach(x => x.classList.toggle("on", x === b)); renderNew(); draw(false); });
     $("curt-unit").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.unit = b.dataset.unit; [...$("curt-unit").children].forEach(x => x.classList.toggle("on", x === b)); renderCurtailment(); });
     $("curt-year").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; curtState.year = b.dataset.year; renderCurtailment(); });
@@ -1101,6 +1199,7 @@
 
   function openLine(l) {
     hideSide();
+    clearLink();
     CONG.mini.forEach(c => c.dispose()); CONG.mini = [];
     $("d-title").textContent = l.name;
     $("d-sub").textContent = `${l.kv} kV ${l.kind === "line" ? "line" : "transformer"}${l.tie ? ", tie line" : ""}${l.pst ? " (phase-shifter controlled)" : ""} · modelled, 2025`;
@@ -1127,6 +1226,7 @@
 
   function openStation(s) {
     hideSide();
+    clearLink();
     CONG.mini.forEach(c => c.dispose()); CONG.mini = [];
     $("d-title").textContent = s.name;
     $("d-sub").textContent = `${s.kv} kV substation · what a new 100 MW plant here would have done in 2025 (modelled)`;
