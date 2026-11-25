@@ -92,5 +92,6 @@ jobs:
           git add -A data/land
           if git diff --cached --quiet; then echo "No changes."; exit 0; fi
           git commit -m "Land plots: $(python -c "import json; d=json.load(open('data/land/index.json')); print(len(d['stations']), 'of', d['shortlisted'], 'substations')")"
-          for attempt in 1 2 3; do git pull --rebase -q && git push && exit 0; sleep 20; done
+          # --autostash: a cancelled run can leave a step still writing station files after the add, which would block the rebase.
+          for attempt in 1 2 3; do git pull --rebase --autostash -q && git push && exit 0; sleep 20; done
           exit 1
