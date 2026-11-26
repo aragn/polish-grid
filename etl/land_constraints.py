@@ -14,7 +14,11 @@ f, w, b, r (ha), u (usable ha), bm (m), nb.
 `d` is the distance in metres from the plot to the nearest object of each kind in DISTANCES (0 when one touches the
 plot, null when there is none within DISTANCE_SEARCH_M), in the order index.json lists as `distance_keys`.  These let
 the page apply any buffer (homes, public roads, power lines, forest, water...), as site-screening tools do.  A plot
-checked before the distances existed (no `d`) is checked again in full.
+checked before the distances existed (no `d`), or before the last kinds were added (a shorter `d`), is checked again
+in full.  New kinds go at the end of DISTANCES, so the positions of the others never change.
+
+Kinds and classes are those of the 2021 schema (Dz.U. 2021 poz. 1412, annex 3; GUGiK's BDOT10k user guide, 2024).
+Gas and oil mains aren't among them: BDOT10k's pipe class (OT_SUPR_L) holds only pipes above ground.
 
 BDOT10k comes per county (powiat) as a zip of GeoPackages, one per layer, from opendata.geoportal.gov.pl (schemat
 2021, EPSG:2180), which answers from GitHub's runners but not from every network.  The county is the first four
@@ -72,11 +76,18 @@ DISTANCES = {
     "waste": [("OT_KUPG_A", lambda f, i: f["RODZAJ"][i] == "składowisko odpadów")],
     "cemetery": [("OT_KUSC_A", lambda f, i: str(f["RODZAJ"][i] or "").startswith("cmentarz"))],
     "airfield": [("OT_KUKO_A", lambda f, i: f["RODZAJ"][i] == "lotnisko lub lądowisko")],
+    # Added Nov 2026: places that are sensitive to noise and fire risk, heritage, military ranges, existing turbines.
+    "school": [("OT_KUOS_A", lambda f, i: f["RODZAJ"][i] in ("przedszkole", "szkoła lub zespół szkół", "szkoła wyższa"))],
+    "care": [("OT_KUOZ_A", lambda f, i: True)],          # hospitals and sanatoria, care homes and children's homes, nurseries
+    "heritage": [("OT_KUZA_A", lambda f, i: True)],      # historic complexes: historic buildings, museums, open-air museums, forts, memorials
+    "military": [("OT_KUPW_A", lambda f, i: True)],      # military training ranges
+    "wind_turbine": [("OT_BUWT_P", lambda f, i: f["RODZAJ"][i] == "turbina wiatrowa")],
 }
 DISTANCE_KEYS = list(DISTANCES)
 DISTANCE_COLUMNS = {"OT_BUBD_A": ["FUNKCJAOGOLNABUDYNKU", "KATEGORIAISTNIENIA"], "OT_PTZB_A": ["RODZAJ"], "OT_SKDR_L": ["KATEGORIAZARZADZANIA", "KLASADROGI"],
                     "OT_SKTR_L": ["KATEGORIAISTNIENIA"], "OT_PTLZ_A": ["RODZAJ"], "OT_PTWP_A": ["RODZAJ"], "OT_SWRS_L": [], "OT_SULN_L": ["RODZAJ"],
-                    "OT_KUPG_A": ["RODZAJ", "RODZAJELEKTROWNI"], "OT_KUSC_A": ["RODZAJ"], "OT_KUKO_A": ["RODZAJ"]}
+                    "OT_KUPG_A": ["RODZAJ", "RODZAJELEKTROWNI"], "OT_KUSC_A": ["RODZAJ"], "OT_KUKO_A": ["RODZAJ"],
+                    "OT_KUOS_A": ["RODZAJ"], "OT_KUOZ_A": [], "OT_KUZA_A": [], "OT_KUPW_A": [], "OT_BUWT_P": ["RODZAJ"]}
 TO_2180 = Transformer.from_crs("EPSG:4326", "EPSG:2180", always_xy=True)
 
 
@@ -213,8 +224,8 @@ def county_values(county, plots, workdir):
 
 
 def needs_check(plot):
-    """Not checked yet, or checked before the distances were added."""
-    return "u" not in plot or "d" not in plot
+    """Not checked yet, or checked before the distances (or their latest kinds) were added."""
+    return "u" not in plot or "d" not in plot or len(plot["d"]) < len(DISTANCE_KEYS)
 
 
 def main(budget_minutes=240, only=None):
