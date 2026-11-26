@@ -7,7 +7,7 @@ the whole country, and then open the chosen site on the usual map from its stati
 
 Row: [station, precinct, nr, km×100, ha×100, usable ha×100 or null, metres to the nearest building or null, average
 width (m), mean slope×10 or null, flags, owner groups, general-plan zone or -1, local-plan ha×100, lat×10⁴, lon×10⁴,
-distances or null, neighbours]
+distances or null, neighbours, wind speed at 150 m×10 or null, aviation zones (as `av` in the station file) or null]
 - station: index into "stations"; precinct: index into "precincts" ([id prefix, municipality, precinct name]);
 - flags: 1 national park/reserve, 2 landscape park, 4 Natura 2000, 8 protected landscape area (each on more than a
   tenth of the plot), 16 more than a tenth in the 1% flood area, 32 any part in it, 64 class I–III farmland, 128 the
@@ -109,7 +109,8 @@ def main():
             rows.append([st, pr, p["id"][len(prefix) + 1:], round(p["km"] * 100), round(p["ha"] * 100),
                          None if p.get("u") is None else round(p["u"] * 100), p.get("bm"), width(p),
                          None if p.get("sl") is None else round(p["sl"] * 10), flags(p), p.get("grupa") or "", zone,
-                         round((p.get("mp") or 0) * 100), round(lat * 1e4), round(lon * 1e4), dist, nx])
+                         round((p.get("mp") or 0) * 100), round(lat * 1e4), round(lon * 1e4), dist, nx,
+                         round(p["ws"][1] * 10) if p.get("ws") else None, p.get("av")])
         data = {"province": PROVINCES.get(code, code), "distance_keys": SEARCH_KEYS, "stations": list(stations),
                 "precincts": [[k, v[1], v[2]] for k, v in sorted(precincts.items(), key=lambda x: x[1][0])],
                 "zones": list(zones), "rows": rows}
