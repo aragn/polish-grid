@@ -136,6 +136,36 @@
       .map-box.quick-open .leaflet-top.leaflet-right { right:0; }
       #q-thumb { display:none; }
     }
+    /* Site report: a printable sheet (print, or Save as PDF) built from the cards; off screen while its maps load. */
+    .q-pdf { margin-left:auto; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:6px; padding:1px 9px; font-size:12px; cursor:pointer; }
+    .q-pdf ~ .q-close { margin-left:0; }
+    .card-head { display:flex; align-items:center; gap:8px; }
+    .card-head h3 { margin-bottom:8px; }
+    .card-head .q-pdf { margin-bottom:8px; }
+    #print-sheet { display:none; }
+    #print-sheet.preparing { display:block; position:absolute; left:-10000px; top:0; width:186mm; }
+    #print-sheet { --text:#111; --muted:#5b5b5b; --muted-2:#8a8a8a; --border:#d4d4d4; --panel:#fff; --panel-2:#f4f4f4; --plot:#d70015;
+      color:#111; background:#fff; font:9.5pt/1.42 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    #print-sheet h1 { font-size:17pt; margin:1mm 0; letter-spacing:-.01em; }
+    #print-sheet h2 { font-size:11.5pt; margin:6mm 0 2mm; padding-bottom:1mm; border-bottom:1px solid #d4d4d4; break-after:avoid; }
+    #print-sheet .pr-head { display:flex; justify-content:space-between; gap:8mm; align-items:flex-start; }
+    #print-sheet .pr-kicker { font-size:8.5pt; color:#d70015; font-weight:650; text-transform:uppercase; letter-spacing:.4px; }
+    #print-sheet .pr-meta { font-size:8pt; color:#5b5b5b; text-align:right; max-width:70mm; overflow-wrap:anywhere; }
+    #print-sheet .pr-maps { display:grid; grid-template-columns:1.35fr 1fr; gap:5mm; margin-top:4mm; break-inside:avoid; }
+    #print-sheet .pr-map { height:78mm; border:1px solid #d4d4d4; border-radius:2mm; overflow:hidden; background:#eee; }
+    #print-sheet .pr-cap { font-size:7.5pt; color:#5b5b5b; margin-top:1mm; }
+    #print-sheet .q-stats, #print-sheet .q-box, #print-sheet table.conn tr, #print-sheet .q-screen tr { break-inside:avoid; }
+    #print-sheet .card { grid-template-columns:34mm 1fr; font-size:8.5pt; gap:1.5mm 4mm; }
+    #print-sheet .card dt { break-after:avoid; }
+    #print-sheet .card dd { break-inside:avoid; }
+    #print-sheet a { color:#0a58ca; text-decoration:none; }
+    #print-sheet .pr-foot { margin-top:6mm; font-size:7pt; color:#5b5b5b; line-height:1.35; }
+    @media print {
+      @page { size:A4; margin:12mm; }
+      html, body { background:#fff !important; }
+      body > *:not(#print-sheet) { display:none !important; }
+      #print-sheet, #print-sheet.preparing { display:block !important; position:static; width:auto; }
+    }
     .legend-box { position:absolute; z-index:500; bottom:22px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:7px 10px; font-size:11.5px; color:var(--muted); }
     .legend-box div { display:flex; align-items:center; gap:6px; margin-top:2px; }
     .legend-box i { width:14px; height:10px; display:inline-block; border:2px solid; }
@@ -246,14 +276,14 @@
           <div class="list" id="plots"></div>
         </div>
         <div class="box" id="card-box" hidden>
-          <h3 id="card-title">Plot</h3>
+          <div class="card-head"><h3 id="card-title">Plot</h3><button type="button" class="q-pdf" id="card-pdf" title="A report of this site to print or save as PDF">PDF report</button></div>
           <dl class="card" id="card"></dl>
         </div>
       </aside>
       <section class="map-box">
         <div id="map"></div>
         <div class="quick" id="quick" hidden aria-label="Plot summary">
-          <div class="q-head"><span class="q-tag" id="q-tag">Solar farm</span><span class="q-score" id="q-score"></span><button type="button" class="q-close" id="q-close" title="Close the summary" aria-label="Close">×</button></div>
+          <div class="q-head"><span class="q-tag" id="q-tag">Solar farm</span><span class="q-score" id="q-score"></span><button type="button" class="q-pdf" id="q-pdf" title="A report of this site to print or save as PDF">PDF</button><button type="button" class="q-close" id="q-close" title="Close the summary" aria-label="Close">×</button></div>
           <div class="q-scroll">
             <div id="q-thumb" title="Zoom the map to the plot"></div>
             <div class="q-title" id="q-title"></div>
@@ -1464,7 +1494,7 @@
     }
     return latlngs;
   }
-  function quickSite(p, s, c, sc) {
+  function quickSite(p, s, c, sc, forPrint) {
     const kind = state.kind, st = index.stations[p.station] || {}, area = capacity.areas.find(a => a.id === groupOf(p.station));
     const conn = connectionCalc(p).facts, mw = projectMw(), room = conn ? conn.room : area ? roomFor(area) : null;
     const geo = s.plots.map(sidesOf), ha = s.plots.reduce((t, q) => t + q.ha, 0), egib = s.plots.every(q => q.ha_egib) ? s.plots.reduce((t, q) => t + q.ha_egib, 0) : null;
@@ -1505,7 +1535,7 @@
     const switches = `<div class="q-box"><label><input type="checkbox" id="q-outline"${qOutline ? " checked" : ""}> Plot outline</label>` +
       `<label><input type="checkbox" id="q-edges"${qEdges ? " checked" : ""}> Edge lengths</label>` +
       `<button type="button" class="q-link" id="q-layers">Flood, nature and aviation layers on the map</button></div>`;
-    return quickKey(p, s, c, sc, switches) +
+    return quickKey(p, s, c, sc, forPrint ? "" : switches) +
       `<div class="q-h">Site screen</div><table class="q-screen">` +
       row("Environmental", env) + row("Hazards", haz) + row("Buildability", build) + row("Grid", grid) + row("Planning", plan) +
       row("Neighbours", neigh) + (kind === "bess" ? row("Noise", (() => { const n = noiseOf(p); return !n ? dot("u", "not computed yet") : n.home == null ? dot("g", "no home found nearby") :
@@ -1629,6 +1659,59 @@
     thumbMap.fitBounds(L.latLngBounds(latlngs.flat(3)).pad(0.25), { maxZoom: 17, animate: false });
   }
 
+  /* ---- Site report: every card of the chosen plot or site on A4, for the browser's print or Save as PDF. ---- */
+  const ESRI_TILES = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+  let printMaps = [];
+  async function printSite() {
+    const p = plots.find(q => q.id === state.plot);
+    if (!p) return;
+    const s = quickPlots(p), c = checksOf(p, s.area), sc = scoreOf(c), st = index.stations[p.station] || {};
+    const title = s.plots.length > 1 ? `${s.area.toFixed(1)} ha site, ${p.obreb}` : `Plot ${p.nr}, ${p.obreb}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const link = `${location.origin}${location.pathname}#group=${encodeURIComponent(state.group || groupOf(p.station) || "")}`;
+    let sheet = $("print-sheet");
+    if (!sheet) { sheet = document.createElement("div"); sheet.id = "print-sheet"; document.body.appendChild(sheet); }
+    printMaps.forEach(m => m.remove()); printMaps = [];
+    sheet.className = "preparing";
+    sheet.innerHTML =
+      `<div class="pr-head"><div><div class="pr-kicker">Site report · ${esc(KIND_EN[state.kind])}, ${projectMw()} MW · ${sc.met} of ${sc.known} checks met</div>` +
+      `<h1>${esc(title)}</h1><div class="q-sub">${esc(p.gmina)} · precinct ${esc(p.obreb)} · ${esc(PROVINCE_EN[p.id.slice(0, 2)] || "")} · ` +
+      `${s.plots.length > 1 ? `plots ${s.plots.map(q => esc(q.nr)).join(", ")}` : esc(p.id)}</div></div>` +
+      `<div class="pr-meta">Polish Grid · Land<br>${today}<br><a href="${esc(link)}">${esc(link)}</a></div></div>` +
+      `<div class="pr-maps"><div><div class="pr-map" id="pr-map-site"></div><div class="pr-cap">The ${s.plots.length > 1 ? "site" : "plot"} on Esri satellite imagery; side lengths measured from the register outline.</div></div>` +
+      `<div><div class="pr-map" id="pr-map-ctx"></div><div class="pr-cap">The ${s.plots.length > 1 ? "site" : "plot"} and the ${esc(st.name || "")} substation, ${p.km.toFixed(1)} km in a straight line.</div></div></div>` +
+      `<h2>Summary</h2>${quickSite(p, s, c, sc, true)}` +
+      `<h2>All details</h2><dl class="card">${$("card").innerHTML}</dl>` +
+      `<div class="pr-foot">${$("footer").innerHTML}<br><br>A screening from public registers and models, not legal, planning or engineering advice: zoning, ownership, grid conditions and permits are for the municipality, the owners, the operator and the authorities named to confirm.</div>`;
+    const opts = { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, fadeAnimation: false, zoomAnimation: false };
+    const site = L.map("pr-map-site", opts), ctx = L.map("pr-map-ctx", opts);
+    printMaps = [site, ctx];
+    const tiles = [L.tileLayer(ESRI_TILES, { maxZoom: 19 }).addTo(site), L.tileLayer(ESRI_TILES, { maxZoom: 19 }).addTo(ctx)];
+    const loaded = tiles.map(t => new Promise(r => t.once("load", r)));
+    const ll = s.plots.map(q => q.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon]))));
+    for (const x of ll) { L.polygon(x, { color: "#ffd60a", weight: 2.5, fillOpacity: 0.06 }).addTo(site); L.polygon(x, { color: "#ffd60a", weight: 2, fillOpacity: 0.25 }).addTo(ctx); }
+    for (const q of s.plots) {
+      const { sides, perim } = sidesOf(q);
+      sides.filter(x => x.m >= Math.max(20, 0.1 * perim)).sort((x, y) => y.m - x.m).slice(0, s.plots.length > 1 ? 3 : 6).forEach(x =>
+        L.marker([(x.a[0] + x.b[0]) / 2, (x.a[1] + x.b[1]) / 2], { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "q-edge-wrap", iconSize: [0, 0], html: `<span class="q-edge">${Math.round(x.m)} m</span>` }) }).addTo(site));
+    }
+    const bounds = L.latLngBounds(ll.flat(3));
+    site.fitBounds(bounds.pad(0.2), { maxZoom: 17, animate: false });
+    if (st.lat != null) {
+      const sub = [st.lat, st.lon];
+      L.polyline([bounds.getCenter(), sub], { color: "#fff", weight: 2, dashArray: "6 5" }).addTo(ctx);
+      L.circleMarker(sub, { radius: 6, color: "#fff", weight: 2, fillColor: "#111", fillOpacity: 1 }).addTo(ctx);
+      L.marker(sub, { interactive: false, icon: L.divIcon({ className: "q-edge-wrap", iconSize: [0, 0], html: `<span class="q-edge" style="transform:translate(8px,-50%)">${esc(st.name || "substation")}</span>` }) }).addTo(ctx);
+      ctx.fitBounds(L.latLngBounds([bounds.getSouthWest(), bounds.getNorthEast(), sub]).pad(0.25), { maxZoom: 16, animate: false });
+    } else ctx.fitBounds(bounds.pad(2), { animate: false });
+    await Promise.race([Promise.all(loaded), new Promise(r => setTimeout(r, 6000))]);
+    await new Promise(r => setTimeout(r, 300));
+    const old = document.title;
+    document.title = `Site report - ${title} - ${today}`;   // the name the browser offers for the PDF
+    window.addEventListener("afterprint", () => { document.title = old; sheet.className = ""; }, { once: true });
+    window.print();
+  }
   function renderCard() {
     const p = plots.find(q => q.id === state.plot);
     renderQuick(p);
@@ -1726,6 +1809,8 @@
       const p = plots.find(q => q.id === state.plot);
       if (p && map.getZoom() < 14) selectPlot(p.id, true);   // the flood maps draw from zoom 14
     });
+    $("q-pdf").addEventListener("click", printSite);
+    $("card-pdf").addEventListener("click", printSite);
     $("q-full").addEventListener("click", () => $("card-box").scrollIntoView({ behavior: "smooth", block: "start" }));
     $("q-thumb").addEventListener("click", () => { if (state.plot) selectPlot(state.plot, true); });
     $("need").addEventListener("input", render);
