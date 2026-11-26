@@ -335,6 +335,28 @@ Everything else on the page is worked out in the browser from these fields:
   terms don't allow automated access, and is kept here under its CC BY 4.0 licence, with the
   citation the atlas asks for on the page. Across the plots it runs from 964 to 1,145 (median
   1,092), so it matters far less than the grid connection.
+- **Wind:** `etl/land_wind.py` adds `ws`, the Global Wind Atlas 4.0 mean wind speed at 100 m and
+  150 m (m/s), and `cf`, the capacity factor of its generic IEC class III turbine (%), at each
+  plot's centre, from `etl/gwa_poland.tif` (6 MB: the three layers at 250 m, as bytes). The Poland
+  files were downloaded once by hand from the atlas's GIS download page: its terms don't allow
+  robots on the site and its API isn't for bulk downloads. CC BY 4.0, with the attribution the
+  atlas asks for on the page. Across the plots the speed at 150 m runs from about 5.5 to 8.5 m/s
+  (median 7.6) and the capacity factor from about 21% to 51% (median 40%). The page sorts wind
+  sites by it. For screening only: a wind farm needs a year of measurements on site.
+- **Aviation:** `etl/land_aviation.py --update-from DIR` turns the Civil Aviation Authority's
+  shapefiles of building restricted areas (BRA) around civil aviation ground equipment (landing
+  systems, radio stations, radio beacons, radars and weather radars; one zip per kind on
+  ulc.gov.pl/zegluga-powietrzna/mapy-on-line, with no conditions for reuse) into
+  `data/land/aviation.json` (237 pieces of equipment, 478 zones, the height rings; staff names in
+  the edit fields left out). Each run then adds `av` to every plot: the zones that touch it, with
+  the height limit above sea level at the plot, on the safe side of ULC's steps. Within 600 m of
+  the equipment anything built needs ULC's agreement; in the zone around it, anything over 15 m;
+  in the outer zone of beacons and weather radars (30 km for these), only wind turbines above the
+  limit. Above a limit needs ULC's agreement (Aviation Law art. 86(7)), it isn't banned. About
+  16% of the plots touch a zone, mostly a weather radar's. Airport obstacle limitation surfaces
+  (a ULC viewer with no download) and military equipment are not included. Download new zips by
+  hand when ULC posts them. PAŻP's obstacle and AIP data and openAIP are not used: their terms
+  don't allow it.
 - **Building permits:** `etl/land_permits.py` reads GUNB's register of building permit decisions
   since 2016 (one zip per province, every 28 days) and adds `gp`, each plot's own decisions as
   [date, type, new, MW], and `gn`, the distance to the nearest solar, battery and wind decision

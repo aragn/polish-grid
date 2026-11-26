@@ -188,7 +188,7 @@
         </details>
         <div class="box">
           <h3 id="list-title">Plots</h3>
-          <div class="row" style="margin-bottom:8px"><span class="count" style="margin:0">Sort by</span><div class="seg" id="sort"><button type="button" data-sort="km" class="on">Distance</button><button type="button" data-sort="ha">Area</button></div><span class="row" style="margin-left:auto;gap:5px"><button type="button" class="btn" id="csv" title="Every site in the list, one row per plot">CSV</button><button type="button" class="btn" id="geojson" title="Every site in the list, with the plot outlines">GeoJSON</button></span></div>
+          <div class="row" style="margin-bottom:8px"><span class="count" style="margin:0">Sort by</span><div class="seg" id="sort"><button type="button" data-sort="km" class="on">Distance</button><button type="button" data-sort="ha">Area</button><button type="button" data-sort="wind" id="sort-wind" hidden>Wind</button></div><span class="row" style="margin-left:auto;gap:5px"><button type="button" class="btn" id="csv" title="Every site in the list, one row per plot">CSV</button><button type="button" class="btn" id="geojson" title="Every site in the list, with the plot outlines">GeoJSON</button></span></div>
           <div class="list" id="plots"></div>
         </div>
         <div class="box" id="card-box" hidden>
@@ -198,7 +198,7 @@
       </aside>
       <section class="map-box">
         <div id="map"></div>
-        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div id="legend-av" hidden><i style="border-color:#bf5af2;border-radius:50%"></i>Aviation zones (ULC): red within 600 m, orange over 15 m, purple wind turbines only</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
       </section>
     </div>
     <footer id="footer"></footer>
@@ -328,6 +328,9 @@
   // Distances from a plot to lines or polygons the page already holds (220/400 kV lines from data/land/grid, national
   // parks and reserves from data/land/protected_shapes.json), in metres, on a local flat projection; 0 when touching.
   let protectedRaw = [], ehvLines = [];
+  // Building restricted areas around civil aviation equipment (ULC), data/land/aviation.json from etl/land_aviation.py:
+  // the equipment and zone outlines for the map layer and the names on the card; each plot's zones are in p.av.
+  let aviation = null;
   const distCache = new Map();
   function toXY(lat0) { const kx = 111320 * Math.cos(lat0 * Math.PI / 180), ky = 110574; return ([lon, lat]) => [lon * kx, lat * ky]; }
   function segDist(px, py, ax, ay, bx, by) {
@@ -514,6 +517,14 @@
         L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: c.color, weight: 1.4, opacity: 0.9, dashArray: c.dash, fillColor: c.color, fillOpacity: 0.13, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(natureLayer);
       }
     }).catch(() => {});
+    const aviationLayer = L.layerGroup(), AV_COLOR = { 0: "#ff453a", 1: "#ff9f0a", 2: "#bf5af2" };
+    get("../data/land/aviation.json").then(d => {
+      aviation = d;
+      for (const [, code, rings] of d.zones)
+        L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: AV_COLOR[code], weight: 1.2, opacity: 0.85, fillColor: AV_COLOR[code], fillOpacity: code === 2 ? 0.04 : 0.1, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(aviationLayer);
+      d.equipment.forEach((e, i) => L.circleMarker([e[4], e[5]], { radius: 4, color: "#fff", weight: 1, fillColor: "#bf5af2", fillOpacity: 1 }).bindTooltip(esc(avName(i))).addTo(aviationLayer));
+      if (state.plot || state.kind === "wind") render();
+    }).catch(() => {});
     map.createPane("grid").style.zIndex = 450; map.getPane("grid").style.pointerEvents = "none";
     map.createPane("gridlabels").style.zIndex = 460;
     gridLayer = L.layerGroup(); gridLabels = L.layerGroup();
@@ -529,8 +540,9 @@
       ["NZ.Fluvial", "NZ.SeaWater"].map(l => `<NamedLayer><Name>${l}</Name><UserStyle>${FLOOD_RULES}</UserStyle></NamedLayer>`).join("") + '</StyledLayerDescriptor>';
     const flood = L.tileLayer.wms("https://wody.isok.gov.pl/wss/INSPIRE/INSPIRE_NZ_HY_MZPMRP_WMS", { layers: "NZ.Fluvial,NZ.SeaWater", styles: ",", format: "image/png", transparent: true, minZoom: 14, maxZoom: 20, SLD_BODY: FLOOD_SLD, attribution: "Flood hazard maps © Wody Polskie" });
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
-      { "Place names": labels, "Power lines, substations, solar farms and wind turbines (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Soil-agricultural map: soil complexes, to look at (GUGiK, from zoom 14, may not load outside Poland)": soil, "Protected areas (EEA)": natureLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
+      { "Place names": labels, "Power lines, substations, solar farms and wind turbines (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Soil-agricultural map: soil complexes, to look at (GUGiK, from zoom 14, may not load outside Poland)": soil, "Protected areas (EEA)": natureLayer, "Aviation equipment zones: within 600 m red, over 15 m orange, wind turbines only purple (ULC)": aviationLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
     natureLayer.addTo(map);
+    map.on("overlayadd overlayremove", e => { if (e.layer === aviationLayer) $("legend-av").hidden = e.type === "overlayremove"; });
     ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map); areaLayer = L.layerGroup().addTo(map);
     map.addLayer(gridLayerGroup);
     bind();
@@ -695,6 +707,9 @@
       const park = parkDist(p), reserve = reserveDist(p);
       add(protectedRaw.length ? (park == null || park >= 10 * t.height) && (reserve == null || reserve >= 500) : null, `at least ${10 * t.height} m from national parks and 500 m from reserves`,
         `national park ${park == null ? "none within 4 km" : fmtM(park)}, reserve ${reserve == null ? "none within 1 km" : fmtM(reserve)}; the wind act, art. 4c(2)`); }
+    add(p.av == null ? null : wind ? !avBlocks(p).length : !p.av.some(a => a[1] === 0),
+      wind ? `below the height limits around aviation equipment (a ${turbine().height} m turbine)` : "more than 600 m from aviation equipment",
+      p.av == null ? "not checked yet" : !p.av.length ? "outside ULC's zones" : p.av.slice(0, 3).map(a => avLine(p, a, true)).join("; ") + (p.av.length > 3 ? `; ${p.av.length - 3} more` : ""));
     if (!wind) add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
     // 30 m: nine in ten of the plots that already got a solar or battery permit of 1 MW or more are at least that wide.
     if (!wind) add(p.wm >= 30, "not a thin strip: at least 30 m wide on average", `about ${p.wm} m; a narrower plot only works joined to its neighbours`);
@@ -733,7 +748,7 @@
     const env = {
       pv: "<b>Environmental decision.</b> Needed for an array of 2 ha or more, 0.5 ha in protected areas (regulation of 10 Sep 2019, § 3(1)(54a)), before the building permit.",
       bess: "<b>Environmental decision.</b> A battery isn't listed in the regulation as such; check with the municipality, especially in protected areas. Fire safety and noise (the cooling) set the distances in practice.",
-      wind: "<b>Environmental decision.</b> Turbines of 30 m or more may need one, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 3(1)(6) and § 2(1)(5)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹).",
+      wind: "<b>Environmental decision.</b> Turbines of 30 m or more may need one, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 3(1)(6) and § 2(1)(5)). Around radio beacons, radars and weather radars, ULC's building restricted areas cap the height (the Aviation row on the plot card; above the cap needs ULC's agreement, Aviation Law art. 86(7)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹).",
       dc: "<b>Environmental decision.</b> Backup generators of 25 MW thermal input or more (10 MW on solid fuel) may need one (regulation of 10 Sep 2019, § 3(1)(4)). Storing fuel or coolant is banned in the 1% flood area (Water Law, art. 77).",
     }[k];
     const steps = [land, env,
@@ -756,7 +771,7 @@
     return {
       pv: "Ground-mounted solar needs a local plan (MPZP) on class I–III farmland and forest at any size, on class IV above 150 kW, elsewhere above 1 MW (planning act, art. 14(6a)); class I–III farmland also needs the agriculture minister's consent (farmland protection act, art. 7(2)). An array of 2 ha or more (0.5 ha in protected areas) may need an environmental decision (regulation of 10 Sep 2019, § 3(1)(54a)).",
       bess: "A battery isn't a renewable source, so the solar planning rule doesn't apply: a local plan, or a planning decision (WZ) where the general plan allows one. Class I–III farmland needs the agriculture minister's consent. Fire safety and noise set the distances in practice.",
-      wind: `A turbine can be sited only on the basis of a local plan (wind act, Dz.U. 2024 poz. 317, art. 3). Distance to homes: 10 × the total height (${10 * t.height} m here) unless the local plan sets a smaller one, never under 700 m (art. 4(1)). From 220/400 kV lines: 3 rotor diameters or 2 × the total height, the greater (${Math.max(3 * t.rotor, 2 * t.height)} m here; art. 4a). Not in national parks, reserves, landscape parks or Natura 2000; 10 × the height from national parks, 500 m from reserves (art. 4c). Turbines of 30 m or more may need an environmental decision, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 2(1)(5) and § 3(1)(6)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹). A 500 m minimum passed parliament in 2025 but was vetoed; 700 m still applies.`,
+      wind: `A turbine can be sited only on the basis of a local plan (wind act, Dz.U. 2024 poz. 317, art. 3). Distance to homes: 10 × the total height (${10 * t.height} m here) unless the local plan sets a smaller one, never under 700 m (art. 4(1)). From 220/400 kV lines: 3 rotor diameters or 2 × the total height, the greater (${Math.max(3 * t.rotor, 2 * t.height)} m here; art. 4a). Not in national parks, reserves, landscape parks or Natura 2000; 10 × the height from national parks, 500 m from reserves (art. 4c). Turbines of 30 m or more may need an environmental decision, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 2(1)(5) and § 3(1)(6)). Around radio beacons, radars and weather radars, ULC's building restricted areas cap the height (the Aviation row on the plot card; above the cap needs ULC's agreement, Aviation Law art. 86(7)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹). A 500 m minimum passed parliament in 2025 but was vetoed; 700 m still applies.`,
       dc: "No law is specific to data centres: they need a local plan, or a planning decision (WZ) where the general plan allows one, in a zone for industry or services. Backup generators of 25 MW thermal input or more (10 MW on solid fuel) may need an environmental decision (regulation of 10 Sep 2019, § 3(1)(4)). As a large load, the connection follows the Energy Law: since 30 April 2026 a non-refundable application fee of PLN 1 per kW (at most PLN 100,000) and an advance of PLN 60 per kW (at most PLN 6 million). Class I–III farmland needs the agriculture minister's consent.",
     }[state.kind] + ` <span style="color:var(--muted)">General information, not legal advice; check the current acts.</span>`;
   }
@@ -782,6 +797,39 @@
       `. <span style="color:var(--muted)">Copernicus DEM, about 30 m: a surface model, so trees and buildings make edges look steeper.</span>`;
   }
   const PV_MEDIAN = 1092;   // median PVOUT of all plots in data/land (kWh/kWp a year), Global Solar Atlas
+  const WS_MEDIAN = 7.6;    // median wind speed at 150 m of all plots in data/land (m/s), Global Wind Atlas
+  function windHtml(p) {
+    if (!p.ws) return p.cf === undefined ? "not read yet" : "no value in the atlas here";
+    const vs = p.ws[1] >= WS_MEDIAN ? `${((p.ws[1] / WS_MEDIAN - 1) * 100).toFixed(0)}% above` : `${((1 - p.ws[1] / WS_MEDIAN) * 100).toFixed(0)}% below`;
+    return `mean wind speed about <b>${p.ws[1].toFixed(1)} m/s at 150 m</b> (${p.ws[0].toFixed(1)} at 100 m), ${vs} the median of the plots here (${WS_MEDIAN}). ` +
+      (p.cf != null ? `A generic low-wind turbine (IEC class III) would run at <b>${p.cf}%</b> of its power over a year, about ${(Math.round(p.cf * 87.6 / 10) * 10).toLocaleString("en")} full-load hours. ` : "") +
+      `<span style="color:var(--muted)">Global Wind Atlas 4.0, 250 m grid, for screening only: a wind farm needs a year of measurements on site.</span>`;
+  }
+  // Aviation: each entry of p.av is [equipment, code, limit]: code 0 within 600 m of it (anything built needs ULC's
+  // agreement), 1 objects over 15 m above the ground need it, 2 a height limit for wind turbines only; limit in metres
+  // above sea level (the lower edge of ULC's step at the plot), or null.
+  const AV_KIND = { ILS: "landing system", COM: "radio station", NAV: "radio beacon", SUR: "radar", MET: "weather radar" };
+  function avName(i) {
+    const e = aviation?.equipment[i];
+    return e ? `${AV_KIND[e[0]] || e[0]} ${e[2] || e[1] || ""}${e[3] ? ` (${e[3]})` : ""}`.replace(/\s+/g, " ").trim() : "aviation equipment";
+  }
+  const avAgl = (p, lim) => lim != null && p.el != null ? Math.round(lim - p.el) : null;
+  // The entries that stop a turbine of the chosen height without ULC's agreement.
+  function avBlocks(p) {
+    const h = turbine().height;
+    return (p.av || []).filter(([, code, lim]) => code < 2 || avAgl(p, lim) == null || avAgl(p, lim) < h);
+  }
+  function avLine(p, [eq, code, lim], short) {
+    const what = short ? ["within 600 m", "over 15 m needs agreement", "turbines only"][code]
+      : ["within 600 m of it: anything built needs ULC's agreement", "objects more than 15 m tall need ULC's agreement, so any turbine", "a height limit for wind turbines only"][code];
+    const agl = avAgl(p, lim);
+    return `${esc(avName(eq))}: ${what}${lim != null ? `${short ? ", limit" : "; limit about"} ${Math.round(lim)} m above sea level${agl != null ? `, ${agl} m above this plot` : ""}` : ""}`;
+  }
+  function aviationHtml(p) {
+    if (p.av == null) return "not checked yet";
+    const note = `<br><span style="color:var(--muted)">ULC's building restricted areas around civil aviation equipment (limits on the safe side of ULC's steps). Above a limit isn't banned, it needs ULC's agreement (Aviation Law, art. 86(7)). Airport obstacle limits and military equipment aren't included: see <a href="${"https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line"}" target="_blank" rel="noopener">ULC's maps</a>.</span>`;
+    return (p.av.length ? p.av.map(a => avLine(p, a)).join("<br>") : "outside the zones around radio beacons, radars, landing systems and radio stations.") + note;
+  }
   const PERMIT_EN = { solar: "solar", battery: "battery", wind: "wind", house: "house", other: "other building or works" };
   function permitsHtml(p) {
     if (p.gp == null) return "not read yet";
@@ -816,14 +864,16 @@
     const rows = [];
     sites.forEach((s, i) => s.plots.forEach(q => {
       const z = zoneOf(q), sc = scoreOf(checksOf(q, s.area));
-      rows.push({ site: i + 1, site_ha: +s.area.toFixed(2), plots_in_site: s.plots.length, project: state.kind === "bess" ? "battery" : "solar", id: q.id,
+      rows.push({ site: i + 1, site_ha: +s.area.toFixed(2), plots_in_site: s.plots.length, project: KIND_EN[state.kind], id: q.id,
         municipality: q.gmina, precinct: q.obreb, number: q.nr, ha: q.ha, usable_ha: q.u ?? "", km_to_substation: q.km, substation: index.stations[q.station]?.name || "",
         nearest_building_m: q.bm ?? "", buildings_on_plot: q.nb ?? "", width_m: q.wm, soil_classes: q.klasy || "", owner_groups: groupsOf(q).map(x => OWNER[x] || x).join(" + "),
         natura2000_ha: q.n2 ?? "", park_or_reserve_ha: q.np ?? "", landscape_park_ha: q.lp ?? "", protected_landscape_ha: q.ol ?? "",
         flood_1pct_ha: q.q1 ?? "", flood_02pct_only_ha: q.q02 ?? "", general_plan_zone: z ? `${z[1]} (${ZONE_EN[z[0]] || z[2]})` : "", zone_allows_solar: z ? solarZone(q) : "",
         local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
         ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])),
-        solar_kwh_per_kwp: q.py ?? "", height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
+        solar_kwh_per_kwp: q.py ?? "", wind_ms_100m: q.ws?.[0] ?? "", wind_ms_150m: q.ws?.[1] ?? "", capacity_factor_iec3_pct: q.cf ?? "",
+        aviation_zones: q.av == null ? "" : q.av.map(([eq, code, lim]) => `${avName(eq)}: ${["within 600 m", "over 15 m needs agreement", "turbines only"][code]}${lim != null ? `, limit ${Math.round(lim)} m above sea level` : ""}`).join("; "),
+        height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
         energy_permits_on_plot: (q.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1])).map(g => `${g[1]} ${g[0]}`).join("; "),
         m_to_solar_permit: q.gn?.[0] ?? "", m_to_battery_permit: q.gn?.[1] ?? "", m_to_wind_permit: q.gn?.[2] ?? "" });
     }));
@@ -848,12 +898,18 @@
       features: rows.map(r => ({ type: "Feature", properties: r, geometry: { type: "MultiPolygon", coordinates: byId.get(r.id).geom } })) }), "application/geo+json");
   }
 
+  // The site's best wind speed at 150 m (the windiest of its plots, where a turbine would go).
+  const siteWind = s => Math.max(0, ...s.plots.map(q => q.ws?.[1] || 0));
+  const windTag = s => state.kind === "wind" && siteWind(s) ? ` · ${siteWind(s).toFixed(1)} m/s` : "";
+  function sortSites(list) {
+    list.sort((a, b) => state.sort === "ha" ? b.area - a.area : state.sort === "wind" ? siteWind(b) - siteWind(a) || a.km - b.km : a.km - b.km);
+  }
   function render() {
     state.need = +$("need").value || 0;
     if (state.scope === "area") { renderArea(); return; }
     const near = shown(), all = near.filter(p => p.km <= state.km);
     sites = sitesFrom(near);
-    sites.sort((a, b) => state.sort === "ha" ? b.area - a.area : a.km - b.km);
+    sortSites(sites);
     const inSite = new Set(sites.flatMap(s => s.plots.map(q => q.id)));
     const ok = sites;
     const checked = all.filter(p => p.u != null).length;
@@ -880,8 +936,8 @@
     $("list-title").textContent = `${ok.length} ${state.combine > 1 ? "site" : "plot"}${ok.length === 1 ? "" : "s"} big enough`;
     $("plots").innerHTML = ok.slice(0, 300).map(s => { const p = s.lead, more = s.plots.length > 1;
       return `<div class="plot ${state.plot === p.id ? "on" : ""}" data-id="${esc(p.id)}">` + (more
-        ? `<b>${s.area.toFixed(1)} ha${state.usable ? " usable" : ""} on ${s.plots.length} plots</b> · ${s.km.toFixed(1)} km`
-        : `<b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}`) +
+        ? `<b>${s.area.toFixed(1)} ha${state.usable ? " usable" : ""} on ${s.plots.length} plots</b> · ${s.km.toFixed(1)} km${windTag(s)}`
+        : `<b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${windTag(s)}${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}`) +
       `<div class="sub">${esc(p.obreb)} ${esc(p.nr)}${more ? ` with ${s.plots.slice(1).map(q => esc(q.nr)).join(", ")}` : ""} · ${esc(p.gmina)} · ${esc(p.id)}${!more && p.klasy ? " · " + esc(p.klasy) : ""}</div>${badges(p, s.area)}</div>`; }).join("") ||
       `<div class="plot" style="cursor:default">No plot this big within ${state.km} km. Try a larger distance, a smaller project, or combine neighbouring plots.</div>`;
     plotLayer.clearLayers();
@@ -902,14 +958,15 @@
   // ---------- Area-wide search ----------
   function expandSearch(d) {
     const keys = d.distance_keys, n = (index.distance_keys || []).length;
-    const out = d.rows.map(([st, pr, nr, km, ha, u, bm, wm, sl, f, grupa, zone, mp, lat, lon, dd]) => {
+    const out = d.rows.map(([st, pr, nr, km, ha, u, bm, wm, sl, f, grupa, zone, mp, lat, lon, dd, , w150, av]) => {
       const [prefix, gmina, obreb] = d.precincts[pr], H = ha / 100;
       let dv = null;
       if (dd) { dv = new Array(n).fill(null); keys.forEach((k, i) => { if (DK[k] != null) dv[DK[k]] = dd[i]; }); }
       return { id: `${prefix}.${nr}`, nr, gmina, obreb, station: d.stations[st], km: km / 100, ha: H, u: u == null ? null : u / 100, bm, wm,
         sl: sl == null ? null : sl / 10, np: f & 1 ? H : 0, lp: f & 2 ? H : 0, n2: f & 4 ? H : 0, ol: f & 8 ? H : 0,
         q1: f & 16 ? H : f & 32 ? 1e-4 : 0, klasy: f & 64 ? "RIII" : f & 128 ? "RIV" : "", permit: !!(f & 256),
-        grupa, pg: zone >= 0 ? [[d.zones[zone], H]] : [], mp: mp / 100, lat: lat / 1e4, lon: lon / 1e4, d: dv };
+        grupa, pg: zone >= 0 ? [[d.zones[zone], H]] : [], mp: mp / 100, lat: lat / 1e4, lon: lon / 1e4, d: dv,
+        ws: w150 == null ? null : [null, w150 / 10], av: av ?? null };
     });
     d.rows.forEach((r, i) => { out[i].nx = r[16].map(j => out[j].id); });
     return out;
@@ -960,7 +1017,7 @@
     }
     const okStations = allowedStations(), pool = codes.flatMap(c => searchCache[c]).filter(p => okStations.has(p.station));
     const found = sitesFrom(pool);
-    found.sort((a, b) => state.sort === "ha" ? b.area - a.area : a.km - b.km);
+    sortSites(found);
     areaSites = found;
     const mw = projectMw(), nSt = new Set(found.map(s => s.lead.station)).size;
     $("area-note").innerHTML = `${pool.length.toLocaleString("en")} plots around ${new Set(pool.map(p => p.station)).size} substations searched` +
@@ -973,8 +1030,8 @@
     const shownSites = found.slice(0, 300);
     $("plots").innerHTML = shownSites.map((s, i) => { const p = s.lead, more = s.plots.length > 1, st = index.stations[p.station] || {}, g = capacity.areas.find(a => a.id === groupOf(p.station));
       return `<div class="plot" data-aid="${i}">` + (more
-        ? `<b>${s.area.toFixed(1)} ha${state.usable ? " usable" : ""} on ${s.plots.length} plots</b> · ${s.km.toFixed(1)} km`
-        : `<b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}`) +
+        ? `<b>${s.area.toFixed(1)} ha${state.usable ? " usable" : ""} on ${s.plots.length} plots</b> · ${s.km.toFixed(1)} km${windTag(s)}`
+        : `<b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${windTag(s)}${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}`) +
         ` · ${esc(st.name || p.station)}` +
         `<div class="sub">${esc(p.obreb)} ${esc(p.nr)}${more ? ` with ${s.plots.slice(1).map(q => esc(q.nr)).join(", ")}` : ""} · ${esc(p.gmina)}${g ? ` · ${esc(g.name)}: ${roomFor(g)} MW ${state.kind === "dc" ? "out" : "in"}` : ""}</div>${areaBadges(p)}</div>`; }).join("") ||
       `<div class="plot" style="cursor:default">No site this big in ${esc(name)}. Try a smaller project, combining neighbouring plots, fewer filters${state.roomOnly ? ", or groups without room for the whole project" : ""}.</div>`;
@@ -1244,6 +1301,8 @@
       ...(dist(p, "solar_farm") != null && dist(p, "solar_farm") <= 3000 ? [["Existing connection", `A solar farm is ${fmtM(dist(p, "solar_farm"))} away: since 30 April 2026 a battery or another plant can share its connection (cable pooling, Energy Law art. 7(1f)). See the steps for a developer.`]] : []),
       ["Terrain", terrainHtml(p)],
       ["Solar yield", p.py ? `about <b>${p.py.toLocaleString("en")} kWh per kWp a year</b> for a ground-mounted array at the best fixed tilt, ${p.py >= PV_MEDIAN ? `${((p.py / PV_MEDIAN - 1) * 100).toFixed(0)}% above` : `${((1 - p.py / PV_MEDIAN) * 100).toFixed(0)}% below`} the median of the plots here (${PV_MEDIAN.toLocaleString("en")}). <span style="color:var(--muted)">Global Solar Atlas, 1999–2018 average, about 1 km; across Poland it varies by only about ±5%.</span>` : "not read yet"],
+      ["Wind", windHtml(p)],
+      ["Aviation", aviationHtml(p)],
       ["Building permits", permitsHtml(p)],
       ["Protected areas", protectedText(p)],
       ["Land and soil classes", p.klasy ? p.klasy.split(/[,;]\s*/).filter(Boolean).map(x => `${esc(x)} <span style="color:var(--muted)">(${esc(decodeClass(x))})</span>`).join(", ") : "not published by this county's service. Switch on the soil-agricultural map layer (zoom in) to see the soil complexes under the plot; they show farmland quality, not the legal class."],
@@ -1289,6 +1348,8 @@
     $("stations").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.station = b.dataset.sid || null; renderStations(); render(); });
     $("kind").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.kind = b.dataset.kind; [...$("kind").children].forEach(x => x.classList.toggle("on", x === b));
       for (const k of ["pv", "bess", "wind", "dc"]) $(`${k}-inputs`).hidden = state.kind !== k;
+      $("sort-wind").hidden = state.kind !== "wind";
+      if (state.kind !== "wind" && state.sort === "wind") { state.sort = "km"; [...$("sort").children].forEach(x => x.classList.toggle("on", x.dataset.sort === "km")); }
       $("need-unit").textContent = state.kind === "wind" ? "per turbine position" : "on one plot";
       if (state.kind === "wind" && state.nature < 3) { state.nature = 3; $("nature").value = 3; }
       $("need").value = needOf(); render(); });
@@ -1325,7 +1386,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Power lines: BDOT10k (GUGiK), medium, high and extra-high voltage as it classes them (in Poland 15–30, 110 and 220/400 kV), and its substations, with names of substations of 110 kV and above from OpenStreetMap contributors (ODbL); low-voltage lines only in GUGiK's utility map (GESUT). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Soil complexes: GUGiK's soil-agricultural map (mapa glebowo-rolnicza), shown from its viewing service only. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Power lines: BDOT10k (GUGiK), medium, high and extra-high voltage as it classes them (in Poland 15–30, 110 and 220/400 kV), and its substations, with names of substations of 110 kV and above from OpenStreetMap contributors (ODbL); low-voltage lines only in GUGiK's utility map (GESUT). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Wind: obtained from the Global Wind Atlas version 4.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU), released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalwindatlas.info" target="_blank" rel="noopener">globalwindatlas.info</a> (CC BY 4.0; Davis et al., <a href="https://doi.org/10.1175/BAMS-D-21-0075.1" target="_blank" rel="noopener">BAMS 2023</a>). Aviation: the building restricted areas (BRA) around civil aviation ground equipment, vector data of the Civil Aviation Authority (<a href="https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line" target="_blank" rel="noopener">Urząd Lotnictwa Cywilnego</a>). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Soil complexes: GUGiK's soil-agricultural map (mapa glebowo-rolnicza), shown from its viewing service only. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 

@@ -72,6 +72,12 @@ jobs:
       - name: Solar yield on each plot (Global Solar Atlas, from the copy in etl/)
         if: ${{ !cancelled() }}
         run: python etl/land_solar.py
+      - name: Wind resource on each plot (Global Wind Atlas, from the copy in etl/)
+        if: ${{ !cancelled() }}
+        run: python etl/land_wind.py
+      - name: Aviation limits on each plot (ULC building restricted areas, data/land/aviation.json)
+        if: ${{ !cancelled() }}
+        run: python etl/land_aviation.py
       - name: Building permits on and near each plot (GUNB)
         if: ${{ !cancelled() }}
         run: python etl/land_permits.py --budget-minutes 150
