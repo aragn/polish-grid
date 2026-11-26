@@ -113,6 +113,23 @@
     .q-list .y { color:#30d158; } .q-list .n { color:#ff453a; } .q-list .q { color:var(--muted); }
     .q-list small { display:block; color:var(--muted); margin-left:16px; }
     .q-list th { text-align:left; font-weight:600; padding-right:8px; white-space:nowrap; vertical-align:top; }
+    .q-box { border:1px solid var(--border); border-radius:9px; padding:8px 10px; margin:8px 0; font-size:12.5px; }
+    .q-box h4 { margin:0 0 6px; font-size:13px; font-weight:650; }
+    .q-kv { display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+    .q-kv span:first-child { color:var(--muted); }
+    .q-kv span:last-child { text-align:right; font-weight:600; }
+    .q-kv small { display:block; font-weight:400; color:var(--muted); }
+    .q-box label { display:flex; align-items:center; gap:7px; padding:2px 0; cursor:pointer; }
+    .q-link { display:inline-block; margin-top:5px; padding-top:6px; border-top:1px solid var(--border); width:100%; color:var(--accent, #0a84ff); background:none; border-left:0; border-right:0; border-bottom:0; text-align:left; font-size:12.5px; cursor:pointer; }
+    .q-cap { font-size:11.5px; color:var(--muted); margin:4px 0 8px; }
+    .q-screen { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .q-screen td { padding:6px 0; border-top:1px solid var(--border); vertical-align:top; }
+    .q-screen td:first-child { color:var(--muted); width:92px; padding-right:8px; }
+    .q-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; }
+    .q-dot.g { background:#30d158; } .q-dot.o { background:#ff9f0a; } .q-dot.r { background:#ff453a; } .q-dot.u { background:var(--muted-2); }
+    .q-h { font-size:14px; font-weight:650; margin:12px 0 4px; }
+    .q-edge-wrap { background:none; border:0; }
+    .q-edge { position:absolute; transform:translate(-50%, -50%); background:#fff; color:#111; border-radius:4px; padding:0 4px; font-size:10.5px; font-weight:650; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.4); }
     .q-full { display:block; margin:10px 0 0 auto; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 10px; font-size:12.5px; cursor:pointer; }
     @media (max-width: 640px) {
       .quick { top:auto; bottom:8px; left:8px; right:8px; width:auto; max-height:62%; }
@@ -241,7 +258,7 @@
             <div id="q-thumb" title="Zoom the map to the plot"></div>
             <div class="q-title" id="q-title"></div>
             <div class="q-sub" id="q-sub"></div>
-            <div class="q-tabs" id="q-tabs" role="tablist"><button type="button" data-tab="key" class="on">Key info</button><button type="button" data-tab="checks">Checks</button><button type="button" data-tab="conn">Connection</button><button type="button" data-tab="other">Other</button></div>
+            <div class="q-tabs" id="q-tabs" role="tablist"><button type="button" data-tab="key" class="on">Site</button><button type="button" data-tab="checks">Checks</button><button type="button" data-tab="conn">Connection</button><button type="button" data-tab="other">Other</button></div>
             <div id="q-pane"></div>
             <button type="button" class="q-full" id="q-full">Full card ↓</button>
           </div>
@@ -590,6 +607,7 @@
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
       { "Place names": labels, "Power lines, substations, solar farms and wind turbines (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Soil-agricultural map: soil complexes, to look at (GUGiK, from zoom 14, may not load outside Poland)": soil, "Protected areas (EEA)": natureLayer, "Aviation equipment zones: within 600 m red, over 15 m orange, wind turbines only purple (ULC)": aviationLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
     natureLayer.addTo(map);
+    overlayRefs = { flood, nature: natureLayer, aviation: aviationLayer };
     map.on("overlayadd overlayremove", e => { if (e.layer === aviationLayer) $("legend-av").hidden = e.type === "overlayremove"; });
     ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map); areaLayer = L.layerGroup().addTo(map);
     map.addLayer(gridLayerGroup);
@@ -1338,6 +1356,104 @@
   /* ---- Quick card: the chosen plot (or site) summarised over the map, in four tabs; "Full card" scrolls to the card in
      the side column, which keeps every detail. ---- */
   let quickTab = "key", quickClosed = null, thumbMap = null, thumbLayer = null;
+  /* ---- Site tab: geometry of the outline (sides, edge lengths), location and a one-line screen per topic. ---- */
+  let qOutline = true, qEdges = true, overlayRefs = {};
+  const PROVINCE_EN = { "02": "dolnośląskie", "04": "kujawsko-pomorskie", "06": "lubelskie", "08": "lubuskie", "10": "łódzkie", "12": "małopolskie",
+    "14": "mazowieckie", "16": "opolskie", "18": "podkarpackie", "20": "podlaskie", "22": "pomorskie", "24": "śląskie", "26": "świętokrzyskie",
+    "28": "warmińsko-mazurskie", "30": "wielkopolskie", "32": "zachodniopomorskie" };
+  // Douglas–Peucker on metres, to count the sides a surveyor would see (the outlines carry many near-straight vertices).
+  function simplifyRing(pts, tol) {
+    if (pts.length < 4) return pts;
+    const keep = new Array(pts.length).fill(false); keep[0] = keep[pts.length - 1] = true;
+    const stack = [[0, pts.length - 1]];
+    while (stack.length) {
+      const [a, b] = stack.pop(); let best = -1, at = -1;
+      for (let i = a + 1; i < b; i++) { const d = segDist(pts[i][0], pts[i][1], pts[a][0], pts[a][1], pts[b][0], pts[b][1]); if (d > best) { best = d; at = i; } }
+      if (best > tol) { keep[at] = true; stack.push([a, at], [at, b]); }
+    }
+    return pts.filter((_, i) => keep[i]);
+  }
+  // The plot's outer ring as straight sides: [{ a: [lat, lon], b: [lat, lon], m }], and the perimeter in metres.
+  function sidesOf(p) {
+    const ring = p.geom[0][0], f = toXY(ring[0][1]);
+    const pts = simplifyRing(ring.map(c => [...f(c), c]), 2);
+    const sides = [];
+    for (let i = 0; i < pts.length - 1; i++) sides.push({ a: [pts[i][2][1], pts[i][2][0]], b: [pts[i + 1][2][1], pts[i + 1][2][0]], m: Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) });
+    const perim = p.geom.reduce((s, poly) => s + poly[0].slice(1).reduce((t, c, i) => { const A = f(poly[0][i]), B = f(c); return t + Math.hypot(B[0] - A[0], B[1] - A[1]); }, 0), 0);
+    return { sides, perim };
+  }
+  function drawThumb(s) {
+    thumbLayer.clearLayers();
+    const latlngs = s.plots.map(q => q.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon]))));
+    if (qOutline) latlngs.forEach(ll => L.polygon(ll, { color: "#ffd60a", weight: 2.5, fillOpacity: 0.05, interactive: false }).addTo(thumbLayer));
+    if (qEdges) for (const q of s.plots) {
+      const { sides, perim } = sidesOf(q);
+      sides.filter(x => x.m >= Math.max(20, 0.1 * perim)).sort((x, y) => y.m - x.m).slice(0, s.plots.length > 1 ? 3 : 6).forEach(x =>
+        L.marker([(x.a[0] + x.b[0]) / 2, (x.a[1] + x.b[1]) / 2], { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "q-edge-wrap", iconSize: [0, 0], html: `<span class="q-edge">${Math.round(x.m)} m</span>` }) }).addTo(thumbLayer));
+    }
+    return latlngs;
+  }
+  function quickSite(p, s, c, sc) {
+    const kind = state.kind, st = index.stations[p.station] || {}, area = capacity.areas.find(a => a.id === groupOf(p.station));
+    const conn = connectionCalc(p).facts, mw = projectMw(), room = conn ? conn.room : area ? roomFor(area) : null;
+    const geo = s.plots.map(sidesOf), ha = s.plots.reduce((t, q) => t + q.ha, 0), egib = s.plots.every(q => q.ha_egib) ? s.plots.reduce((t, q) => t + q.ha_egib, 0) : null;
+    const ring = p.geom[0][0], lat = ring.reduce((t, x) => t + x[1], 0) / ring.length, lon = ring.reduce((t, x) => t + x[0], 0) / ring.length;
+    const dot = (cls, text) => `<span class="q-dot ${cls}"></span>${text}`;
+    const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+    // Environmental
+    const inNat = [["np", "national park or reserve"], ["n2", "Natura 2000"], ["lp", "landscape park"], ["ol", "protected landscape area"]].filter(([k2]) => (p[k2] || 0) > 0);
+    const env = p.n2 == null ? dot("u", "not checked yet") : inNat.length ? dot(p.np > 0 ? "r" : "o", `${Math.min(p[inNat[0][0]], p.ha).toFixed(1)} ha in ${inNat.map(x => x[1]).join(", ")}`)
+      : dot("g", p.n2d == null ? "no protected area; Natura 2000 over 5 km" : `no protected area; Natura 2000 ${fmtM(p.n2d)}`);
+    // Hazards
+    const haz = p.q1 == null ? dot("u", "flood not checked yet") : p.q1 > 0.1 * p.ha ? dot("r", `${Math.min(p.q1, p.ha).toFixed(1)} ha in the 1% flood area`)
+      : p.q1 > 0 || p.q02 > 0 ? dot("o", p.q1 > 0 ? `${p.q1.toFixed(2)} ha in the 1% flood area` : `${Math.min(p.q02, p.ha).toFixed(1)} ha in a 0.2% flood only`) : dot("g", "outside the flood hazard maps");
+    // Buildability
+    const soil = goodSoil(p);
+    const flatOk = kind === "bess" || kind === "dc" ? p.sf >= 70 : p.sl <= 5;
+    const build = p.sl == null ? dot("u", "terrain not computed yet")
+      : dot(soil.length ? "o" : flatOk ? "g" : "o", `mean slope ${p.sl}°, ${p.sf}% flat${soil.length ? `; class I–III farmland (${esc(soil.join(", "))})` : ""}${p.nb ? `; ${p.nb} building${p.nb === 1 ? "" : "s"} on it` : ""}`);
+    // Grid
+    const grid = dot(room != null && room < mw ? "r" : p.km <= 1 ? "g" : "o", `${p.km.toFixed(1)} km to ${esc(st.name || "the substation")}${room != null ? `; ${room} MW of room in 2030` : ""}`);
+    // Planning
+    const z = zoneOf(p), zoneOk = { pv: solarZone(p), bess: z && !HOUSING_ZONES.includes(z[0]), wind: z && [...z[4], ...z[5]].includes("PEW"), dc: z && (["SP", "SU"].includes(z[0]) || [...z[4], ...z[5]].some(u => ["P", "PS", "U"].includes(u))) }[kind];
+    const plan = p.mp == null ? dot("u", "zoning not checked yet") : z ? dot(zoneOk ? "g" : "r", `zone ${esc(z[1])}, ${esc(ZONE_EN[z[0]] || z[2])}`)
+      : dot("o", p.mp > 0 ? `a local plan covers ${Math.min(p.mp, p.ha).toFixed(1)} ha: check what it allows` : "no general or local plan in the register yet");
+    // Neighbours
+    const minGap = { bess: 50, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home"), road = dist(p, "public_road");
+    const neigh = home === undefined ? dot("u", "distances not computed yet")
+      : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}`);
+    // Aviation
+    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length ? dot("g", "outside ULC's zones")
+      : dot(p.av.some(a => a[1] === 0) || (kind === "wind" && avBlocks(p).length) ? "r" : "o", p.av.slice(0, 2).map(a => avLine(p, a, true)).join("; "));
+    // Permits
+    const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
+    const perm = p.gp == null ? dot("u", "not read yet") : taken.length ? dot("o", `${taken.map(g => `${PERMIT_EN[g[1]]} permit ${fmtDate(g[0])}`).join("; ")} on the plot`)
+      : dot("g", `none on the plot${(p.gn || []).some(d => d != null && d < 1000) ? `; an energy permit ${fmtM(Math.min(...p.gn.filter(d => d != null)))} away` : ""}`);
+    const sidesText = s.plots.length > 1 ? geo.map(g => g.sides.length).join(" + ") : String(geo[0].sides.length);
+    return quickKey(p, s, c, sc) +
+      `<div class="q-h">Site screen</div><table class="q-screen">` +
+      row("Environmental", env) + row("Hazards", haz) + row("Buildability", build) + row("Grid", grid) + row("Planning", plan) +
+      row("Neighbours", neigh) + row("Aviation", avia) + row("Permits", perm) + `</table>` +
+      `<div class="q-box"><label><input type="checkbox" id="q-outline"${qOutline ? " checked" : ""}> Plot outline</label>` +
+      `<label><input type="checkbox" id="q-edges"${qEdges ? " checked" : ""}> Edge lengths</label>` +
+      `<button type="button" class="q-link" id="q-layers">Flood, nature and aviation layers on the map</button></div>` +
+      `<div class="q-box">` +
+      (egib != null ? `<div class="q-kv"><span>Register area</span><span>${egib.toFixed(2)} ha</span></div>` : "") +
+      `<div class="q-kv"><span>Measured area</span><span>${ha.toFixed(2)} ha${egib != null ? `<small>${(Math.abs(ha / egib - 1) * 100).toFixed(1)}% from the register</small>` : ""}</span></div>` +
+      `<div class="q-kv"><span>Perimeter</span><span>${fmtM(Math.round(geo.reduce((t, g) => t + g.perim, 0)))}</span></div>` +
+      `<div class="q-kv"><span>Shape</span><span>${sidesText} sides</span></div>` +
+      `<div class="q-kv"><span>Average width</span><span>${s.plots.length > 1 ? s.plots.map(q => q.wm + " m").join(" · ") : p.wm + " m"}</span></div></div>` +
+      `<div class="q-cap">Esri World Imagery. Outline from the land register (EGiB), simplified to about 1.5 m; sides (bends over 2 m) and lengths measured from it.` +
+      (egib != null ? ` Measured ${ha.toFixed(2)} ha against ${egib.toFixed(2)} ha in the register.` : " This county's service doesn't give the register's own area, so the area is measured.") + `</div>` +
+      `<div class="q-box"><h4>Location</h4>` +
+      `<div class="q-kv"><span>Municipality</span><span>${esc(p.gmina)}</span></div>` +
+      `<div class="q-kv"><span>Precinct</span><span>${esc(p.obreb)}</span></div>` +
+      `<div class="q-kv"><span>Province</span><span>${esc(PROVINCE_EN[p.id.slice(0, 2)] || p.id.slice(0, 2))}</span></div>` +
+      `<div class="q-kv"><span>Plot identifier</span><span>${esc(p.id)}</span></div>` +
+      `<div class="q-kv"><span>Centre</span><span>${lat.toFixed(5)}, ${lon.toFixed(5)}</span></div></div>`;
+  }
+
   const firstSentence = html => { const t = String(html).replace(/<br>/g, " ").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); const m = t.match(/^.*?\.(\s|$)/); return (m ? m[0] : t).trim(); };
   const stat = (label, value, note) => `<div><span>${label}</span><b>${value}</b>${note ? `<small>${note}</small>` : ""}</div>`;
   function quickPlots(p) {
@@ -1429,16 +1545,14 @@
     $("q-title").textContent = s.plots.length > 1 ? `${s.area.toFixed(1)} ha site, ${p.obreb}` : `Plot ${p.nr}, ${p.obreb}`;
     $("q-sub").innerHTML = `${esc(p.gmina)} · precinct ${esc(p.obreb)}<br>${s.plots.length > 1 ? `Plots ${s.plots.map(q => esc(q.nr)).join(", ")}` : esc(p.id)}`;
     for (const b of $("q-tabs").children) b.classList.toggle("on", b.dataset.tab === quickTab);
-    $("q-pane").innerHTML = { key: () => quickKey(p, s, c, sc), checks: () => quickChecks(c, sc), conn: () => quickConnection(p), other: () => quickOther(p) }[quickTab]();
+    $("q-pane").innerHTML = { key: () => quickSite(p, s, c, sc), checks: () => quickChecks(c, sc), conn: () => quickConnection(p), other: () => quickOther(p) }[quickTab]();
     // The satellite thumbnail, outlined like the site on the main map.
     if (!thumbMap) {
       thumbMap = L.map("q-thumb", { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false });
       L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(thumbMap);
       thumbLayer = L.layerGroup().addTo(thumbMap);
     }
-    thumbLayer.clearLayers();
-    const latlngs = s.plots.map(q => q.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon]))));
-    latlngs.forEach(ll => L.polygon(ll, { color: "#ffd60a", weight: 2.5, fillOpacity: 0.05, interactive: false }).addTo(thumbLayer));
+    const latlngs = drawThumb(s);
     thumbMap.invalidateSize();
     thumbMap.fitBounds(L.latLngBounds(latlngs.flat(3)).pad(0.25), { maxZoom: 17, animate: false });
   }
@@ -1524,6 +1638,18 @@
     $("windlaw").addEventListener("change", e => { state.windLaw = e.target.checked ? 1 : 0; render(); });
     $("q-tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; quickTab = b.dataset.tab; renderCard(); });
     $("q-close").addEventListener("click", () => { quickClosed = state.plot; renderCard(); });
+    $("q-pane").addEventListener("change", e => {
+      if (e.target.id === "q-outline") qOutline = e.target.checked;
+      else if (e.target.id === "q-edges") qEdges = e.target.checked;
+      else return;
+      const p = plots.find(q => q.id === state.plot); if (p) drawThumb(quickPlots(p));
+    });
+    $("q-pane").addEventListener("click", e => {
+      if (e.target.id !== "q-layers") return;
+      for (const l of Object.values(overlayRefs)) if (l && !map.hasLayer(l)) map.addLayer(l);
+      const p = plots.find(q => q.id === state.plot);
+      if (p && map.getZoom() < 14) selectPlot(p.id, true);   // the flood maps draw from zoom 14
+    });
     $("q-full").addEventListener("click", () => $("card-box").scrollIntoView({ behavior: "smooth", block: "start" }));
     $("q-thumb").addEventListener("click", () => { if (state.plot) selectPlot(state.plot, true); });
     $("need").addEventListener("input", render);
