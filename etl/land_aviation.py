@@ -32,7 +32,8 @@ marked.  Objects above the surfaces need ULC's agreement (Aviation Law art. 87).
 
 Adds `av` per plot: [[equipment, code, limit]] for each piece of equipment whose zone touches the plot (its most
 restrictive zone), with equipment an index into aviation.json's "equipment" and limit the height above sea level in
-metres at the plot's centre, or null where ULC gives no rings; [] when no zone touches the plot.  And `ol`:
+metres at the plot's centre, or null where ULC gives no rings; [] when no zone touches the plot.  And `ap`
+(not `ol`, which holds the protected landscape area):
 [[airport, limit, surface, planned]] for each airport whose surfaces cover the plot's centre, with airport an index
 into "airports", limit the lowest surface there in metres above sea level (on the safe side of the steps), surface 0
 the inner horizontal or conical surface and 1 an approach surface; [] when none does.
@@ -341,8 +342,8 @@ def main():
                         ol[a] = [a, lim, kind, planned]
             ol = sorted(ol.values())
             touching_ols += bool(ol)
-            if plot.get("av") != av or plot.get("ol") != ol:
-                plot["av"], plot["ol"] = av, ol
+            if plot.get("av") != av or plot.get("ap") != ol:
+                plot["av"], plot["ap"] = av, ol
                 touched = True
             done += 1
         if touched:

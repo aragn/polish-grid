@@ -3,6 +3,7 @@ Protected areas on each land plot of the Land tab, from the European Environment
 
     python etl/land_protected.py          # plots not yet checked
     python etl/land_protected.py --all    # every plot again (after a new EEA release)
+    python etl/land_protected.py --gdos DIR   # plots not yet checked, from GDOS's shapefiles in DIR, while EEA is down
 
 Sources (EEA ArcGIS services, both cover all of Poland and answer from GitHub's runners and laptops alike, unlike
 GDOS's own service, which refuses the runners):
@@ -16,6 +17,15 @@ to the nearest Natura 2000 site (0 inside, None beyond N2K_SEARCH_M); and `pz`, 
 data/land/protected.json maps those ids to the type and name, so that plots stay small.
 
 The polygons are downloaded once per run, generalised to SIMPLIFY_M (well within a plot's own outline accuracy).
+
+Fallback, --gdos DIR: GDOS's own shapefiles (zips or folders in DIR, as its WFS sdi.gdos.gov.pl/wfs exports them and
+the regional directorates republish them on gov.pl, e.g. gov.pl/web/rdos-bydgoszcz/dane): ParkiNarodowe, Rezerwaty,
+ParkiKrajobrazowe, ObszaryChronionegoKrajobrazu, SpecjalneObszaryOchrony and ObszarySpecjalnejOchrony.  The files on
+gov.pl are of 31 December 2021, older than EEA's end-2024 release; GDOS's WFS refuses requests from outside Poland.
+The ids are the same as EEA's (the Natura 2000 site code, or the national id at the end of GDOS's INSPIRE id, such as
+RP.1113), so the lookup and the map need no change.  GDOS's files also hold the parks' buffer zones (otulina) under
+the park's id; they are left out, as EEA does.  Plots checked this way get `pzsrc: "gdos2021"`, and the next
+run that reaches EEA checks them again and drops the mark.  The drawn outlines (protected_shapes.json) stay EEA's.
 """
 
 import argparse
@@ -115,6 +125,47 @@ def load_areas():
     return areas
 
 
+GDOS_LAYERS = {"ParkiNarodowe": ("PL01", None), "Rezerwaty": ("PL02", None), "ParkiKrajobrazowe": ("PL03", None),
+               "ObszaryChronionegoKrajobrazu": ("PL04", None), "SpecjalneObszaryOchrony": ("n2k", "Natura 2000 habitat area, SAC"),
+               "ObszarySpecjalnejOchrony": ("n2k", "Natura 2000 bird area, SPA")}
+
+
+def load_areas_gdos(folder):
+    """Same as load_areas, from GDOS's shapefiles in folder (zips unpacked to a temporary folder)."""
+    import tempfile
+    import zipfile
+    import pyogrio.raw as raw
+    work = tempfile.mkdtemp(prefix="gdos_")
+    for z in glob.glob(os.path.join(folder, "*.zip")):
+        with zipfile.ZipFile(z) as f:
+            f.extractall(os.path.join(work, os.path.basename(z)[:-4]))
+    areas = []
+    for layer, (kind, label) in GDOS_LAYERS.items():
+        hits = sorted(glob.glob(os.path.join(work, "**", f"{layer}Polygon.shp"), recursive=True) +
+                      glob.glob(os.path.join(folder, "**", f"{layer}Polygon.shp"), recursive=True))
+        if not hits:
+            raise SystemExit(f"Land protected areas: no {layer}Polygon.shp in {folder}")
+        # GDOS exports the attributes in Windows-1250 (its request asks for charset:windows-1250).
+        meta, _, geoms, fields = raw.read(hits[0], encoding="cp1250")
+        names = list(meta["fields"])
+        crs = meta["crs"] or "EPSG:2180"
+        if "2180" not in str(crs):
+            raise SystemExit(f"Land protected areas: {layer} is in {crs}, not EPSG:2180")
+        for i, wkb in enumerate(geoms):
+            if wkb is None:
+                continue
+            row = {n: fields[k][i] for k, n in enumerate(names)}
+            aid = row.get("kod") if kind == "n2k" else (row.get("kodinspire") or "").replace("PL.ZIPOP.1393.", "")
+            name = " ".join(str(row.get("nazwa") or "").split())
+            # The parks' buffer zones ("otulina") come as separate features under the park's own id; EEA leaves them
+            # out, and they aren't the park.
+            if not aid or "otulina" in name.lower():
+                continue
+            geom = shapely.make_valid(shapely.simplify(shapely.from_wkb(wkb), SIMPLIFY_M))
+            areas.append((aid, kind, name, label or NATDA_TYPES[kind], geom))
+    return areas
+
+
 def plot_shape(plot):
     polygons = []
     for poly in plot["geom"]:
@@ -162,19 +213,20 @@ def values_for(shape, areas, tree, n2k_tree, n2k_index):
     return values
 
 
-def main(redo_all=False):
+def main(redo_all=False, gdos=None):
     files = station_files()
     todo = {}
     for path in files:
         for plot in json.load(open(path, encoding="utf-8"))["plots"]:
-            if redo_all or "n2" not in plot:
+            # Plots checked from GDOS's older files are checked again on every run (from EEA when it answers).
+            if redo_all or "n2" not in plot or plot.get("pzsrc"):
                 todo[plot["id"]] = plot
     print(f"Land protected areas: {len(todo)} plots to check", flush=True)
     if not todo:
         return False
     t0 = time.time()
-    areas = load_areas()
-    print(f"Land protected areas: {len(areas)} areas downloaded in {time.time() - t0:.0f} s", flush=True)
+    areas = load_areas_gdos(gdos) if gdos else load_areas()
+    print(f"Land protected areas: {len(areas)} areas {'read from GDOS files' if gdos else 'downloaded'} in {time.time() - t0:.0f} s", flush=True)
     tree = shapely.STRtree([a[4] for a in areas])
     n2k = [a for a in areas if a[1] == "n2k"]
     n2k_tree = shapely.STRtree([a[4] for a in n2k])
@@ -195,6 +247,10 @@ def main(redo_all=False):
         for plot in data["plots"]:
             if plot["id"] in results:
                 plot.update(results[plot["id"]])
+                if gdos:
+                    plot["pzsrc"] = "gdos2021"
+                else:
+                    plot.pop("pzsrc", None)
                 touched = True
             used.update(plot.get("pz", []))
         if touched:
@@ -203,17 +259,26 @@ def main(redo_all=False):
         sid = os.path.basename(path)[:-5]
         if sid in index["stations"]:
             index["stations"][sid]["n2k"] = sum(1 for p in data["plots"] if p.get("n2", 0) > 0)
-    drawn = write_shapes(areas, index)
+    if gdos:   # the drawn outlines stay EEA's (newer); keep the ids they use
+        shapes_path = os.path.join(LAND, "protected_shapes.json")
+        drawn = {s[0] for s in json.load(open(shapes_path, encoding="utf-8"))["shapes"]} if os.path.exists(shapes_path) else set()
+    else:
+        drawn = write_shapes(areas, index)
     # The lookup keeps the areas already listed (plots not rechecked may still point at them) plus the new ones.
     lookup_path = os.path.join(LAND, "protected.json")
     lookup = json.load(open(lookup_path, encoding="utf-8"))["areas"] if os.path.exists(lookup_path) else {}
     for aid, kind, name, label, _geom in areas:
-        lookup[aid] = [kind, name, label]
+        if not gdos or aid not in lookup:   # EEA's names and labels win (they mark sites under both directives)
+            lookup[aid] = [kind, name, label]
     lookup = {k: v for k, v in sorted(lookup.items()) if k in used or k in drawn}
-    json.dump({"source": "EEA: Natura 2000 (end-2024 release) and Nationally designated areas (NatDA)",
-               "fetched": datetime.date.today().isoformat(), "areas": lookup},
+    old_meta = json.load(open(lookup_path, encoding="utf-8")) if os.path.exists(lookup_path) else {}
+    source = "EEA: Natura 2000 (end-2024 release) and Nationally designated areas (NatDA)"
+    if gdos or any(p.get("pzsrc") for path in files for p in json.load(open(path, encoding="utf-8"))["plots"]):
+        source += "; GDOS shapefiles of 31 Dec 2021 for the plots marked pzsrc, while EEA's service is down"
+    json.dump({"source": source, "fetched": old_meta.get("fetched") if gdos else datetime.date.today().isoformat(),
+               "gdos_read": datetime.date.today().isoformat() if gdos else old_meta.get("gdos_read"), "areas": lookup},
               open(lookup_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
-    index["protected_source"] = "EEA Natura 2000 and NatDA"
+    index["protected_source"] = "EEA Natura 2000 and NatDA" + ("; GDOS (Dec 2021) for some plots" if "GDOS" in source else "")
     json.dump(index, open(index_path, "w", encoding="utf-8"), ensure_ascii=False, separators=(",", ":"))
     print(f"Land protected areas: {changed} station files updated, {len(lookup)} areas in the lookup")
     return changed > 0
@@ -246,5 +311,6 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--all", action="store_true")
+    parser.add_argument("--gdos", metavar="DIR")
     args = parser.parse_args()
-    main(args.all)
+    main(args.all, args.gdos)

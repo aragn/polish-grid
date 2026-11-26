@@ -358,7 +358,7 @@ Everything else on the page is worked out in the browser from these fields:
   feature services behind ULC's map of the civil airport register (77 airports with the planned
   ones such as CPK; approach outlines, the inner horizontal and conical surfaces as nested rings
   built from their height lines, approach height lines; heights of 0 and typos dropped), and each
-  run adds `ol` per plot: the lowest surface at its centre, on the safe side of the steps. About
+  run adds `ap` per plot: the lowest surface at its centre, on the safe side of the steps. About
   5% of the plots lie under one. Military equipment is not included. PAŻP's obstacle and AIP data and openAIP are not used: their terms
   don't allow it.
 - **Building permits:** `etl/land_permits.py` reads GUNB's register of building permit decisions
