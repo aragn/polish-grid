@@ -223,7 +223,7 @@
           <div class="row" style="margin-top:10px">Combine up to <select class="select" id="combine" style="width:auto"><option value="1" selected>1 plot (single plots)</option><option value="2">2 neighbouring plots</option><option value="3">3 neighbouring plots</option><option value="5">5 neighbouring plots</option><option value="8">8 neighbouring plots</option></select></div>
           <details class="buffers" id="buffers">
             <summary>Distances: homes, roads, power lines <span id="buf-summary" style="color:var(--muted)"></span></summary>
-            <div class="row" style="margin-top:8px">Preset <select class="select" id="preset" style="width:auto"><option value="">none: set your own</option><option value="pv">solar, common buffers</option><option value="bess">battery, common buffers</option></select></div>
+            <div class="row" style="margin-top:8px">Preset <select class="select" id="preset" style="width:auto"><option value="">none: set your own</option><option value="pv">solar, common buffers</option><option value="bess">battery, common buffers</option><option value="wind">wind, common buffers</option><option value="dc">data centre, common buffers</option></select></div>
             <div class="bufgrid" id="bufgrid"></div>
             <div class="count" id="buf-note">Measured from the plot's edge to the nearest object in BDOT10k. A plot is left out when one is closer; the buffers aren't cut out of its area. Presets are starting points used in practice, not legal minimums.</div>
           </details>
@@ -371,8 +371,8 @@
   const dist = (p, key) => p.d == null || DK[key] == null ? undefined : p.d[DK[key]];
   const fmtM = m => m == null ? "none within 3 km" : m < 1000 ? `${m} m` : `${(m / 1000).toFixed(1)} km`;
   // Buffers the reader can set: leave a plot out when the nearest object is closer than this.
-  const BUFFERS = [["home", "homes", [0, 30, 50, 100, 150, 250, 500]], ["housing", "housing areas", [0, 50, 100, 150, 250, 500]],
-    ["hv_line", "high-voltage lines", [0, 10, 30, 50, 100]], ["railway", "railways", [0, 20, 50, 100]], ["major_road", "motorways and main roads", [0, 20, 50, 100]],
+  const BUFFERS = [["home", "homes", [0, 30, 50, 100, 150, 250, 500, 700, 1000]], ["housing", "housing areas", [0, 50, 100, 150, 250, 500, 700, 1000]],
+    ["hv_line", "high-voltage lines", [0, 10, 30, 50, 100, 200]], ["railway", "railways", [0, 20, 50, 100, 200]], ["major_road", "motorways and main roads", [0, 20, 50, 100, 200]],
     ["cemetery", "cemeteries", [0, 50, 150, 250]], ["airfield", "airfields", [0, 500, 1000, 2000]]];
   const ACCESS = [0, 50, 100, 300, 1000];
   const PRESETS = {
@@ -380,7 +380,29 @@
     // Battery buffers from the permits benchmark (Nov 2026): of 114 plots with a battery permit of 1 MW or more, 72% are
     // at least 50 m from a home and 68% from a housing area, but only half 150 m.
     bess: { buf: { home: 50, housing: 50, major_road: 50, railway: 20, hv_line: 10 }, access: 300 },
+    // Wind: 700 m from homes and housing (the wind act's minimum, art. 4(1)); 200 m, the default total height, from main
+    // roads, railways and high-voltage lines, the usual fall-over and ice-throw distance (practice, not law: the act only
+    // sets one for 220/400 kV lines, art. 4a, checked on its own); a public road within 1 km for the parts.
+    wind: { buf: { home: 700, housing: 700, major_road: 200, railway: 200, hv_line: 200 }, access: 1000 },
+    // Data centre: 100 m from homes and 250 m from housing areas for the cooling and generators' noise (common buffers,
+    // not law); clear of lines across the site; a public road within 300 m.
+    dc: { buf: { home: 100, housing: 250, major_road: 20, railway: 20, hv_line: 30 }, access: 300 },
   };
+  // Battery noise, a rough screen.  Night limits for installations (regulation of 14 June 2007 on noise levels in the
+  // environment, Dz.U. 2014 poz. 112, annex table 1, LAeq over the worst hour of the night): 40 dB(A) at single-family
+  // homes, 45 at farmsteads and blocks of flats; by day (worst 8 hours) 50 and 55.  A battery runs at night.
+  // ASSUMPTION: the whole site's sound power is 75–85 dB(A) per MW (containers' cooling, inverters, transformers), from
+  // quiet to standard designs; it wants the maker's data.  Spreading over hard ground only (−8 dB − 20 log r): ground,
+  // air and screens all lower it, so the distances are on the safe side.
+  const NOISE = { perMw: [75, 85], night: 40, nightFarm: 45 };
+  function noiseOf(p) {
+    const mw = projectMw(), home = dist(p, "home");
+    if (home === undefined || !(mw > 0)) return null;
+    const lw = NOISE.perMw.map(v => Math.round(v + 10 * Math.log10(mw)));
+    const need = lw.map(L => Math.round(10 ** ((L - 8 - NOISE.night) / 20) / 10) * 10);
+    const at = home == null ? null : lw.map(L => Math.round(L - 8 - 20 * Math.log10(Math.max(home, 1))));
+    return { mw, home, lw, need, at };
+  }
   function buffersOk(p) {
     for (const [key] of BUFFERS) {
       const b = state.buf[key] || 0; if (!b) continue;
@@ -779,6 +801,9 @@
     add(p.av == null ? null : wind ? !avBlocks(p).length : !p.av.some(a => a[1] === 0),
       wind ? `below the height limits around aviation equipment (a ${turbine().height} m turbine)` : "more than 600 m from aviation equipment",
       p.av == null ? "not checked yet" : !p.av.length ? "outside ULC's zones" : p.av.slice(0, 3).map(a => avLine(p, a, true)).join("; ") + (p.av.length > 3 ? `; ${p.av.length - 3} more` : ""));
+    if (bess) { const n = noiseOf(p);
+      add(n == null ? null : n.home == null || n.home >= n.need[0], `night noise under ${NOISE.night} dB(A) at the nearest home, with a quiet design`,
+        n == null ? "not computed yet" : n.home == null ? "no home found nearby" : `nearest home ${fmtM(n.home)}; a ${n.mw} MW battery gets down to ${NOISE.night} dB(A) from about ${n.need[0]}–${n.need[1]} m in open ground, quiet to standard design, before walls or screens`); }
     if (!wind) add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
     // 30 m: nine in ten of the plots that already got a solar or battery permit of 1 MW or more are at least that wide.
     if (!wind) add(p.wm >= 30, "not a thin strip: at least 30 m wide on average", `about ${p.wm} m; a narrower plot only works joined to its neighbours`);
@@ -816,7 +841,7 @@
     }[k];
     const env = {
       pv: "<b>Environmental decision.</b> Needed for an array of 2 ha or more, 0.5 ha in protected areas (regulation of 10 Sep 2019, § 3(1)(54a)), before the building permit.",
-      bess: "<b>Environmental decision.</b> A battery isn't listed in the regulation as such; check with the municipality, especially in protected areas. Fire safety and noise (the cooling) set the distances in practice.",
+      bess: "<b>Environmental decision.</b> A battery isn't listed in the regulation as such; check with the municipality, especially in protected areas. Fire safety and noise (the cooling) set the distances in practice: at night 40 dB(A) at single-family homes and 45 at farmsteads and flats (Dz.U. 2014 poz. 112), shown by an acoustic report.",
       wind: "<b>Environmental decision.</b> Turbines of 30 m or more may need one, and farms of 100 MW or more always need a full assessment (regulation of 10 Sep 2019, § 3(1)(6) and § 2(1)(5)). Around radio beacons, radars and weather radars, ULC's building restricted areas cap the height (the Aviation row on the plot card; above the cap needs ULC's agreement, Aviation Law art. 86(7)). Near airports, structures above the obstacle limits need the Civil Aviation Authority's consent, and aviation obstacles must be reported to it and to the military (Aviation Law, art. 87 and 87¹).",
       dc: "<b>Environmental decision.</b> Backup generators of 25 MW thermal input or more (10 MW on solid fuel) may need one (regulation of 10 Sep 2019, § 3(1)(4)). Storing fuel or coolant is banned in the 1% flood area (Water Law, art. 77).",
     }[k];
@@ -866,6 +891,14 @@
       `. <span style="color:var(--muted)">Copernicus DEM, about 30 m: a surface model, so trees and buildings make edges look steeper.</span>`;
   }
   const PV_MEDIAN = 1092;   // median PVOUT of all plots in data/land (kWh/kWp a year), Global Solar Atlas
+  function noiseHtml(p) {
+    const n = noiseOf(p);
+    if (!n) return "not computed yet";
+    return `A ${n.mw} MW battery runs at night, so the night limit binds: <b>${NOISE.night} dB(A)</b> at single-family homes, ${NOISE.nightFarm} at farmsteads and blocks of flats (worst hour of the night; by day 50 and 55). ` +
+      `With an assumed sound power of about ${n.lw[0]}–${n.lw[1]} dB(A) for the whole site (quiet to standard cooling and inverters), it gets down to ${NOISE.night} dB(A) from about <b>${n.need[0]}–${n.need[1]} m</b> in open ground. ` +
+      (n.home == null ? "No home found nearby." : `The nearest home is ${fmtM(n.home)} from the plot's edge: about <b>${n.at[0]}–${n.at[1]} dB(A)</b> there${n.at[0] > NOISE.night ? ", over the limit even with a quiet design: it needs acoustic walls, low-noise cooling or the equipment further in" : n.at[1] > NOISE.night ? ": fine with a quiet design, a standard one needs walls or more distance" : ": within the limit"}.`) +
+      ` <span style="color:var(--muted)">Rough screen: spreading over hard ground only; ground, air and screens lower it. The acoustic report for the environmental decision or building permit settles it (regulation on noise levels in the environment, Dz.U. 2014 poz. 112).</span>`;
+  }
   const WS_MEDIAN = 7.6;    // median wind speed at 150 m of all plots in data/land (m/s), Global Wind Atlas
   function windHtml(p) {
     if (!p.ws) return p.cf === undefined ? "not read yet" : "no value in the atlas here";
@@ -1442,7 +1475,8 @@
     return quickKey(p, s, c, sc, switches) +
       `<div class="q-h">Site screen</div><table class="q-screen">` +
       row("Environmental", env) + row("Hazards", haz) + row("Buildability", build) + row("Grid", grid) + row("Planning", plan) +
-      row("Neighbours", neigh) + row("Aviation", avia) + row("Permits", perm) + `</table>` +
+      row("Neighbours", neigh) + (kind === "bess" ? row("Noise", (() => { const n = noiseOf(p); return !n ? dot("u", "not computed yet") : n.home == null ? dot("g", "no home found nearby") :
+        dot(n.at[0] > NOISE.night ? "r" : n.at[1] > NOISE.night ? "o" : "g", `about ${n.at[0]}–${n.at[1]} dB(A) at the nearest home at night; limit ${NOISE.night}`); })()) : "") + row("Aviation", avia) + row("Permits", perm) + `</table>` +
       `<div class="q-box">` +
       (egib != null ? `<div class="q-kv"><span>Register area</span><span>${egib.toFixed(2)} ha</span></div>` : "") +
       `<div class="q-kv"><span>Measured area</span><span>${ha.toFixed(2)} ha${egib != null ? `<small>${(Math.abs(ha / egib - 1) * 100).toFixed(1)}% from the register</small>` : ""}</span></div>` +
@@ -1585,6 +1619,7 @@
       ["Grid connection", connectionHtml(p)],
       ["Distances", distancesHtml(p)],
       ...(dist(p, "solar_farm") != null && dist(p, "solar_farm") <= 3000 ? [["Existing connection", `A solar farm is ${fmtM(dist(p, "solar_farm"))} away: since 30 April 2026 a battery or another plant can share its connection (cable pooling, Energy Law art. 7(1f)). See the steps for a developer.`]] : []),
+      ...(state.kind === "bess" ? [["Noise", noiseHtml(p)]] : []),
       ["Terrain", terrainHtml(p)],
       ["Solar yield", p.py ? `about <b>${p.py.toLocaleString("en")} kWh per kWp a year</b> for a ground-mounted array at the best fixed tilt, ${p.py >= PV_MEDIAN ? `${((p.py / PV_MEDIAN - 1) * 100).toFixed(0)}% above` : `${((1 - p.py / PV_MEDIAN) * 100).toFixed(0)}% below`} the median of the plots here (${PV_MEDIAN.toLocaleString("en")}). <span style="color:var(--muted)">Global Solar Atlas, 1999–2018 average, about 1 km; across Poland it varies by only about ±5%.</span>` : "not read yet"],
       ["Wind", windHtml(p)],
@@ -1635,6 +1670,9 @@
     $("kind").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.kind = b.dataset.kind; [...$("kind").children].forEach(x => x.classList.toggle("on", x === b));
       for (const k of ["pv", "bess", "wind", "dc"]) $(`${k}-inputs`).hidden = state.kind !== k;
       $("sort-wind").hidden = state.kind !== "wind";
+      const onPreset = Object.values(PRESETS).some(pr => pr.access === (state.access || 0) && BUFFERS.every(([k]) => (pr.buf[k] || 0) === (state.buf[k] || 0)));
+      // Solar starts without buffers, as on first load; the other types take their common buffers.
+      if (onPreset || (!BUFFERS.some(([k]) => state.buf[k]) && !state.access)) { const pr = state.kind === "pv" ? null : PRESETS[state.kind]; state.buf = pr ? { ...pr.buf } : {}; state.access = pr ? pr.access : 0; syncBuffers(); }
       if (state.kind !== "wind" && state.sort === "wind") { state.sort = "km"; [...$("sort").children].forEach(x => x.classList.toggle("on", x.dataset.sort === "km")); }
       $("need-unit").textContent = state.kind === "wind" ? "per turbine position" : "on one plot";
       if (state.kind === "wind" && state.nature < 3) { state.nature = 3; $("nature").value = 3; }
