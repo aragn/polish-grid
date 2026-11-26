@@ -340,7 +340,7 @@
         if (seenPlants.has(key)) continue;
         seenPlants.add(key);
         const solar = kind === "solar";
-        L.polygon(ring.map(([lon, lat]) => [lat, lon]), { pane: "gridlabels", color: solar ? "#ffe066" : "#c7c7cc", weight: 1.5, fillColor: solar ? "#ffe066" : "#c7c7cc", fillOpacity: 0.4 })
+        L.polygon(ring.map(([lon, lat]) => [lat, lon]), { pane: "gridlabels", renderer: plantSvg || (plantSvg = L.svg({ pane: "gridlabels" })), color: solar ? "#ffe066" : "#c7c7cc", weight: 1.5, fillColor: solar ? "#ffe066" : "#c7c7cc", fillOpacity: 0.4 })
           .bindTooltip(`${{ solar: "Solar farm", hydro: "Hydro plant", wind: "Wind farm", other: "Power plant" }[kind] || "Power plant"}, about ${ha} ha<br><span style="color:var(--muted)">BDOT10k. ${solar ? "A possible host to share a connection with (cable pooling)." : ""}</span>`).addTo(gridLabels);
       }
       for (const [lon, lat, height, built] of gridCache[s.sid]?.turbines || []) {
@@ -393,6 +393,9 @@
   // Distances from a plot to lines or polygons the page already holds (220/400 kV lines from data/land/grid, national
   // parks and reserves from data/land/protected_shapes.json), in metres, on a local flat projection; 0 when touching.
   let protectedRaw = [], ehvLines = [];
+  // Plant outlines sit in the "gridlabels" pane above the plots. With preferCanvas a pane gets a canvas as big as the map,
+  // which takes every click away from the plots below; SVG only catches clicks on the shapes themselves.
+  let plantSvg = null;
   // Building restricted areas around civil aviation equipment (ULC), data/land/aviation.json from etl/land_aviation.py:
   // the equipment and zone outlines for the map layer and the names on the card; each plot's zones are in p.av.
   let aviation = null;
@@ -1162,7 +1165,9 @@
     const p = plots.find(q => q.id === id);
     const members = selectedSite.size ? plots.filter(q => selectedSite.has(q.id)) : p ? [p] : [];
     if (members.length && zoom) map.fitBounds(L.latLngBounds(members.flatMap(q => q.geom.flat(2)).map(([lon, lat]) => [lat, lon])).pad(0.6), { maxZoom: 17 });
-    document.querySelector(`.plot[data-id="${CSS.escape(id)}"]`)?.scrollIntoView({ block: "nearest" });
+    // Scroll the list only (not the page), so a click on the map keeps the map in view.
+    const item = document.querySelector(`.plot[data-id="${CSS.escape(id)}"]`), list = $("plots");
+    if (item) { const d = item.getBoundingClientRect().top - list.getBoundingClientRect().top; if (d < 0 || d > list.clientHeight - item.offsetHeight) list.scrollTop += d - list.clientHeight / 3; }
   }
 
   function protectedText(p) {
