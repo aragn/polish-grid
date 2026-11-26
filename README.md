@@ -353,9 +353,13 @@ Everything else on the page is worked out in the browser from these fields:
   the equipment anything built needs ULC's agreement; in the zone around it, anything over 15 m;
   in the outer zone of beacons and weather radars (30 km for these), only wind turbines above the
   limit. Above a limit needs ULC's agreement (Aviation Law art. 86(7)), it isn't banned. About
-  16% of the plots touch a zone, mostly a weather radar's. Airport obstacle limitation surfaces
-  (a ULC viewer with no download) and military equipment are not included. Download new zips by
-  hand when ULC posts them. PAŻP's obstacle and AIP data and openAIP are not used: their terms
+  16% of the plots touch a zone, mostly a weather radar's. Download new zips by hand when ULC
+  posts them. `--update-ols` reads the airports' obstacle limitation surfaces from the public
+  feature services behind ULC's map of the civil airport register (77 airports with the planned
+  ones such as CPK; approach outlines, the inner horizontal and conical surfaces as nested rings
+  built from their height lines, approach height lines; heights of 0 and typos dropped), and each
+  run adds `ol` per plot: the lowest surface at its centre, on the safe side of the steps. About
+  5% of the plots lie under one. Military equipment is not included. PAŻP's obstacle and AIP data and openAIP are not used: their terms
   don't allow it.
 - **Building permits:** `etl/land_permits.py` reads GUNB's register of building permit decisions
   since 2016 (one zip per province, every 28 days) and adds `gp`, each plot's own decisions as
