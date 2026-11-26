@@ -224,6 +224,8 @@
   async function drawGrid() {
     gridLayer.clearLayers(); gridLabels.clearLayers();
     await Promise.all(stations.map(async s => { if (!(s.sid in gridCache)) gridCache[s.sid] = await get(`../data/land/grid/${encodeURIComponent(s.sid)}.json`).catch(() => null); }));
+    // The files can arrive after the reader has switched to the area-wide search (or straight into it from a link).
+    if (state.scope === "area") return;
     const seen = new Set(), subs = [], labelled = [];
     const km = (a, b) => Math.hypot((a[0] - b[0]) * 68, (a[1] - b[1]) * 111);
     for (const k of ["mv", "hv", "ehv"]) for (const s of stations) for (const line of gridCache[s.sid]?.lines?.[k] || []) {
@@ -925,6 +927,7 @@
     const name = state.province === "all" ? "Poland" : searchIndex.provinces[state.province].name;
     $("csv").disabled = $("geojson").disabled = true;
     $("recs-box").hidden = true; $("card-box").hidden = true;
+    renderRulesPanel();
     for (const [i, c] of codes.entries()) {
       if (searchCache[c]) continue;
       $("area-note").textContent = `Loading ${searchIndex.provinces[c].name}${codes.length > 1 ? ` (${i + 1} of ${codes.length})` : ""}…`;
@@ -953,15 +956,19 @@
         `<div class="sub">${esc(p.obreb)} ${esc(p.nr)}${more ? ` with ${s.plots.slice(1).map(q => esc(q.nr)).join(", ")}` : ""} · ${esc(p.gmina)}${g ? ` · ${esc(g.name)}: ${roomFor(g)} MW ${state.kind === "dc" ? "out" : "in"}` : ""}</div>${areaBadges(p)}</div>`; }).join("") ||
       `<div class="plot" style="cursor:default">No site this big in ${esc(name)}. Try a smaller project, combining neighbouring plots, fewer filters${state.roomOnly ? ", or groups without room for the whole project" : ""}.</div>`;
     if (found.length > 300) $("plots").insertAdjacentHTML("beforeend", `<div class="plot" style="cursor:default;color:var(--muted)">The first 300 of ${found.length.toLocaleString("en")}; narrow the filters or sort by area to see others.</div>`);
+    // One marker per substation (sites cluster around them, so one per site piles up): sized by its number of sites,
+    // for every site found, not only the 300 listed; a click opens its first site in the list's order.
     areaLayer.clearLayers();
-    const red = cssVar("--plot");
-    for (const [i, s] of shownSites.entries()) {
-      const p = s.lead;
-      L.circleMarker([p.lat, p.lon], { radius: 6, color: "#fff", weight: 1.5, fillColor: red, fillOpacity: 0.9 })
-        .bindTooltip(`${s.area.toFixed(1)} ha${s.plots.length > 1 ? ` on ${s.plots.length} plots` : ""} · ${s.km.toFixed(1)} km from ${esc(index.stations[p.station]?.name || p.station)}<br>${esc(p.obreb)} ${esc(p.nr)} · ${esc(p.gmina)}`)
-        .on("click", () => openAreaSite(i)).addTo(areaLayer);
+    const red = cssVar("--plot"), bySt = new Map();
+    found.forEach((s, i) => { const k = s.lead.station; if (!bySt.has(k)) bySt.set(k, { first: i, n: 0, big: 0, near: Infinity }); const b = bySt.get(k); b.n++; b.big = Math.max(b.big, s.area); b.near = Math.min(b.near, s.km); });
+    const pts = [];
+    for (const [sid, b] of bySt) {
+      const st = index.stations[sid]; if (!st || st.lat == null) continue;
+      pts.push([st.lat, st.lon]);
+      L.circleMarker([st.lat, st.lon], { radius: Math.min(4 + 1.2 * Math.log2(b.n + 1), 13), color: "#fff", weight: 1.5, fillColor: red, fillOpacity: 0.85 })
+        .bindTooltip(`<b>${esc(st.name || sid)}</b>: ${b.n.toLocaleString("en")} site${b.n === 1 ? "" : "s"}, the largest ${b.big.toFixed(1)} ha, the nearest ${b.near.toFixed(1)} km away<br><span style="color:var(--muted)">Click to open the first one in the list's order</span>`)
+        .on("click", () => openAreaSite(b.first)).addTo(areaLayer);
     }
-    const pts = shownSites.map(s => [s.lead.lat, s.lead.lon]);
     // Fit the map to the results when the place changes, not on every filter change.
     if (pts.length && areaFit !== state.province) { map.fitBounds(L.latLngBounds(pts).pad(0.1), { maxZoom: 11 }); areaFit = state.province; }
   }
