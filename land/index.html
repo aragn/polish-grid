@@ -82,6 +82,60 @@
     .card dd { margin:0; line-height:1.45; word-break:break-word; }
     .leaflet-container { background:#1b1f24; font-family:inherit; }
     .leaflet-popup-content { font-size:12.5px; line-height:1.45; }
+    /* Quick card: a summary of the chosen plot over the map, in tabs; the full card stays in the side column. */
+    .quick { position:absolute; z-index:800; top:10px; right:10px; width:380px; max-height:calc(100% - 20px); display:flex; flex-direction:column; background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,.35); overflow:hidden; }
+    .quick[hidden] { display:none; }
+    .map-box.quick-open .leaflet-top.leaflet-right { right:392px; }
+    .q-head { display:flex; align-items:center; gap:8px; padding:10px 12px 8px; }
+    .q-tag { border:1px solid var(--plot); color:var(--plot); border-radius:6px; padding:1px 8px; font-size:12px; font-weight:600; }
+    .q-score { font-size:12px; color:var(--muted); }
+    .q-score b { color:var(--text); }
+    .q-close { margin-left:auto; border:0; background:transparent; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; }
+    .q-close:hover { color:var(--text); }
+    .q-scroll { overflow:auto; padding:0 12px 12px; }
+    #q-thumb { height:150px; border-radius:9px; overflow:hidden; border:1px solid var(--border); cursor:zoom-in; background:var(--panel-2); }
+    .q-title { font-size:18px; font-weight:650; margin:10px 0 2px; letter-spacing:-.01em; }
+    .q-sub { font-size:12.5px; color:var(--muted); }
+    .q-tabs { display:flex; gap:2px; margin:10px 0 8px; border-bottom:1px solid var(--border); }
+    .q-tabs button { border:0; background:transparent; color:var(--muted); padding:6px 9px; font-size:12.5px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; }
+    .q-tabs button.on { color:var(--text); border-bottom-color:var(--plot); font-weight:600; }
+    .q-stats { display:grid; grid-template-columns:repeat(3, 1fr); border:1px solid var(--border); border-radius:9px; overflow:hidden; margin-bottom:8px; }
+    .q-stats > div { padding:7px 9px; border-right:1px solid var(--border); border-bottom:1px solid var(--border); min-width:0; }
+    .q-stats > div:nth-child(3n) { border-right:0; }
+    .q-stats > div:nth-last-child(-n+3) { border-bottom:0; }
+    .q-stats span { display:block; font-size:11px; color:var(--muted); }
+    .q-stats b { display:block; font-size:14.5px; font-weight:650; overflow-wrap:anywhere; }
+    .q-stats small { display:block; font-size:11px; color:var(--muted); overflow-wrap:anywhere; }
+    .q-text { font-size:13px; line-height:1.5; margin:0 0 6px; }
+    .q-list { list-style:none; margin:0; padding:0; font-size:12.5px; line-height:1.45; }
+    .q-list li { padding:3px 0; border-bottom:1px solid var(--border); }
+    .q-list li:last-child { border-bottom:0; }
+    .q-list .y { color:#30d158; } .q-list .n { color:#ff453a; } .q-list .q { color:var(--muted); }
+    .q-list small { display:block; color:var(--muted); margin-left:16px; }
+    .q-list th { text-align:left; font-weight:600; padding-right:8px; white-space:nowrap; vertical-align:top; }
+    .q-box { border:1px solid var(--border); border-radius:9px; padding:8px 10px; margin:8px 0; font-size:12.5px; }
+    .q-box h4 { margin:0 0 6px; font-size:13px; font-weight:650; }
+    .q-kv { display:flex; justify-content:space-between; gap:10px; padding:2px 0; }
+    .q-kv span:first-child { color:var(--muted); }
+    .q-kv span:last-child { text-align:right; font-weight:600; }
+    .q-kv small { display:block; font-weight:400; color:var(--muted); }
+    .q-box label { display:flex; align-items:center; gap:7px; padding:2px 0; cursor:pointer; }
+    .q-link { display:inline-block; margin-top:5px; padding-top:6px; border-top:1px solid var(--border); width:100%; color:var(--accent, #0a84ff); background:none; border-left:0; border-right:0; border-bottom:0; text-align:left; font-size:12.5px; cursor:pointer; }
+    .q-cap { font-size:11.5px; color:var(--muted); margin:4px 0 8px; }
+    .q-screen { width:100%; border-collapse:collapse; font-size:12.5px; }
+    .q-screen td { padding:6px 0; border-top:1px solid var(--border); vertical-align:top; }
+    .q-screen td:first-child { color:var(--muted); width:92px; padding-right:8px; }
+    .q-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:1px; }
+    .q-dot.g { background:#30d158; } .q-dot.o { background:#ff9f0a; } .q-dot.r { background:#ff453a; } .q-dot.u { background:var(--muted-2); }
+    .q-h { font-size:14px; font-weight:650; margin:12px 0 4px; }
+    .q-edge-wrap { background:none; border:0; }
+    .q-edge { position:absolute; transform:translate(-50%, -50%); background:#fff; color:#111; border-radius:4px; padding:0 4px; font-size:10.5px; font-weight:650; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+    .q-full { display:block; margin:10px 0 0 auto; border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 10px; font-size:12.5px; cursor:pointer; }
+    @media (max-width: 640px) {
+      .quick { top:auto; bottom:8px; left:8px; right:8px; width:auto; max-height:62%; }
+      .map-box.quick-open .leaflet-top.leaflet-right { right:0; }
+      #q-thumb { display:none; }
+    }
     .legend-box { position:absolute; z-index:500; bottom:22px; left:10px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:7px 10px; font-size:11.5px; color:var(--muted); }
     .legend-box div { display:flex; align-items:center; gap:6px; margin-top:2px; }
     .legend-box i { width:14px; height:10px; display:inline-block; border:2px solid; }
@@ -198,6 +252,17 @@
       </aside>
       <section class="map-box">
         <div id="map"></div>
+        <div class="quick" id="quick" hidden aria-label="Plot summary">
+          <div class="q-head"><span class="q-tag" id="q-tag">Solar farm</span><span class="q-score" id="q-score"></span><button type="button" class="q-close" id="q-close" title="Close the summary" aria-label="Close">×</button></div>
+          <div class="q-scroll">
+            <div id="q-thumb" title="Zoom the map to the plot"></div>
+            <div class="q-title" id="q-title"></div>
+            <div class="q-sub" id="q-sub"></div>
+            <div class="q-tabs" id="q-tabs" role="tablist"><button type="button" data-tab="key" class="on">Site</button><button type="button" data-tab="checks">Checks</button><button type="button" data-tab="conn">Connection</button><button type="button" data-tab="other">Other</button></div>
+            <div id="q-pane"></div>
+            <button type="button" class="q-full" id="q-full">Full card ↓</button>
+          </div>
+        </div>
         <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div id="legend-av" hidden><i style="border-color:#bf5af2;border-radius:50%"></i>Aviation zones (ULC): red within 600 m, orange over 15 m, purple wind turbines only</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
       </section>
     </div>
@@ -542,6 +607,7 @@
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
       { "Place names": labels, "Power lines, substations, solar farms and wind turbines (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Soil-agricultural map: soil complexes, to look at (GUGiK, from zoom 14, may not load outside Poland)": soil, "Protected areas (EEA)": natureLayer, "Aviation equipment zones: within 600 m red, over 15 m orange, wind turbines only purple (ULC)": aviationLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
     natureLayer.addTo(map);
+    overlayRefs = { flood, nature: natureLayer, aviation: aviationLayer };
     map.on("overlayadd overlayremove", e => { if (e.layer === aviationLayer) $("legend-av").hidden = e.type === "overlayremove"; });
     ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map); areaLayer = L.layerGroup().addTo(map);
     map.addLayer(gridLayerGroup);
@@ -1216,10 +1282,17 @@
     return out.sort((x, y) => x.d - y.d).slice(0, 3);
   }
   function connectionHtml(p) {
-    if (!p.geom) return "open the plot's site on the map to work this out";
+    const r = connectionCalc(p);
+    if (!r.rows) return r.msg;
+    return `<table class="conn">${r.rows.map(([a, b]) => `<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table>` +
+      `<span style="color:var(--muted)">Screening figures (PLN, 2026); the operator sets the connection point, voltage and fee in the conditions. Costs marked as assumptions in the page's source want a quote. Grid: BDOT10k.</span>`;
+  }
+  // The figures behind the Grid connection row: { msg } while they can't be worked out, else { rows, facts }.
+  function connectionCalc(p) {
+    if (!p.geom) return { msg: "open the plot's site on the map to work this out" };
     const st = index.stations[p.station];
-    if (!st || st.lat == null) return "the substation isn't placed yet";
-    if (!(p.station in gridCache) || gridCache[p.station] === undefined) { loadGridFor(p.station); return "reading the grid around the substation…"; }
+    if (!st || st.lat == null) return { msg: "the substation isn't placed yet" };
+    if (!(p.station in gridCache) || gridCache[p.station] === undefined) { loadGridFor(p.station); return { msg: "reading the grid around the substation…" }; }
     const C = CONNECT, k = state.kind, grid = gridCache[p.station] || { lines: {} };
     const mw = projectMw(), kw = mw * 1000, mwh = k === "bess" ? +$("mwh").value || 0 : 0;
     const area = capacity.areas.find(a => a.id === groupOf(p.station));
@@ -1235,8 +1308,10 @@
     const share = k === "bess" ? 0.5 : (k === "pv" || k === "wind") && mw <= 5 ? 0.5 : 1;
     const shareText = share === 0.5 ? (k === "bess" ? "Half of the operator's actual cost, for storage (Energy Law art. 7(8) pkt 6)" : "Half of the operator's actual cost, for a renewable source of 5 MW or less (Energy Law art. 7(8) pkt 3 lit. a)") : k === "dc" ? "The operator's full actual cost (Energy Law art. 7(8) pkt 8)" : "The operator's full actual cost, for a source (Energy Law art. 7(8) pkt 3)";
     const opts = [];
+    let totalA = null;
     if (hv) {
       const cable = mulR(C.hvCablePerKm, routeKm), total = addR(cable, C.hvLineBay, C.hvSubstation, easement);
+      totalA = total;
       opts.push(`<b>A. 110 kV cable to a line bay in the GPZ</b> (the usual way): the plant's own 110/MV substation on the plot, then about ${routeKm.toFixed(1)} km of 110 kV cable underground to a new or spare line bay at ${esc(st.name)}. Cable ${pln(cable)}, bay ${pln(C.hvLineBay)}, substation on the plot ${pln(C.hvSubstation)}, easements ${pln(easement)}: <b>about ${pln(total)}</b>.`);
       if (routeKm < 1.5) {
         const n = Math.ceil(mw / C.mv30CircuitMw), cable30 = mulR(C.mvCablePerKm, routeKm * n), totalB = addR(cable30, C.hvLineBay, C.hvSubstation, mulR(easement, 1.3));
@@ -1244,6 +1319,7 @@
       }
     } else {
       const n = Math.max(1, Math.ceil(mw / C.mvCircuitMw)), cable = mulR(C.mvCablePerKm, routeKm * n), total = addR(cable, mulR(C.mvBay, n), easement);
+      totalA = total;
       opts.push(`<b>A. MV connection:</b> ${n} cable circuit${n > 1 ? "s" : ""} (15 or 20 kV) of about ${routeKm.toFixed(1)} km to the MV busbars at ${esc(st.name)}${n === 1 && mvD != null && mvD < 500 ? `, or into the MV line ${fmtM(mvD)} away if the operator allows it` : ""}: <b>about ${pln(total)}</b>.`);
     }
     if (hosts.length && k !== "dc") opts.push(`<b>${hv ? "C" : "B"}. Share an existing connection</b> (cable pooling, Energy Law art. 7(1f)–(1g): one set of conditions and one agreement, owners may differ): ${hosts.map(h => `${h.what} ${fmtM(h.d)} from the plot, ${fmtM(h.ds)} from the substation`).join("; ")}. Works within the host's connection capacity, and needs its owner.`);
@@ -1274,11 +1350,216 @@
       ["Up front", `application fee <b>${plnOne(application)}</b> (not refunded); advance <b>${plnOne(advance)}</b> within 14 days, capped by the expected fee (about ${pln(opFee)} here) with any excess refunded with interest; security <b>${plnOne(security)}</b> within 14 days of signing the agreement (art. 7(8a)–(8c1)).`],
       ["Permits", permits.join("; ") + "."],
     ];
-    return `<table class="conn">${rows.map(([a, b]) => `<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table>` +
-      `<span style="color:var(--muted)">Screening figures (PLN, 2026); the operator sets the connection point, voltage and fee in the conditions. Costs marked as assumptions in the page's source want a quote. Grid: BDOT10k.</span>`;
+    return { rows, facts: { hv, routeKm, totalA, opFee, application, advance, security, room, mw, share, stName: st.name, days: hv ? 150 : 120, cross: cross.length, hosts: hosts.length } };
   }
+
+  /* ---- Quick card: the chosen plot (or site) summarised over the map, in four tabs; "Full card" scrolls to the card in
+     the side column, which keeps every detail. ---- */
+  let quickTab = "key", quickClosed = null, thumbMap = null, thumbLayer = null;
+  /* ---- Site tab: geometry of the outline (sides, edge lengths), location and a one-line screen per topic. ---- */
+  let qOutline = true, qEdges = true, overlayRefs = {};
+  const PROVINCE_EN = { "02": "dolnośląskie", "04": "kujawsko-pomorskie", "06": "lubelskie", "08": "lubuskie", "10": "łódzkie", "12": "małopolskie",
+    "14": "mazowieckie", "16": "opolskie", "18": "podkarpackie", "20": "podlaskie", "22": "pomorskie", "24": "śląskie", "26": "świętokrzyskie",
+    "28": "warmińsko-mazurskie", "30": "wielkopolskie", "32": "zachodniopomorskie" };
+  // Douglas–Peucker on metres, to count the sides a surveyor would see (the outlines carry many near-straight vertices).
+  function simplifyRing(pts, tol) {
+    if (pts.length < 4) return pts;
+    const keep = new Array(pts.length).fill(false); keep[0] = keep[pts.length - 1] = true;
+    const stack = [[0, pts.length - 1]];
+    while (stack.length) {
+      const [a, b] = stack.pop(); let best = -1, at = -1;
+      for (let i = a + 1; i < b; i++) { const d = segDist(pts[i][0], pts[i][1], pts[a][0], pts[a][1], pts[b][0], pts[b][1]); if (d > best) { best = d; at = i; } }
+      if (best > tol) { keep[at] = true; stack.push([a, at], [at, b]); }
+    }
+    return pts.filter((_, i) => keep[i]);
+  }
+  // The plot's outer ring as straight sides: [{ a: [lat, lon], b: [lat, lon], m }], and the perimeter in metres.
+  function sidesOf(p) {
+    const ring = p.geom[0][0], f = toXY(ring[0][1]);
+    const pts = simplifyRing(ring.map(c => [...f(c), c]), 2);
+    const sides = [];
+    for (let i = 0; i < pts.length - 1; i++) sides.push({ a: [pts[i][2][1], pts[i][2][0]], b: [pts[i + 1][2][1], pts[i + 1][2][0]], m: Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]) });
+    const perim = p.geom.reduce((s, poly) => s + poly[0].slice(1).reduce((t, c, i) => { const A = f(poly[0][i]), B = f(c); return t + Math.hypot(B[0] - A[0], B[1] - A[1]); }, 0), 0);
+    return { sides, perim };
+  }
+  function drawThumb(s) {
+    thumbLayer.clearLayers();
+    const latlngs = s.plots.map(q => q.geom.map(poly => poly.map(ring => ring.map(([lon, lat]) => [lat, lon]))));
+    if (qOutline) latlngs.forEach(ll => L.polygon(ll, { color: "#ffd60a", weight: 2.5, fillOpacity: 0.05, interactive: false }).addTo(thumbLayer));
+    if (qEdges) for (const q of s.plots) {
+      const { sides, perim } = sidesOf(q);
+      sides.filter(x => x.m >= Math.max(20, 0.1 * perim)).sort((x, y) => y.m - x.m).slice(0, s.plots.length > 1 ? 3 : 6).forEach(x =>
+        L.marker([(x.a[0] + x.b[0]) / 2, (x.a[1] + x.b[1]) / 2], { interactive: false, keyboard: false,
+          icon: L.divIcon({ className: "q-edge-wrap", iconSize: [0, 0], html: `<span class="q-edge">${Math.round(x.m)} m</span>` }) }).addTo(thumbLayer));
+    }
+    return latlngs;
+  }
+  function quickSite(p, s, c, sc) {
+    const kind = state.kind, st = index.stations[p.station] || {}, area = capacity.areas.find(a => a.id === groupOf(p.station));
+    const conn = connectionCalc(p).facts, mw = projectMw(), room = conn ? conn.room : area ? roomFor(area) : null;
+    const geo = s.plots.map(sidesOf), ha = s.plots.reduce((t, q) => t + q.ha, 0), egib = s.plots.every(q => q.ha_egib) ? s.plots.reduce((t, q) => t + q.ha_egib, 0) : null;
+    const ring = p.geom[0][0], lat = ring.reduce((t, x) => t + x[1], 0) / ring.length, lon = ring.reduce((t, x) => t + x[0], 0) / ring.length;
+    const dot = (cls, text) => `<span class="q-dot ${cls}"></span>${text}`;
+    const row = (k, v) => `<tr><td>${k}</td><td>${v}</td></tr>`;
+    // Environmental
+    const inNat = [["np", "national park or reserve"], ["n2", "Natura 2000"], ["lp", "landscape park"], ["ol", "protected landscape area"]].filter(([k2]) => (p[k2] || 0) > 0);
+    const env = p.n2 == null ? dot("u", "not checked yet") : inNat.length ? dot(p.np > 0 ? "r" : "o", `${Math.min(p[inNat[0][0]], p.ha).toFixed(1)} ha in ${inNat.map(x => x[1]).join(", ")}`)
+      : dot("g", p.n2d == null ? "no protected area; Natura 2000 over 5 km" : `no protected area; Natura 2000 ${fmtM(p.n2d)}`);
+    // Hazards
+    const haz = p.q1 == null ? dot("u", "flood not checked yet") : p.q1 > 0.1 * p.ha ? dot("r", `${Math.min(p.q1, p.ha).toFixed(1)} ha in the 1% flood area`)
+      : p.q1 > 0 || p.q02 > 0 ? dot("o", p.q1 > 0 ? `${p.q1.toFixed(2)} ha in the 1% flood area` : `${Math.min(p.q02, p.ha).toFixed(1)} ha in a 0.2% flood only`) : dot("g", "outside the flood hazard maps");
+    // Buildability
+    const soil = goodSoil(p);
+    const flatOk = kind === "bess" || kind === "dc" ? p.sf >= 70 : p.sl <= 5;
+    const build = p.sl == null ? dot("u", "terrain not computed yet")
+      : dot(soil.length ? "o" : flatOk ? "g" : "o", `mean slope ${p.sl}°, ${p.sf}% flat${soil.length ? `; class I–III farmland (${esc(soil.join(", "))})` : ""}${p.nb ? `; ${p.nb} building${p.nb === 1 ? "" : "s"} on it` : ""}`);
+    // Grid
+    const grid = dot(room != null && room < mw ? "r" : p.km <= 1 ? "g" : "o", `${p.km.toFixed(1)} km to ${esc(st.name || "the substation")}${room != null ? `; ${room} MW of room in 2030` : ""}`);
+    // Planning
+    const z = zoneOf(p), zoneOk = { pv: solarZone(p), bess: z && !HOUSING_ZONES.includes(z[0]), wind: z && [...z[4], ...z[5]].includes("PEW"), dc: z && (["SP", "SU"].includes(z[0]) || [...z[4], ...z[5]].some(u => ["P", "PS", "U"].includes(u))) }[kind];
+    const plan = p.mp == null ? dot("u", "zoning not checked yet") : z ? dot(zoneOk ? "g" : "r", `zone ${esc(z[1])}, ${esc(ZONE_EN[z[0]] || z[2])}`)
+      : dot("o", p.mp > 0 ? `a local plan covers ${Math.min(p.mp, p.ha).toFixed(1)} ha: check what it allows` : "no general or local plan in the register yet");
+    // Neighbours
+    const minGap = { bess: 50, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home"), road = dist(p, "public_road");
+    const neigh = home === undefined ? dot("u", "distances not computed yet")
+      : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}`);
+    // Aviation
+    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length ? dot("g", "outside ULC's zones")
+      : dot(p.av.some(a => a[1] === 0) || (kind === "wind" && avBlocks(p).length) ? "r" : "o", p.av.slice(0, 2).map(a => avLine(p, a, true)).join("; "));
+    // Permits
+    const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
+    const perm = p.gp == null ? dot("u", "not read yet") : taken.length ? dot("o", `${taken.map(g => `${PERMIT_EN[g[1]]} permit ${fmtDate(g[0])}`).join("; ")} on the plot`)
+      : dot("g", `none on the plot${(p.gn || []).some(d => d != null && d < 1000) ? `; an energy permit ${fmtM(Math.min(...p.gn.filter(d => d != null)))} away` : ""}`);
+    const sidesText = s.plots.length > 1 ? geo.map(g => g.sides.length).join(" + ") : String(geo[0].sides.length);
+    return quickKey(p, s, c, sc) +
+      `<div class="q-h">Site screen</div><table class="q-screen">` +
+      row("Environmental", env) + row("Hazards", haz) + row("Buildability", build) + row("Grid", grid) + row("Planning", plan) +
+      row("Neighbours", neigh) + row("Aviation", avia) + row("Permits", perm) + `</table>` +
+      `<div class="q-box"><label><input type="checkbox" id="q-outline"${qOutline ? " checked" : ""}> Plot outline</label>` +
+      `<label><input type="checkbox" id="q-edges"${qEdges ? " checked" : ""}> Edge lengths</label>` +
+      `<button type="button" class="q-link" id="q-layers">Flood, nature and aviation layers on the map</button></div>` +
+      `<div class="q-box">` +
+      (egib != null ? `<div class="q-kv"><span>Register area</span><span>${egib.toFixed(2)} ha</span></div>` : "") +
+      `<div class="q-kv"><span>Measured area</span><span>${ha.toFixed(2)} ha${egib != null ? `<small>${(Math.abs(ha / egib - 1) * 100).toFixed(1)}% from the register</small>` : ""}</span></div>` +
+      `<div class="q-kv"><span>Perimeter</span><span>${fmtM(Math.round(geo.reduce((t, g) => t + g.perim, 0)))}</span></div>` +
+      `<div class="q-kv"><span>Shape</span><span>${sidesText} sides</span></div>` +
+      `<div class="q-kv"><span>Average width</span><span>${s.plots.length > 1 ? s.plots.map(q => q.wm + " m").join(" · ") : p.wm + " m"}</span></div></div>` +
+      `<div class="q-cap">Esri World Imagery. Outline from the land register (EGiB), simplified to about 1.5 m; sides (bends over 2 m) and lengths measured from it.` +
+      (egib != null ? ` Measured ${ha.toFixed(2)} ha against ${egib.toFixed(2)} ha in the register.` : " This county's service doesn't give the register's own area, so the area is measured.") + `</div>` +
+      `<div class="q-box"><h4>Location</h4>` +
+      `<div class="q-kv"><span>Municipality</span><span>${esc(p.gmina)}</span></div>` +
+      `<div class="q-kv"><span>Precinct</span><span>${esc(p.obreb)}</span></div>` +
+      `<div class="q-kv"><span>Province</span><span>${esc(PROVINCE_EN[p.id.slice(0, 2)] || p.id.slice(0, 2))}</span></div>` +
+      `<div class="q-kv"><span>Plot identifier</span><span>${esc(p.id)}</span></div>` +
+      `<div class="q-kv"><span>Centre</span><span>${lat.toFixed(5)}, ${lon.toFixed(5)}</span></div></div>`;
+  }
+
+  const firstSentence = html => { const t = String(html).replace(/<br>/g, " ").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); const m = t.match(/^.*?\.(\s|$)/); return (m ? m[0] : t).trim(); };
+  const stat = (label, value, note) => `<div><span>${label}</span><b>${value}</b>${note ? `<small>${note}</small>` : ""}</div>`;
+  function quickPlots(p) {
+    const s = sites.find(x => x.lead.id === p.id);
+    return s && s.plots.length > 1 ? s : { plots: [p], area: areaOf(p) };
+  }
+  function zoningShort(p) {
+    if (p.mp == null) return ["not checked", ""];
+    const z = zoneOf(p);
+    if (z) return [esc(z[1]), esc(ZONE_EN[z[0]] || z[2])];
+    return p.mp > 0 ? ["local plan", `${Math.min(p.mp, p.ha).toFixed(1)} ha covered`] : ["no plan", "none in the register yet"];
+  }
+  function resourceStat(p) {
+    if (state.kind === "wind") return stat("Wind at 150 m", p.ws ? `${p.ws[1].toFixed(1)} m/s` : "–", p.cf != null ? `${p.cf}% capacity factor` : "");
+    if (state.kind === "pv") return stat("Solar yield", p.py ? p.py.toLocaleString("en") : "–", "kWh per kWp a year");
+    if (state.kind === "bess") return stat("Flat ground", p.sf != null ? `${p.sf}%` : "–", p.sl != null ? `mean slope ${p.sl}°` : "");
+    const hv = dist(p, "hv_line");
+    return stat("HV line", hv === undefined ? "–" : fmtM(hv), "110 kV supply");
+  }
+  function quickKey(p, s, c, sc) {
+    const st = index.stations[p.station] || {}, area = capacity.areas.find(a => a.id === groupOf(p.station));
+    const conn = connectionCalc(p).facts, mw = projectMw();
+    const room = conn ? conn.room : area ? roomFor(area) : null;
+    const [zone, zoneNote] = zoningShort(p);
+    const fails = c.filter(x => x.ok === false), unknown = c.filter(x => x.ok == null);
+    const owners = groupsOf(p).map(x => OWNER[x] || `group ${x}`);
+    const verdict = `Meets <b>${sc.met} of ${sc.known}</b> checks for a ${KIND_EN[state.kind]}` +
+      (fails.length ? `; it fails on ${fails.slice(0, 2).map(x => esc(x.label)).join(" and ")}${fails.length > 2 ? ` and ${fails.length - 2} more` : ""}` : "") +
+      (unknown.length ? ` (${unknown.length} without data)` : "") + ".";
+    const where = `${s.area.toFixed(1)} ha${state.usable ? " usable" : ""}${s.plots.length > 1 ? ` on ${s.plots.length} neighbouring plots` : ""}, ${p.km.toFixed(1)} km from ${esc(st.name || "the substation")}` +
+      (area && room != null ? `, in ${esc(area.name)} with ${room} MW of ${state.kind === "dc" ? "demand" : state.kind === "bess" ? "storage" : "feed-in"} room in 2030${room < mw ? `, less than the ${mw} MW planned` : ""}` : "") + ".";
+    const plan = p.mp == null ? "Zoning isn't checked yet." : zoneOf(p)
+      ? `The general plan puts it in zone ${esc(zoneOf(p)[1])} (${esc(ZONE_EN[zoneOf(p)[0]] || zoneOf(p)[2])})${state.kind === "pv" ? (solarZone(p) ? ", which allows a solar farm" : ", which doesn't list solar farms") : ""}.`
+      : p.mp > 0 ? "A local plan covers the plot: check what it allows." : "No general or local plan is in the register yet: ask the municipality.";
+    const own = owners.length ? ` Owner: ${esc(owners.join(" and "))}.` : "";
+    return `<div class="q-stats">` +
+      stat("Usable", `${s.area.toFixed(1)} ha`, s.plots.length > 1 ? `${s.plots.length} plots` : `of ${p.ha.toFixed(1)} ha`) +
+      stat("Substation", `${p.km.toFixed(1)} km`, esc(st.name || "")) +
+      stat("Room 2030", room != null ? `${room} MW` : "–", area ? esc(area.name) : "") +
+      stat("Zoning", zone, zoneNote) +
+      stat("Owner", owners.length ? esc(owners[0].split(",")[0]) : "–", owners.length > 1 ? "and others" : p.grupa ? "" : "not published") +
+      resourceStat(p) + `</div>` +
+      `<p class="q-text">${verdict}</p><p class="q-text">${where}</p><p class="q-text">${plan}${own}</p>`;
+  }
+  function quickChecks(c, sc) {
+    return `<p class="q-text"><b>${sc.met} of ${sc.known}</b> met for a ${KIND_EN[state.kind]}${sc.known < sc.total ? `; ${sc.total - sc.known} without data` : ""}.</p>` +
+      `<ul class="q-list">${c.map(x => `<li><span class="${x.ok == null ? "q" : x.ok ? "y" : "n"}">${x.ok == null ? "?" : x.ok ? "✓" : "✗"}</span> ${esc(x.label)}${x.ok === true ? "" : `<small>${esc(x.why)}</small>`}</li>`).join("")}</ul>`;
+  }
+  function quickConnection(p) {
+    const r = connectionCalc(p);
+    if (!r.facts) return `<p class="q-text">${esc(r.msg)}</p>`;
+    const f = r.facts, wind = state.kind === "wind";
+    return `<div class="q-stats">` +
+      stat("Voltage", f.hv ? "110 kV" : "MV", f.hv ? "group II" : "group III") +
+      stat("Route", `${f.routeKm.toFixed(1)} km`, `${f.cross} plots crossed`) +
+      stat("Option A", pln(f.totalA).replace("PLN ", ""), "PLN, all in") +
+      stat("Operator's fee", pln(f.opFee).replace("PLN ", ""), f.share === 0.5 ? "half its cost" : "its full cost") +
+      stat("Application", plnOne(f.application).replace("PLN ", ""), "PLN, not refunded") +
+      stat("Advance", plnOne(f.advance).replace("PLN ", ""), "PLN, in 14 days") + `</div>` +
+      `<p class="q-text">Connect at ${f.hv ? "110 kV" : "medium voltage"} to ${esc(f.stName)}, about <b>${f.routeKm.toFixed(1)} km</b> along a route crossing at least ${f.cross} other plot${f.cross === 1 ? "" : "s"} (each needs an easement). ` +
+      (f.room == null ? "" : f.room >= f.mw ? `The group has room for ${f.room} MW in 2030, enough for ${f.mw} MW. ` : `${f.mw} MW is more than the group's ${f.room} MW of room in 2030: only a flexible or configurable agreement. `) +
+      (f.hosts && state.kind !== "dc" ? `${f.hosts} existing plant${f.hosts === 1 ? "" : "s"} nearby could share a connection (cable pooling).` : "") + `</p>` +
+      `<p class="q-text">The operator must answer within ${f.days} days; conditions are valid one year. Security of ${plnOne(f.security)} within 14 days of signing. A building permit is due within ${wind ? 36 : 24} months for 80% of the capacity${state.kind === "bess" ? " (and of the energy)" : ""} (Energy Law art. 7, as amended by Dz.U. 2026 poz. 516).</p>`;
+  }
+  function quickOther(p) {
+    const gp = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
+    const rows = [
+      ["Terrain", p.sl == null ? "not computed yet" : `${p.el} m above sea level, mean slope ${p.sl}°, ${p.sf}% flat`],
+      ["Solar", p.py ? `${p.py.toLocaleString("en")} kWh per kWp a year` : "not read yet"],
+      ["Wind", p.ws ? `${p.ws[1].toFixed(1)} m/s at 150 m${p.cf != null ? `, ${p.cf}% capacity factor` : ""}` : "not read yet"],
+      ["Aviation", p.av == null ? "not checked yet" : p.av.length ? p.av.slice(0, 2).map(a => avLine(p, a, true)).join("; ") : "outside ULC's zones"],
+      ["Flood", firstSentence(floodText(p))],
+      ["Nature", firstSentence(protectedText(p))],
+      ["Soil", p.klasy ? esc(p.klasy) : "classes not published here"],
+      ["Permits", p.gp == null ? "not read yet" : gp.length ? gp.map(g => `${PERMIT_EN[g[1]]} ${fmtDate(g[0])}`).join("; ") : "no energy permit on the plot since 2016"],
+      ["Buildings", p.u == null ? "–" : p.nb ? `${p.nb} on the plot` : p.bm == null ? "none within 3 km" : `nearest ${fmtM(p.bm)}`],
+    ];
+    return `<table class="q-list" style="width:100%">${rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join("")}</table>`;
+  }
+  function renderQuick(p) {
+    const box = $("quick");
+    const open = !!p && quickClosed !== p.id && state.scope !== "area";
+    box.hidden = !open;
+    document.querySelector(".map-box").classList.toggle("quick-open", open);
+    if (!open) return;
+    const s = quickPlots(p), c = checksOf(p, s.area), sc = scoreOf(c);
+    $("q-tag").textContent = KIND_EN[state.kind].replace(/^./, x => x.toUpperCase());
+    $("q-score").innerHTML = `<b>${sc.met} of ${sc.known}</b> checks met`;
+    $("q-title").textContent = s.plots.length > 1 ? `${s.area.toFixed(1)} ha site, ${p.obreb}` : `Plot ${p.nr}, ${p.obreb}`;
+    $("q-sub").innerHTML = `${esc(p.gmina)} · precinct ${esc(p.obreb)}<br>${s.plots.length > 1 ? `Plots ${s.plots.map(q => esc(q.nr)).join(", ")}` : esc(p.id)}`;
+    for (const b of $("q-tabs").children) b.classList.toggle("on", b.dataset.tab === quickTab);
+    $("q-pane").innerHTML = { key: () => quickSite(p, s, c, sc), checks: () => quickChecks(c, sc), conn: () => quickConnection(p), other: () => quickOther(p) }[quickTab]();
+    // The satellite thumbnail, outlined like the site on the main map.
+    if (!thumbMap) {
+      thumbMap = L.map("q-thumb", { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false });
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }).addTo(thumbMap);
+      thumbLayer = L.layerGroup().addTo(thumbMap);
+    }
+    const latlngs = drawThumb(s);
+    thumbMap.invalidateSize();
+    thumbMap.fitBounds(L.latLngBounds(latlngs.flat(3)).pad(0.25), { maxZoom: 17, animate: false });
+  }
+
   function renderCard() {
     const p = plots.find(q => q.id === state.plot);
+    renderQuick(p);
     $("card-box").hidden = !p;
     if (!p) return;
     const ring = p.geom[0][0], lat = ring.reduce((s, c) => s + c[1], 0) / ring.length, lon = ring.reduce((s, c) => s + c[0], 0) / ring.length;
@@ -1355,6 +1636,22 @@
       $("need").value = needOf(); render(); });
     for (const id of ["mwp", "haper", "mw", "mwh", "turbines", "tmw", "tiph", "rotor", "itmw", "pue", "hapermw"]) $(id).addEventListener("input", () => { distCache.clear(); $("need").value = needOf(); render(); });
     $("windlaw").addEventListener("change", e => { state.windLaw = e.target.checked ? 1 : 0; render(); });
+    $("q-tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; quickTab = b.dataset.tab; renderCard(); });
+    $("q-close").addEventListener("click", () => { quickClosed = state.plot; renderCard(); });
+    $("q-pane").addEventListener("change", e => {
+      if (e.target.id === "q-outline") qOutline = e.target.checked;
+      else if (e.target.id === "q-edges") qEdges = e.target.checked;
+      else return;
+      const p = plots.find(q => q.id === state.plot); if (p) drawThumb(quickPlots(p));
+    });
+    $("q-pane").addEventListener("click", e => {
+      if (e.target.id !== "q-layers") return;
+      for (const l of Object.values(overlayRefs)) if (l && !map.hasLayer(l)) map.addLayer(l);
+      const p = plots.find(q => q.id === state.plot);
+      if (p && map.getZoom() < 14) selectPlot(p.id, true);   // the flood maps draw from zoom 14
+    });
+    $("q-full").addEventListener("click", () => $("card-box").scrollIntoView({ behavior: "smooth", block: "start" }));
+    $("q-thumb").addEventListener("click", () => { if (state.plot) selectPlot(state.plot, true); });
     $("need").addEventListener("input", render);
     $("usable").addEventListener("change", e => { state.usable = e.target.checked; render(); });
     $("gap").addEventListener("change", e => { state.gap = +e.target.value; render(); });
