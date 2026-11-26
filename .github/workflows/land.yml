@@ -1,7 +1,7 @@
 # Fetches the land plots around the shortlisted substations (etl/land.py) from GUGiK's cadastre service,
 # which answers from GitHub's runners, then the protected areas they fall in from the EEA (etl/land_protected.py)
 # and what lies on them from BDOT10k (etl/land_constraints.py). Zoning comes from the urban register (etl/land_zoning.py),
-# flood areas from Wody Polskie (etl/land_flood.py), and etl/land_blocks.py lists each plot's neighbours. Each run works through what is new or older than 90 days for up to the budgets,
+# flood areas from Wody Polskie (etl/land_flood.py), etl/land_blocks.py lists each plot's neighbours, and etl/land_search.py writes the compact per-province index the area-wide search reads. Each run works through what is new or older than 90 days for up to the budgets,
 # then commits data/land; the next run carries on.  The budgets are capped by one deadline for the job (LAND_DEADLINE,
 # etl/land_budget.py) 10 minutes before its timeout. Each data step runs even when an earlier one failed (the job still
 # shows as failed), and the commit runs in any case, so a run never loses its work.
@@ -84,6 +84,9 @@ jobs:
       - name: Neighbouring plots
         if: ${{ !cancelled() }}
         run: python etl/land_blocks.py
+      - name: Search index by province (for the area-wide search)
+        if: ${{ !cancelled() }}
+        run: python etl/land_search.py
       - name: Commit
         if: always()
         run: |

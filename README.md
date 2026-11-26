@@ -236,6 +236,19 @@ largest neighbours that pass the filters, up to the number of plots the reader a
 Joining all touching plots into blocks doesn't work: 70,000 of the plots form one
 farmland mosaic.
 
+`etl/land_search.py` writes `data/land/search/<province>.json` (the TERYT province code;
+`index.json` lists them with sizes): every plot once, at its nearest substation, with only
+what the filters read (area, usable area, building distance, width, slope, flags for
+protected areas, flood, soil and permits, owner groups, general-plan zone, local-plan
+area, centre, 8 distances and neighbours as row indices). 68 MB for the country, about
+21 MB compressed; a file is rewritten only when its content changes. The page's
+**area-wide search** ("Where to look") loads one province, or all of them, runs the
+same filters and neighbour joining over every substation of the groups with room, and
+lists the best sites; clicking one opens its group on the usual map with the plot card.
+Neighbouring plots aren't joined across a province border, and the wind act's
+distances to parks, reserves and 220/400 kV lines (which need the outline) are checked
+when the site is opened.
+
 Everything else on the page is worked out in the browser from these fields:
 
 - **What would find more:** each active filter relaxed by one step (a shorter building
