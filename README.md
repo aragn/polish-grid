@@ -296,6 +296,25 @@ Everything else on the page is worked out in the browser from these fields:
   and the building permit. The amending act is the government's bill UC84 (Sejm print 2150); the
   deregulation act Dz.U. 2026 poz. 900 changed only a cross-reference in it. Checked against the
   acts in force on 25 November 2026.
+- **Grid connection (plot card):** worked out in the browser for the clicked plot and the project in
+  the side panel (`connectionHtml` in `land/index.html`, parameters in `CONNECT`): the voltage and
+  connection group (above 20 MW: 110 kV, group II; grid regulation Dz.U. 2023 poz. 819 § 3) and the
+  operator's deadline for conditions (150 or 120 days, Energy Law art. 7(8g)); the route (straight
+  distance × 1.3) and the other registered plots the straight route crosses, with their owner groups
+  (a lower bound: plots under 0.5 ha and roads aren't in the files); the nearest MV and 110 kV lines
+  and the 110 kV lines ending at the GPZ (BDOT10k, `data/land/grid`); the options with cost ranges
+  (110 kV cable to a line bay with the plant's own substation; 30 kV cables to a transformer beside
+  the GPZ on short routes; an MV connection up to 20 MW; cable-pooling hosts within 3 km; a loop-in on
+  the 110 kV line only when the group is full); the operator's fee (half of its actual cost for
+  storage, art. 7(8) pkt 6; full for a source, half for renewables up to 5 MW, pkt 3; the
+  "connection" being the section joining the plant to the network, art. 7(8¹)); the application fee,
+  advance and security; and the permits (building permit above 15 kV and for batteries above
+  2,000 kWh, Building Law art. 29; overhead 110 kV lines on the EIA list, § 3(1)(7) of Dz.U. 2019
+  poz. 1839, cables not; road-lane permit, Roads Act art. 40; easements, Civil Code art. 305¹–305²).
+  The 110 kV cable cost comes from recent projects (TAURON Krzywa–Bolesławiec 2025: 13 km for over
+  PLN 42 m; PGE Łomianki–Czosnów: 14.8 km double circuit, PLN 51 m); the bay, on-site substation, MV
+  cable and easement figures are assumptions marked in `CONNECT`, to replace with quotes. Checked
+  against the acts in force on 26 November 2026.
 - **Soil classes:** the legal soil class (I–VI) is on 86k of the 318k plots, where the county's
   EGiB service publishes it. KIEG (GUGiK's integration of the county services) has nothing more:
   none of 40 sampled counties without classes had them there (24 Nov 2026). The map offers GUGiK's
