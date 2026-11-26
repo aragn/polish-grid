@@ -28,7 +28,7 @@ LAND = os.path.join(os.path.dirname(HERE), "data", "land")
 OUT = os.path.join(LAND, "search")
 STATION_FILE = re.compile(r"^(tauron|energa|pge|enea|stoen|pse)-.+\.json$")
 # The distances the page's filters use (buffers and road access); the plot card reads the rest from the station file.
-SEARCH_KEYS = ["home", "housing", "public_road", "major_road", "railway", "hv_line", "cemetery", "airfield"]
+SEARCH_KEYS = ["home", "housing", "public_road", "major_road", "railway", "hv_line", "cemetery", "airfield", "school", "care"]
 GOOD_SOIL = re.compile(r"^(R|Ł|Ps)(I|II|III|IIIa|IIIb)$")
 PROVINCES = {"02": "dolnośląskie", "04": "kujawsko-pomorskie", "06": "lubelskie", "08": "lubuskie", "10": "łódzkie",
              "12": "małopolskie", "14": "mazowieckie", "16": "opolskie", "18": "podkarpackie", "20": "podlaskie",
@@ -104,7 +104,8 @@ def main():
             zone = zones.setdefault(p["pg"][0][0], len(zones)) if p.get("pg") else -1
             lat, lon = centre(p)
             d = p.get("d")
-            dist = [d[dk[k]] for k in SEARCH_KEYS] if d else None
+            # A plot checked before a kind was added has a shorter list: null for that kind.
+            dist = [d[dk[k]] if k in dk and dk[k] < len(d) else None for k in SEARCH_KEYS] if d else None
             nx = sorted({row_of[n] for n in (full_id(p, r) for r in p.get("nx") or []) if n in row_of})
             rows.append([st, pr, p["id"][len(prefix) + 1:], round(p["km"] * 100), round(p["ha"] * 100),
                          None if p.get("u") is None else round(p["u"] * 100), p.get("bm"), width(p),

@@ -373,7 +373,8 @@
   // Buffers the reader can set: leave a plot out when the nearest object is closer than this.
   const BUFFERS = [["home", "homes", [0, 30, 50, 100, 150, 250, 500, 700, 1000]], ["housing", "housing areas", [0, 50, 100, 150, 250, 500, 700, 1000]],
     ["hv_line", "high-voltage lines", [0, 10, 30, 50, 100, 200]], ["railway", "railways", [0, 20, 50, 100, 200]], ["major_road", "motorways and main roads", [0, 20, 50, 100, 200]],
-    ["cemetery", "cemeteries", [0, 50, 150, 250]], ["airfield", "airfields", [0, 500, 1000, 2000]]];
+    ["cemetery", "cemeteries", [0, 50, 150, 250]], ["airfield", "airfields", [0, 500, 1000, 2000]],
+    ["school", "schools and kindergartens", [0, 100, 250, 500, 1000]], ["care", "hospitals and care homes", [0, 100, 250, 500, 1000]]];
   const ACCESS = [0, 50, 100, 300, 1000];
   const PRESETS = {
     pv: { buf: { home: 30, major_road: 50, railway: 20, hv_line: 10 }, access: 1000 },
@@ -396,8 +397,10 @@
   // air and screens all lower it, so the distances are on the safe side.
   const NOISE = { perMw: [75, 85], night: 40, nightFarm: 45 };
   function noiseOf(p) {
-    const mw = projectMw(), home = dist(p, "home");
-    if (home === undefined || !(mw > 0)) return null;
+    const mw = projectMw(), house = dist(p, "home"), care = dist(p, "care");
+    if (house === undefined || !(mw > 0)) return null;
+    // Hospitals and care homes have the same night limit as houses (annex table 1, rows 2c-2d).
+    const home = care != null && (house == null || care < house) ? care : house;
     const lw = NOISE.perMw.map(v => Math.round(v + 10 * Math.log10(mw)));
     const need = lw.map(L => Math.round(10 ** ((L - 8 - NOISE.night) / 20) / 10) * 10);
     const at = home == null ? null : lw.map(L => Math.round(L - 8 - 20 * Math.log10(Math.max(home, 1))));
@@ -806,7 +809,7 @@
       p.av == null ? "not checked yet" : !p.av.length && !(p.ap || []).length ? "outside ULC's zones and airport surfaces" : avLines(p, true, 3).join("; "));
     if (bess) { const n = noiseOf(p);
       add(n == null ? null : n.home == null || n.home >= n.need[0], `night noise under ${NOISE.night} dB(A) at the nearest home, with a quiet design`,
-        n == null ? "not computed yet" : n.home == null ? "no home found nearby" : `nearest home ${fmtM(n.home)}; a ${n.mw} MW battery gets down to ${NOISE.night} dB(A) from about ${n.need[0]}–${n.need[1]} m in open ground, quiet to standard design, before walls or screens`); }
+        n == null ? "not computed yet" : n.home == null ? "no home found nearby" : `nearest home or care home ${fmtM(n.home)}; a ${n.mw} MW battery gets down to ${NOISE.night} dB(A) from about ${n.need[0]}–${n.need[1]} m in open ground, quiet to standard design, before walls or screens`); }
     if (!wind) add(p.u == null ? null : !p.nb, "no buildings on the plot", p.u == null ? "not checked yet" : p.nb ? `${p.nb} on the plot` : "none");
     // 30 m: nine in ten of the plots that already got a solar or battery permit of 1 MW or more are at least that wide.
     if (!wind) add(p.wm >= 30, "not a thin strip: at least 30 m wide on average", `about ${p.wm} m; a narrower plot only works joined to its neighbours`);
@@ -881,10 +884,11 @@
   }
   const DIST_LABELS = { home: "home", housing: "housing area", public_road: "public road", any_road: "any road or track", major_road: "motorway or main road",
     railway: "railway", forest: "forest", standing_water: "lake or pond", river: "river or stream", hv_line: "high-voltage line", mv_line: "medium-voltage line",
-    substation: "substation (BDOT10k)", solar_farm: "solar farm", power_plant: "other power plant", industry: "industrial area", waste: "waste site", cemetery: "cemetery", airfield: "airfield" };
+    substation: "substation (BDOT10k)", solar_farm: "solar farm", power_plant: "other power plant", industry: "industrial area", waste: "waste site", cemetery: "cemetery", airfield: "airfield",
+    school: "school or kindergarten", care: "hospital or care home", heritage: "historic site", military: "military range", wind_turbine: "wind turbine" };
   function distancesHtml(p) {
     if (p.d == null) return "not computed yet";
-    return (index.distance_keys || []).map(k => `${DIST_LABELS[k] || k} <b>${dist(p, k) === 0 ? "on or touching" : fmtM(dist(p, k))}</b>`).join(" · ") +
+    return (index.distance_keys || []).filter(k => dist(p, k) !== undefined).map(k => `${DIST_LABELS[k] || k} <b>${dist(p, k) === 0 ? "on or touching" : fmtM(dist(p, k))}</b>`).join(" · ") +
       `<br><span style="color:var(--muted)">From the plot's edge, BDOT10k. A solar farm nearby may be a host to share a connection with (cable pooling).</span>`;
   }
   function terrainHtml(p) {
@@ -899,7 +903,7 @@
     if (!n) return "not computed yet";
     return `A ${n.mw} MW battery runs at night, so the night limit binds: <b>${NOISE.night} dB(A)</b> at single-family homes, ${NOISE.nightFarm} at farmsteads and blocks of flats (worst hour of the night; by day 50 and 55). ` +
       `With an assumed sound power of about ${n.lw[0]}–${n.lw[1]} dB(A) for the whole site (quiet to standard cooling and inverters), it gets down to ${NOISE.night} dB(A) from about <b>${n.need[0]}–${n.need[1]} m</b> in open ground. ` +
-      (n.home == null ? "No home found nearby." : `The nearest home is ${fmtM(n.home)} from the plot's edge: about <b>${n.at[0]}–${n.at[1]} dB(A)</b> there${n.at[0] > NOISE.night ? ", over the limit even with a quiet design: it needs acoustic walls, low-noise cooling or the equipment further in" : n.at[1] > NOISE.night ? ": fine with a quiet design, a standard one needs walls or more distance" : ": within the limit"}.`) +
+      (n.home == null ? "No home found nearby." : `The nearest home or care home is ${fmtM(n.home)} from the plot's edge: about <b>${n.at[0]}–${n.at[1]} dB(A)</b> there${n.at[0] > NOISE.night ? ", over the limit even with a quiet design: it needs acoustic walls, low-noise cooling or the equipment further in" : n.at[1] > NOISE.night ? ": fine with a quiet design, a standard one needs walls or more distance" : ": within the limit"}.`) +
       ` <span style="color:var(--muted)">Rough screen: spreading over hard ground only; ground, air and screens lower it. The acoustic report for the environmental decision or building permit settles it (regulation on noise levels in the environment, Dz.U. 2014 poz. 112).</span>`;
   }
   const WS_MEDIAN = 7.6;    // median wind speed at 150 m of all plots in data/land (m/s), Global Wind Atlas
@@ -1488,7 +1492,8 @@
     // Neighbours
     const minGap = { bess: 50, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home"), road = dist(p, "public_road");
     const neigh = home === undefined ? dot("u", "distances not computed yet")
-      : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}`);
+      : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}` +
+        [["school", "school"], ["care", "hospital or care home"]].map(([k, l]) => dist(p, k) != null && dist(p, k) <= 1000 ? `; ${l} ${fmtM(dist(p, k))}` : "").join(""));
     // Aviation
     const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length && !(p.ap || []).length ? dot("g", "outside ULC's zones and airport surfaces")
       : dot(p.av.some(a => a[1] === 0) || olBlocks(p).length || (kind === "wind" && avBlocks(p).length) ? "r" : "o", avLines(p, true, 2).join("; "));
