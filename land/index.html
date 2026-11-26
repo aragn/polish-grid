@@ -263,7 +263,7 @@
             <button type="button" class="q-full" id="q-full">Full card ↓</button>
           </div>
         </div>
-        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div id="legend-av" hidden><i style="border-color:#bf5af2;border-radius:50%"></i>Aviation zones (ULC): red within 600 m, orange over 15 m, purple wind turbines only</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
+        <div class="legend-box"><div><i style="border-color:var(--plot)"></i>Big enough, within the distance</div><div><i style="border-color:var(--plot-dim);border-style:dashed"></i>Other plots of 0.5 ha or more</div><div><i style="border-color:var(--station);border-radius:50%"></i>Substation, with 1, 2 and 3 km rings</div><div><i style="border-color:#bf5af2"></i>Natura 2000</div><div><i style="border-color:#ff9f0a"></i>National park or nature reserve</div><div><i style="border-color:#30d158"></i>Landscape park</div><div><i style="border-color:#64d2ff;border-style:dashed"></i>Protected landscape area</div><div style="margin-left:20px">areas drawn within 4 km of the substations</div><div id="legend-av" hidden><i style="border-color:#bf5af2;border-radius:50%"></i>Aviation zones (ULC): red within 600 m, orange over 15 m, purple wind turbines only; blue airport surfaces (dashed: planned)</div><div><i style="border:0;border-top:3px solid #ff2d55;height:0"></i>220/400 kV line</div><div><i style="border:0;border-top:3px solid #ff9500;height:0"></i>110 kV line</div><div><i style="border:0;border-top:2px solid #32ade6;height:0"></i>Medium voltage (15–30 kV)</div><div><i style="width:9px;height:9px;border:2px solid #fff;background:#111"></i>Substation</div><div><i style="border-color:#ffe066;background:rgba(255,224,102,.45)"></i>Solar farm (a possible host)</div><div><span style="font-weight:700;color:#fff;text-shadow:0 0 2px #000;width:14px;text-align:center">✣</span>Wind turbine (yellow: being built)</div></div>
       </section>
     </div>
     <footer id="footer"></footer>
@@ -613,6 +613,9 @@
       for (const [, code, rings] of d.zones)
         L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: AV_COLOR[code], weight: 1.2, opacity: 0.85, fillColor: AV_COLOR[code], fillOpacity: code === 2 ? 0.04 : 0.1, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(aviationLayer);
       d.equipment.forEach((e, i) => L.circleMarker([e[4], e[5]], { radius: 4, color: "#fff", weight: 1, fillColor: "#bf5af2", fillOpacity: 1 }).bindTooltip(esc(avName(i))).addTo(aviationLayer));
+      for (const [, kind, planned, rings] of d.ols_zones || [])
+        L.polygon(rings.map(r => r.map(([lon, lat]) => [lat, lon])), { color: "#0a84ff", weight: 1.2, opacity: 0.85, dashArray: planned ? "6 4" : null, fillColor: "#0a84ff", fillOpacity: kind === 1 ? 0.08 : 0.03, interactive: false, renderer: natureRenderer, pane: "nature" }).addTo(aviationLayer);
+      (d.airports || []).forEach((a, i) => a[2] != null && L.circleMarker([a[2], a[3]], { radius: 5, color: "#fff", weight: 1.5, fillColor: "#0a84ff", fillOpacity: 1 }).bindTooltip(esc(aptName(i))).addTo(aviationLayer));
       if (state.plot || state.kind === "wind") render();
     }).catch(() => {});
     map.createPane("grid").style.zIndex = 450; map.getPane("grid").style.pointerEvents = "none";
@@ -798,9 +801,9 @@
       const park = parkDist(p), reserve = reserveDist(p);
       add(protectedRaw.length ? (park == null || park >= 10 * t.height) && (reserve == null || reserve >= 500) : null, `at least ${10 * t.height} m from national parks and 500 m from reserves`,
         `national park ${park == null ? "none within 4 km" : fmtM(park)}, reserve ${reserve == null ? "none within 1 km" : fmtM(reserve)}; the wind act, art. 4c(2)`); }
-    add(p.av == null ? null : wind ? !avBlocks(p).length : !p.av.some(a => a[1] === 0),
-      wind ? `below the height limits around aviation equipment (a ${turbine().height} m turbine)` : "more than 600 m from aviation equipment",
-      p.av == null ? "not checked yet" : !p.av.length ? "outside ULC's zones" : p.av.slice(0, 3).map(a => avLine(p, a, true)).join("; ") + (p.av.length > 3 ? `; ${p.av.length - 3} more` : ""));
+    add(p.av == null ? null : (wind ? !avBlocks(p).length : !p.av.some(a => a[1] === 0)) && !olBlocks(p).length,
+      wind ? `below the height limits around aviation equipment and airports (a ${turbine().height} m turbine)` : `clear of aviation limits: 600 m from equipment, under airport surfaces (${structureHeight()} m tall)`,
+      p.av == null ? "not checked yet" : !p.av.length && !(p.ol || []).length ? "outside ULC's zones and airport surfaces" : avLines(p, true, 3).join("; "));
     if (bess) { const n = noiseOf(p);
       add(n == null ? null : n.home == null || n.home >= n.need[0], `night noise under ${NOISE.night} dB(A) at the nearest home, with a quiet design`,
         n == null ? "not computed yet" : n.home == null ? "no home found nearby" : `nearest home ${fmtM(n.home)}; a ${n.mw} MW battery gets down to ${NOISE.night} dB(A) from about ${n.need[0]}–${n.need[1]} m in open ground, quiet to standard design, before walls or screens`); }
@@ -927,10 +930,30 @@
     const agl = avAgl(p, lim);
     return `${esc(avName(eq))}: ${what}${lim != null ? `${short ? ", limit" : "; limit about"} ${Math.round(lim)} m above sea level${agl != null ? `, ${agl} m above this plot` : ""}` : ""}`;
   }
+  // Airports: each entry of p.ol is [airport, limit, surface, planned]: the lowest obstacle limitation surface at the
+  // plot's centre in metres above sea level, surface 0 the inner horizontal or conical one, 1 an approach.
+  function aptName(i) {
+    const a = aviation?.airports?.[i];
+    return a ? `airport ${a[1] || a[0]}${a[1] && a[0] ? ` (${a[0]})` : ""}` : "an airport";
+  }
+  // How tall the project stands: the turbine's tip for wind, a data centre's buildings, panels or containers otherwise.
+  const structureHeight = () => ({ wind: turbine().height, dc: 20 }[state.kind] ?? 5);
+  function olBlocks(p) {
+    const h = structureHeight();
+    return (p.ol || []).filter(([, lim]) => p.el == null || lim - p.el < h);
+  }
+  function olLine(p, [a, lim, kind, planned], short) {
+    const agl = p.el != null ? Math.round(lim - p.el) : null;
+    const what = short ? (kind ? "approach surface" : "horizontal surface") : (kind ? "under an approach surface" : "under the horizontal or conical surface");
+    return `${esc(aptName(a))}${planned ? " (planned)" : ""}: ${what}, limit ${short ? "" : "about "}${Math.round(lim)} m above sea level` +
+      (agl == null ? "" : agl < 0 ? `, ${-agl} m below this plot's ground${short ? "" : ": anything built needs ULC's agreement"}` : `, ${agl} m above this plot`);
+  }
+  // Equipment zones then airports, as lines for the card, the checks and the summary.
+  const avLines = (p, short, n = 99) => [...(p.av || []).map(a => avLine(p, a, short)), ...(p.ol || []).map(o => olLine(p, o, short))].slice(0, n);
   function aviationHtml(p) {
     if (p.av == null) return "not checked yet";
-    const note = `<br><span style="color:var(--muted)">ULC's building restricted areas around civil aviation equipment (limits on the safe side of ULC's steps). Above a limit isn't banned, it needs ULC's agreement (Aviation Law, art. 86(7)). Airport obstacle limits and military equipment aren't included: see <a href="${"https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line"}" target="_blank" rel="noopener">ULC's maps</a>.</span>`;
-    return (p.av.length ? p.av.map(a => avLine(p, a)).join("<br>") : "outside the zones around radio beacons, radars, landing systems and radio stations.") + note;
+    const note = `<br><span style="color:var(--muted)">ULC's building restricted areas around civil aviation equipment (limits on the safe side of ULC's steps). Above a limit isn't banned, it needs ULC's agreement (Aviation Law, art. 86(7)). Airports: the obstacle limitation surfaces of ULC's register of civil airports (approach, inner horizontal and conical; take-off climb surfaces aren't drawn there), lower step taken; above them needs ULC's agreement (art. 87). Military equipment and airfields aren't included: see <a href="${"https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line"}" target="_blank" rel="noopener">ULC's maps</a>.</span>`;
+    return (p.av.length || (p.ol || []).length ? avLines(p, false).join("<br>") : "outside the zones around radio beacons, radars, landing systems and radio stations, and outside the airports' obstacle surfaces.") + note;
   }
   const PERMIT_EN = { solar: "solar", battery: "battery", wind: "wind", house: "house", other: "other building or works" };
   function permitsHtml(p) {
@@ -974,6 +997,7 @@
         local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
         ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])),
         solar_kwh_per_kwp: q.py ?? "", wind_ms_100m: q.ws?.[0] ?? "", wind_ms_150m: q.ws?.[1] ?? "", capacity_factor_iec3_pct: q.cf ?? "",
+        airport_limits: (q.ol || []).map(o => olLine(q, o, true).replace(/<[^>]+>/g, "")).join("; "),
         aviation_zones: q.av == null ? "" : q.av.map(([eq, code, lim]) => `${avName(eq)}: ${["within 600 m", "over 15 m needs agreement", "turbines only"][code]}${lim != null ? `, limit ${Math.round(lim)} m above sea level` : ""}`).join("; "),
         height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
         energy_permits_on_plot: (q.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1])).map(g => `${g[1]} ${g[0]}`).join("; "),
@@ -1462,8 +1486,8 @@
     const neigh = home === undefined ? dot("u", "distances not computed yet")
       : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}`);
     // Aviation
-    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length ? dot("g", "outside ULC's zones")
-      : dot(p.av.some(a => a[1] === 0) || (kind === "wind" && avBlocks(p).length) ? "r" : "o", p.av.slice(0, 2).map(a => avLine(p, a, true)).join("; "));
+    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length && !(p.ol || []).length ? dot("g", "outside ULC's zones and airport surfaces")
+      : dot(p.av.some(a => a[1] === 0) || olBlocks(p).length || (kind === "wind" && avBlocks(p).length) ? "r" : "o", avLines(p, true, 2).join("; "));
     // Permits
     const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
     const perm = p.gp == null ? dot("u", "not read yet") : taken.length ? dot("o", `${taken.map(g => `${PERMIT_EN[g[1]]} permit ${fmtDate(g[0])}`).join("; ")} on the plot`)
@@ -1563,7 +1587,7 @@
       ["Terrain", p.sl == null ? "not computed yet" : `${p.el} m above sea level, mean slope ${p.sl}°, ${p.sf}% flat`],
       ["Solar", p.py ? `${p.py.toLocaleString("en")} kWh per kWp a year` : "not read yet"],
       ["Wind", p.ws ? `${p.ws[1].toFixed(1)} m/s at 150 m${p.cf != null ? `, ${p.cf}% capacity factor` : ""}` : "not read yet"],
-      ["Aviation", p.av == null ? "not checked yet" : p.av.length ? p.av.slice(0, 2).map(a => avLine(p, a, true)).join("; ") : "outside ULC's zones"],
+      ["Aviation", p.av == null ? "not checked yet" : p.av.length || (p.ol || []).length ? avLines(p, true, 2).join("; ") : "outside ULC's zones and airport surfaces"],
       ["Flood", firstSentence(floodText(p))],
       ["Nature", firstSentence(protectedText(p))],
       ["Soil", p.klasy ? esc(p.klasy) : "classes not published here"],
@@ -1726,7 +1750,7 @@
 
   function footer() {
     $("footer").innerHTML = `Plots: land and building registers (EGiB) kept by each county (starosta), through GUGiK's collective download service, read ${fmtDate(index.updated)}; outlines simplified to about 1.5 m, areas computed from them. ` +
-      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Power lines: BDOT10k (GUGiK), medium, high and extra-high voltage as it classes them (in Poland 15–30, 110 and 220/400 kV), and its substations, with names of substations of 110 kV and above from OpenStreetMap contributors (ODbL); low-voltage lines only in GUGiK's utility map (GESUT). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Wind: obtained from the Global Wind Atlas version 4.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU), released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalwindatlas.info" target="_blank" rel="noopener">globalwindatlas.info</a> (CC BY 4.0; Davis et al., <a href="https://doi.org/10.1175/BAMS-D-21-0075.1" target="_blank" rel="noopener">BAMS 2023</a>). Aviation: the building restricted areas (BRA) around civil aviation ground equipment, vector data of the Civil Aviation Authority (<a href="https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line" target="_blank" rel="noopener">Urząd Lotnictwa Cywilnego</a>). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Soil complexes: GUGiK's soil-agricultural map (mapa glebowo-rolnicza), shown from its viewing service only. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
+      `Forest, water, built-up and transport land and buildings: GUGiK's topographic database BDOT10k, overlaid on each plot (roads and railways drawn as lines count as 8 m strips). Protected areas: the European Environment Agency's Natura 2000 (end-2024) and Nationally designated areas datasets, as delivered by Poland's GDOŚ. Zoning: the urban register (Rejestr Urbanistyczny) of the Ministry of Development and Technology, general-plan zones and local-plan outlines as municipalities have published them. Flood areas: Wody Polskie's flood hazard maps (second cycle, made public in September 2022), sampled every 10 m. Terrain: Copernicus DEM GLO-30 (© DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA). Power lines: BDOT10k (GUGiK), medium, high and extra-high voltage as it classes them (in Poland 15–30, 110 and 220/400 kV), and its substations, with names of substations of 110 kV and above from OpenStreetMap contributors (ODbL); low-voltage lines only in GUGiK's utility map (GESUT). Solar yield: obtained from the Global Solar Atlas 2.0, a free, web-based application developed and operated by the company Solargis s.r.o. on behalf of the World Bank Group, utilizing Solargis data, with funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalsolaratlas.info" target="_blank" rel="noopener">globalsolaratlas.info</a> (CC BY 4.0). Wind: obtained from the Global Wind Atlas version 4.0, a free, web-based application developed, owned and operated by the Technical University of Denmark (DTU), released in partnership with the World Bank Group, utilizing data provided by Vortex, using funding provided by the Energy Sector Management Assistance Program (ESMAP); for additional information: <a href="https://globalwindatlas.info" target="_blank" rel="noopener">globalwindatlas.info</a> (CC BY 4.0; Davis et al., <a href="https://doi.org/10.1175/BAMS-D-21-0075.1" target="_blank" rel="noopener">BAMS 2023</a>). Aviation: the building restricted areas (BRA) around civil aviation ground equipment, vector data of the Civil Aviation Authority, and the obstacle limitation surfaces of its register of civil airports (<a href="https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line" target="_blank" rel="noopener">Urząd Lotnictwa Cywilnego</a>). Building permits: GUNB's register of applications, decisions and notifications (RWDZ), decisions since 2016, without the investor or designer. Soil complexes: GUGiK's soil-agricultural map (mapa glebowo-rolnicza), shown from its viewing service only. Owner groups and land classes: the register itself, decoded per the regulation on land and building registers. Substations: the operators' own positions (TAURON) or OpenStreetMap contributors (ODbL). Satellite imagery © Esri and its partners. ` +
       `A plot shown here is only a starting point: check its zoning, soil class, protected areas (the boundaries here are generalised to about 10 m) and access, and the owner, before anything else.`;
   }
 
