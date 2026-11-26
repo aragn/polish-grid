@@ -803,7 +803,7 @@
         `national park ${park == null ? "none within 4 km" : fmtM(park)}, reserve ${reserve == null ? "none within 1 km" : fmtM(reserve)}; the wind act, art. 4c(2)`); }
     add(p.av == null ? null : (wind ? !avBlocks(p).length : !p.av.some(a => a[1] === 0)) && !olBlocks(p).length,
       wind ? `below the height limits around aviation equipment and airports (a ${turbine().height} m turbine)` : `clear of aviation limits: 600 m from equipment, under airport surfaces (${structureHeight()} m tall)`,
-      p.av == null ? "not checked yet" : !p.av.length && !(p.ol || []).length ? "outside ULC's zones and airport surfaces" : avLines(p, true, 3).join("; "));
+      p.av == null ? "not checked yet" : !p.av.length && !(p.ap || []).length ? "outside ULC's zones and airport surfaces" : avLines(p, true, 3).join("; "));
     if (bess) { const n = noiseOf(p);
       add(n == null ? null : n.home == null || n.home >= n.need[0], `night noise under ${NOISE.night} dB(A) at the nearest home, with a quiet design`,
         n == null ? "not computed yet" : n.home == null ? "no home found nearby" : `nearest home ${fmtM(n.home)}; a ${n.mw} MW battery gets down to ${NOISE.night} dB(A) from about ${n.need[0]}–${n.need[1]} m in open ground, quiet to standard design, before walls or screens`); }
@@ -930,7 +930,7 @@
     const agl = avAgl(p, lim);
     return `${esc(avName(eq))}: ${what}${lim != null ? `${short ? ", limit" : "; limit about"} ${Math.round(lim)} m above sea level${agl != null ? `, ${agl} m above this plot` : ""}` : ""}`;
   }
-  // Airports: each entry of p.ol is [airport, limit, surface, planned]: the lowest obstacle limitation surface at the
+  // Airports: each entry of p.ap is [airport, limit, surface, planned]: the lowest obstacle limitation surface at the
   // plot's centre in metres above sea level, surface 0 the inner horizontal or conical one, 1 an approach.
   function aptName(i) {
     const a = aviation?.airports?.[i];
@@ -940,7 +940,7 @@
   const structureHeight = () => ({ wind: turbine().height, dc: 20 }[state.kind] ?? 5);
   function olBlocks(p) {
     const h = structureHeight();
-    return (p.ol || []).filter(([, lim]) => p.el == null || lim - p.el < h);
+    return (p.ap || []).filter(([, lim]) => p.el == null || lim - p.el < h);
   }
   function olLine(p, [a, lim, kind, planned], short) {
     const agl = p.el != null ? Math.round(lim - p.el) : null;
@@ -949,11 +949,11 @@
       (agl == null ? "" : agl < 0 ? `, ${-agl} m below this plot's ground${short ? "" : ": anything built needs ULC's agreement"}` : `, ${agl} m above this plot`);
   }
   // Equipment zones then airports, as lines for the card, the checks and the summary.
-  const avLines = (p, short, n = 99) => [...(p.av || []).map(a => avLine(p, a, short)), ...(p.ol || []).map(o => olLine(p, o, short))].slice(0, n);
+  const avLines = (p, short, n = 99) => [...(p.av || []).map(a => avLine(p, a, short)), ...(p.ap || []).map(o => olLine(p, o, short))].slice(0, n);
   function aviationHtml(p) {
     if (p.av == null) return "not checked yet";
     const note = `<br><span style="color:var(--muted)">ULC's building restricted areas around civil aviation equipment (limits on the safe side of ULC's steps). Above a limit isn't banned, it needs ULC's agreement (Aviation Law, art. 86(7)). Airports: the obstacle limitation surfaces of ULC's register of civil airports (approach, inner horizontal and conical; take-off climb surfaces aren't drawn there), lower step taken; above them needs ULC's agreement (art. 87). Military equipment and airfields aren't included: see <a href="${"https://ulc.gov.pl/zegluga-powietrzna/mapy-on-line"}" target="_blank" rel="noopener">ULC's maps</a>.</span>`;
-    return (p.av.length || (p.ol || []).length ? avLines(p, false).join("<br>") : "outside the zones around radio beacons, radars, landing systems and radio stations, and outside the airports' obstacle surfaces.") + note;
+    return (p.av.length || (p.ap || []).length ? avLines(p, false).join("<br>") : "outside the zones around radio beacons, radars, landing systems and radio stations, and outside the airports' obstacle surfaces.") + note;
   }
   const PERMIT_EN = { solar: "solar", battery: "battery", wind: "wind", house: "house", other: "other building or works" };
   function permitsHtml(p) {
@@ -997,7 +997,7 @@
         local_plan_ha: q.mp ?? "", checks_met: sc.met, checks_with_data: sc.known, checks_total: sc.total,
         ...Object.fromEntries((index.distance_keys || []).map(k => [`m_to_${k}`, dist(q, k) ?? ""])),
         solar_kwh_per_kwp: q.py ?? "", wind_ms_100m: q.ws?.[0] ?? "", wind_ms_150m: q.ws?.[1] ?? "", capacity_factor_iec3_pct: q.cf ?? "",
-        airport_limits: (q.ol || []).map(o => olLine(q, o, true).replace(/<[^>]+>/g, "")).join("; "),
+        airport_limits: (q.ap || []).map(o => olLine(q, o, true).replace(/<[^>]+>/g, "")).join("; "),
         aviation_zones: q.av == null ? "" : q.av.map(([eq, code, lim]) => `${avName(eq)}: ${["within 600 m", "over 15 m needs agreement", "turbines only"][code]}${lim != null ? `, limit ${Math.round(lim)} m above sea level` : ""}`).join("; "),
         height_m: q.el ?? "", mean_slope_deg: q.sl ?? "", flat_pct: q.sf ?? "", south_facing_pct: q.ss ?? "",
         energy_permits_on_plot: (q.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1])).map(g => `${g[1]} ${g[0]}`).join("; "),
@@ -1229,6 +1229,10 @@
 
   function protectedText(p) {
     if (p.n2 == null) return "not checked yet";
+    const src = p.pzsrc ? ` <span style="color:var(--muted)">(boundaries from GDOŚ's files of December 2021, while the EEA service with the end-2024 data is down; they'll be replaced)</span>` : "";
+    return protectedCore(p) + src;
+  }
+  function protectedCore(p) {
     const rows = (p.pz || []).map(id => protectedAreas[id]).filter(Boolean)
       .map(([kind, name, label]) => `${esc(name)} <span style="color:var(--muted)">(${esc(label)})</span>`);
     const inside = [["np", "national park or reserve"], ["lp", "landscape park"], ["n2", "Natura 2000"], ["ol", "protected landscape area"]]
@@ -1486,7 +1490,7 @@
     const neigh = home === undefined ? dot("u", "distances not computed yet")
       : dot(home != null && home < minGap ? "r" : road == null || road > 300 ? "o" : "g", `nearest home ${fmtM(home)}; public road ${fmtM(road)}`);
     // Aviation
-    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length && !(p.ol || []).length ? dot("g", "outside ULC's zones and airport surfaces")
+    const avia = p.av == null ? dot("u", "not checked yet") : !p.av.length && !(p.ap || []).length ? dot("g", "outside ULC's zones and airport surfaces")
       : dot(p.av.some(a => a[1] === 0) || olBlocks(p).length || (kind === "wind" && avBlocks(p).length) ? "r" : "o", avLines(p, true, 2).join("; "));
     // Permits
     const taken = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
@@ -1587,7 +1591,7 @@
       ["Terrain", p.sl == null ? "not computed yet" : `${p.el} m above sea level, mean slope ${p.sl}°, ${p.sf}% flat`],
       ["Solar", p.py ? `${p.py.toLocaleString("en")} kWh per kWp a year` : "not read yet"],
       ["Wind", p.ws ? `${p.ws[1].toFixed(1)} m/s at 150 m${p.cf != null ? `, ${p.cf}% capacity factor` : ""}` : "not read yet"],
-      ["Aviation", p.av == null ? "not checked yet" : p.av.length || (p.ol || []).length ? avLines(p, true, 2).join("; ") : "outside ULC's zones and airport surfaces"],
+      ["Aviation", p.av == null ? "not checked yet" : p.av.length || (p.ap || []).length ? avLines(p, true, 2).join("; ") : "outside ULC's zones and airport surfaces"],
       ["Flood", firstSentence(floodText(p))],
       ["Nature", firstSentence(protectedText(p))],
       ["Soil", p.klasy ? esc(p.klasy) : "classes not published here"],
