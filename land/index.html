@@ -60,7 +60,9 @@
     .chip { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:999px; padding:3px 9px; font-size:12px; cursor:pointer; }
     .chip.on { border-color:var(--station); color:var(--station); font-weight:600; }
     .chip small { color:var(--muted); }
-    .map-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; position:relative; min-height:720px; }
+    /* The side column is much taller than a screen: the map keeps one screen's height and stays in view (sticky), instead of
+       stretching to the column's height (4,000 px and more, with the plots far off screen). */
+    .map-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; overflow:hidden; position:sticky; top:68px; align-self:start; height:calc(100vh - 84px); min-height:520px; }
     #map { position:absolute; inset:0; }
     .list { max-height:430px; overflow:auto; border:1px solid var(--border); border-radius:10px; }
     .plot { padding:8px 10px; border-bottom:1px solid var(--border); cursor:pointer; font-size:12.5px; }
@@ -104,8 +106,8 @@
     .rules li b { color:var(--text); }
     .rules .src { color:var(--muted); font-size:11.5px; }
     footer { color:var(--muted); font-size:12px; line-height:1.6; margin-top:22px; }
-    @media (max-width: 1100px) { .layout { grid-template-columns:1fr; } .map-box { min-height:520px; } }
-    @media (max-width: 640px) { .topbar, main { padding-left:16px; padding-right:16px; } .nav { overflow-x:auto; flex-wrap:nowrap; min-width:0; } .map-box { min-height:420px; } }
+    @media (max-width: 1100px) { .layout { grid-template-columns:1fr; } .map-box { position:relative; top:auto; height:520px; } }
+    @media (max-width: 640px) { .topbar, main { padding-left:16px; padding-right:16px; } .nav { overflow-x:auto; flex-wrap:nowrap; min-width:0; } .map-box { height:420px; min-height:420px; } }
   </style>
 </head>
 <body>
@@ -121,7 +123,16 @@
     </section>
     <div class="layout">
       <aside class="side">
-        <div class="box">
+        <div class="box" id="scope-box" hidden>
+          <h3>Where to look</h3>
+          <div class="seg" id="scope"><button type="button" data-scope="group" class="on">One group of substations</button><button type="button" data-scope="area">Area-wide search</button></div>
+          <div id="area-inputs" hidden>
+            <div class="row" style="margin-top:10px">In <select class="select" id="province" style="width:auto" aria-label="Province"></select></div>
+            <label class="row" style="margin-top:10px;cursor:pointer"><input type="checkbox" id="room-only" checked> Only groups with room for the project in 2030</label>
+            <div class="count" id="area-note"></div>
+          </div>
+        </div>
+        <div class="box" id="group-box">
           <h3>Group of substations</h3>
           <select class="select" id="group" aria-label="Group of substations"></select>
           <div class="count" id="group-note"></div>
@@ -199,10 +210,14 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE", pse: "PSE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 3, sort: "km", plot: null, usable: true, gap: 0, minWidth: 0, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 3, sort: "km", plot: null, usable: true, gap: 0, minWidth: 0, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1, scope: "group", province: "", roomOnly: true };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {}, gridCache = {};
   let gridLayer, gridLabels, gridLayerGroup;
+  // Area-wide search: data/land/search/<province>.json (etl/land_search.py), the plots of a province with only what the
+  // filters read, expanded into plot objects the same filter functions take.
+  let searchIndex = null, areaLayer, areaSites = [], areaRun = 0, areaFit = null;
+  const searchCache = {};
   const GRID_STYLE = { ehv: { color: "#ff2d55", weight: 3.2, label: "220/400 kV" }, hv: { color: "#ff9500", weight: 2.6, label: "110 kV" }, mv: { color: "#32ade6", weight: 1.5, label: "" } };
   // Power lines (BDOT10k) and substations (BDOT10k, names from OpenStreetMap) within 4 km of the group's substations:
   // data/land/grid/<station>.json from etl/land_grid.py.  Drawn above the plots but without catching clicks.
@@ -305,6 +320,7 @@
   const bboxOf = pts => pts.reduce((b, [x, y]) => [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)], [Infinity, Infinity, -Infinity, -Infinity]);
   // shapes: [{bbox (lon/lat), lines: [[[lon, lat], ...]], area: true when the lines are polygon rings}]; within: metres to look.
   function nearestTo(p, shapes, within) {
+    if (!p.geom) return null;   // a plot from the area-wide search: checked once its site is opened on the map
     const lat0 = p.geom[0][0][0][1], f = toXY(lat0);
     const plotRings = p.geom.flatMap(poly => poly).map(r => r.map(f));
     const pb = bboxOf(plotRings.flat()), pad = within / 70000;
@@ -440,6 +456,7 @@
     zoning = await get("../data/land/zoning.json").catch(() => zoning);
     DK = Object.fromEntries((index.distance_keys || []).map((k, i) => [k, i]));
     permits = await get("../data/land/permits.json").catch(() => permits);
+    searchIndex = await get("../data/land/search/index.json").catch(() => null);
     const roomOf = a => Math.max(a.gen["2030"] || 0, a.dem["2030"] || 0);
     const bench = a => a.op === "pse" || roomOf(a) < index.rule.min_room_mw;
     const groups = capacity.areas
@@ -489,12 +506,23 @@
     L.control.layers({ "Satellite (Esri)": esri, "Map (OpenStreetMap)": osm, "Orthophoto (GUGiK, may not load outside Poland)": ortho },
       { "Place names": labels, "Power lines, substations, solar farms and wind turbines (BDOT10k, names from OpenStreetMap)": gridAll, "All power lines, low voltage too (GUGiK utility map, from zoom 18, may not load outside Poland)": utility, "Soil-agricultural map: soil complexes, to look at (GUGiK, from zoom 14, may not load outside Poland)": soil, "Protected areas (EEA)": natureLayer, "Flood areas, 1% dark and 0.2% light (Wody Polskie, from zoom 14)": flood, "All plot boundaries (GUGiK, may not load outside Poland)": parcels }, { collapsed: true }).addTo(map);
     natureLayer.addTo(map);
-    ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map);
+    ringLayer = L.layerGroup().addTo(map); stationLayer = L.layerGroup().addTo(map); plotLayer = L.layerGroup().addTo(map); areaLayer = L.layerGroup().addTo(map);
     map.addLayer(gridLayerGroup);
     bind();
     const hash = new URLSearchParams(location.hash.slice(1));
     const start = hash.get("group") && groups.some(g => g.a.id === hash.get("group")) ? hash.get("group") : groups[0]?.a.id;
     if (start) { $("group").value = start; await selectGroup(start); }
+    if (searchIndex) {
+      $("scope-box").hidden = false;
+      const provs = Object.entries(searchIndex.provinces).filter(([, v]) => v.plots).sort((a, b) => a[1].name.localeCompare(b[1].name, "pl"));
+      const mb = kb => kb >= 1024 ? `${(kb / 1024).toFixed(0)} MB` : `${kb} KB`;
+      $("province").innerHTML = provs.map(([c, v]) => `<option value="${c}">${esc(v.name)} · ${v.stations} substations · ${v.plots.toLocaleString("en")} plots (${mb(v.kb)})</option>`).join("") +
+        `<option value="all">all of Poland · ${provs.reduce((s, [, v]) => s + v.plots, 0).toLocaleString("en")} plots (${mb(provs.reduce((s, [, v]) => s + v.kb, 0))}, slow)</option>`;
+      state.province = plots[0] && searchIndex.provinces[plots[0].id.slice(0, 2)] ? plots[0].id.slice(0, 2) : provs[0]?.[0];
+      $("province").value = state.province;
+      const wanted = hash.get("search");
+      if (wanted && (wanted === "all" || searchIndex.provinces[wanted])) { state.province = wanted; $("province").value = wanted; setScope("area"); }
+    }
     $("need").value = needOf(); state.need = needOf(); render();
     footer();
   }
@@ -524,6 +552,7 @@
   }
 
   function renderStations() {
+    if (state.scope === "area") { stationLayer.clearLayers(); ringLayer.clearLayers(); return; }
     $("stations").innerHTML = `<button type="button" class="chip ${state.station ? "" : "on"}" data-sid="">All</button>` +
       stations.sort((a, b) => a.name.localeCompare(b.name)).map(s => `<button type="button" class="chip ${state.station === s.sid ? "on" : ""}" data-sid="${esc(s.sid)}">${esc(s.name)} <small>${s.n}</small></button>`).join("");
     stationLayer.clearLayers(); ringLayer.clearLayers();
@@ -796,6 +825,7 @@
 
   function render() {
     state.need = +$("need").value || 0;
+    if (state.scope === "area") { renderArea(); return; }
     const near = shown(), all = near.filter(p => p.km <= state.km);
     sites = sitesFrom(near);
     sites.sort((a, b) => state.sort === "ha" ? b.area - a.area : a.km - b.km);
@@ -842,6 +872,120 @@
         .on("click", () => selectPlot(p.id, false)).addTo(plotLayer);
     }
     renderCard();
+  }
+
+  // ---------- Area-wide search ----------
+  function expandSearch(d) {
+    const keys = d.distance_keys, n = (index.distance_keys || []).length;
+    const out = d.rows.map(([st, pr, nr, km, ha, u, bm, wm, sl, f, grupa, zone, mp, lat, lon, dd]) => {
+      const [prefix, gmina, obreb] = d.precincts[pr], H = ha / 100;
+      let dv = null;
+      if (dd) { dv = new Array(n).fill(null); keys.forEach((k, i) => { if (DK[k] != null) dv[DK[k]] = dd[i]; }); }
+      return { id: `${prefix}.${nr}`, nr, gmina, obreb, station: d.stations[st], km: km / 100, ha: H, u: u == null ? null : u / 100, bm, wm,
+        sl: sl == null ? null : sl / 10, np: f & 1 ? H : 0, lp: f & 2 ? H : 0, n2: f & 4 ? H : 0, ol: f & 8 ? H : 0,
+        q1: f & 16 ? H : f & 32 ? 1e-4 : 0, klasy: f & 64 ? "RIII" : f & 128 ? "RIV" : "", permit: !!(f & 256),
+        grupa, pg: zone >= 0 ? [[d.zones[zone], H]] : [], mp: mp / 100, lat: lat / 1e4, lon: lon / 1e4, d: dv };
+    });
+    d.rows.forEach((r, i) => { out[i].nx = r[16].map(j => out[j].id); });
+    return out;
+  }
+  // The project's size in MW and the room it needs in its group in 2030: generation room for solar, wind and a battery
+  // (discharging is what the operators' figures limit; charging can often be curtailed), demand room for a data centre.
+  function projectMw() {
+    return { pv: +$("mwp").value || 0, bess: +$("mw").value || 0, wind: turbine().n * turbine().mw, dc: gridDemand() }[state.kind];
+  }
+  const roomFor = a => Math.round((state.kind === "dc" ? a.dem : a.gen)["2030"] || 0);
+  const groupOptions = () => [...$("group").options].map(o => o.value);
+  // The group a station is opened in: the first one in the list (room first, benchmarks last) that it belongs to.
+  function groupOf(sid) { const st = index.stations[sid]; return st ? groupOptions().find(g => st.groups.includes(g)) : null; }
+  function allowedStations() {
+    const mw = projectMw(), ok = new Set();
+    for (const [sid, st] of Object.entries(index.stations)) {
+      const areas = st.groups.map(g => capacity.areas.find(a => a.id === g)).filter(Boolean)
+        .filter(a => a.op !== "pse" && Math.max(a.gen["2030"] || 0, a.dem["2030"] || 0) >= index.rule.min_room_mw);
+      if (areas.some(a => !state.roomOnly || roomFor(a) >= mw)) ok.add(sid);
+    }
+    return ok;
+  }
+  function setScope(scope) {
+    state.scope = scope;
+    [...$("scope").children].forEach(x => x.classList.toggle("on", x.dataset.scope === scope));
+    $("area-inputs").hidden = scope !== "area";
+    $("group-box").hidden = scope === "area";
+    $("recs-box").hidden = true; $("card-box").hidden = true;
+    areaLayer.clearLayers(); plotLayer.clearLayers(); gridLayer.clearLayers(); gridLabels.clearLayers();
+    if (scope === "area") {
+      state.plot = null; areaFit = null; renderStations();
+      history.replaceState(null, "", `#search=${state.province}`);
+      render();
+    } else if (state.group) selectGroup(state.group);
+  }
+  async function renderArea() {
+    const run = ++areaRun, codes = state.province === "all" ? Object.keys(searchIndex.provinces) : [state.province];
+    const name = state.province === "all" ? "Poland" : searchIndex.provinces[state.province].name;
+    $("csv").disabled = $("geojson").disabled = true;
+    $("recs-box").hidden = true; $("card-box").hidden = true;
+    for (const [i, c] of codes.entries()) {
+      if (searchCache[c]) continue;
+      $("area-note").textContent = `Loading ${searchIndex.provinces[c].name}${codes.length > 1 ? ` (${i + 1} of ${codes.length})` : ""}…`;
+      try { searchCache[c] = expandSearch(await get(`../data/land/search/${c}.json`)); }
+      catch (e) { $("area-note").textContent = `Could not load ${searchIndex.provinces[c].name}: ${e.message}`; return; }
+      if (run !== areaRun) return;
+    }
+    const okStations = allowedStations(), pool = codes.flatMap(c => searchCache[c]).filter(p => okStations.has(p.station));
+    const found = sitesFrom(pool);
+    found.sort((a, b) => state.sort === "ha" ? b.area - a.area : a.km - b.km);
+    areaSites = found;
+    const mw = projectMw(), nSt = new Set(found.map(s => s.lead.station)).size;
+    $("area-note").innerHTML = `${pool.length.toLocaleString("en")} plots around ${new Set(pool.map(p => p.station)).size} substations searched` +
+      `${state.roomOnly ? ` (groups with room for ${mw} MW ${state.kind === "dc" ? "of demand" : "of generation"} in 2030)` : ""}. ` +
+      `Each plot counts at its nearest substation; neighbouring plots aren't joined across a province border.` +
+      (state.kind === "wind" && state.windLaw ? " The wind act's distances to national parks, reserves and 220/400 kV lines are checked when you open a site." : "");
+    $("need-note").innerHTML = `<b>${found.length.toLocaleString("en")}</b> ${state.combine > 1 ? `sites (one plot, or up to ${state.combine} neighbouring plots)` : "plots"} with at least ${state.need} ha${state.usable ? " of usable land" : ""} ` +
+      `at most ${state.km} km from a substation, at ${nSt} substations in ${esc(name)}, with the filters above. Click one to open it on the map with its group.`;
+    $("list-title").textContent = `${found.length.toLocaleString("en")} ${state.combine > 1 ? "site" : "plot"}${found.length === 1 ? "" : "s"} big enough in ${name}`;
+    const shownSites = found.slice(0, 300);
+    $("plots").innerHTML = shownSites.map((s, i) => { const p = s.lead, more = s.plots.length > 1, st = index.stations[p.station] || {}, g = capacity.areas.find(a => a.id === groupOf(p.station));
+      return `<div class="plot" data-aid="${i}">` + (more
+        ? `<b>${s.area.toFixed(1)} ha${state.usable ? " usable" : ""} on ${s.plots.length} plots</b> · ${s.km.toFixed(1)} km`
+        : `<b>${p.u != null ? `${p.u.toFixed(1)} ha usable` : `${p.ha.toFixed(1)} ha`}</b>${p.u != null ? ` of ${p.ha.toFixed(1)}` : " (not checked)"} · ${p.km.toFixed(1)} km${p.bm != null ? ` · building ${p.bm < 1000 ? p.bm + " m" : (p.bm / 1000).toFixed(1) + " km"}` : ""}`) +
+        ` · ${esc(st.name || p.station)}` +
+        `<div class="sub">${esc(p.obreb)} ${esc(p.nr)}${more ? ` with ${s.plots.slice(1).map(q => esc(q.nr)).join(", ")}` : ""} · ${esc(p.gmina)}${g ? ` · ${esc(g.name)}: ${roomFor(g)} MW ${state.kind === "dc" ? "out" : "in"}` : ""}</div>${areaBadges(p)}</div>`; }).join("") ||
+      `<div class="plot" style="cursor:default">No site this big in ${esc(name)}. Try a smaller project, combining neighbouring plots, fewer filters${state.roomOnly ? ", or groups without room for the whole project" : ""}.</div>`;
+    if (found.length > 300) $("plots").insertAdjacentHTML("beforeend", `<div class="plot" style="cursor:default;color:var(--muted)">The first 300 of ${found.length.toLocaleString("en")}; narrow the filters or sort by area to see others.</div>`);
+    areaLayer.clearLayers();
+    const red = cssVar("--plot");
+    for (const [i, s] of shownSites.entries()) {
+      const p = s.lead;
+      L.circleMarker([p.lat, p.lon], { radius: 6, color: "#fff", weight: 1.5, fillColor: red, fillOpacity: 0.9 })
+        .bindTooltip(`${s.area.toFixed(1)} ha${s.plots.length > 1 ? ` on ${s.plots.length} plots` : ""} · ${s.km.toFixed(1)} km from ${esc(index.stations[p.station]?.name || p.station)}<br>${esc(p.obreb)} ${esc(p.nr)} · ${esc(p.gmina)}`)
+        .on("click", () => openAreaSite(i)).addTo(areaLayer);
+    }
+    const pts = shownSites.map(s => [s.lead.lat, s.lead.lon]);
+    // Fit the map to the results when the place changes, not on every filter change.
+    if (pts.length && areaFit !== state.province) { map.fitBounds(L.latLngBounds(pts).pad(0.1), { maxZoom: 11 }); areaFit = state.province; }
+  }
+  function areaBadges(p) {
+    const b = [];
+    if (p.permit) b.push(`<span class="tag warn">energy permit on the plot</span>`);
+    if (solarZone(p)) b.push(`<span class="tag good">general plan allows solar</span>`);
+    else if (zoneOf(p)) b.push(`<span class="tag">general plan: ${esc(ZONE_EN[zoneOf(p)[0]] || zoneOf(p)[2])}</span>`);
+    if ((p.mp || 0) > 0) b.push(`<span class="tag">local plan</span>`);
+    if (goodSoil(p).length) b.push(`<span class="tag">class I–III farmland</span>`);
+    const g = groupsOf(p);
+    if (g.length) b.push(`<span class="tag">${esc(g.map(x => OWNER[x] || "group " + x).join(" + "))}</span>`);
+    return b.length ? `<div class="tags">${b.join("")}</div>` : "";
+  }
+  // Open a site from the search on the usual map: its group, then the plot (with its card and checks).
+  async function openAreaSite(i) {
+    const s = areaSites[i]; if (!s) return;
+    const g = groupOf(s.lead.station); if (!g) return;
+    state.scope = "group";
+    [...$("scope").children].forEach(x => x.classList.toggle("on", x.dataset.scope === "group"));
+    $("area-inputs").hidden = true; $("group-box").hidden = false; areaLayer.clearLayers();
+    $("group").value = g;
+    await selectGroup(g);
+    selectPlot(s.lead.id, true);
   }
 
   function badges(p, area) {
@@ -1007,7 +1151,11 @@
     $("combine").addEventListener("change", e => { state.combine = +e.target.value; render(); });
     $("radius").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.km = +b.dataset.km; [...$("radius").children].forEach(x => x.classList.toggle("on", x === b)); renderStations(); render(); });
     $("sort").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; state.sort = b.dataset.sort; [...$("sort").children].forEach(x => x.classList.toggle("on", x === b)); render(); });
-    $("plots").addEventListener("click", e => { const d = e.target.closest(".plot[data-id]"); if (d) selectPlot(d.dataset.id, true); });
+    $("plots").addEventListener("click", e => { const d = e.target.closest(".plot[data-id]"); if (d) selectPlot(d.dataset.id, true);
+      const a = e.target.closest(".plot[data-aid]"); if (a) openAreaSite(+a.dataset.aid); });
+    $("scope").addEventListener("click", e => { const b = e.target.closest("button"); if (b && b.dataset.scope !== state.scope) setScope(b.dataset.scope); });
+    $("province").addEventListener("change", e => { state.province = e.target.value; history.replaceState(null, "", `#search=${state.province}`); render(); });
+    $("room-only").addEventListener("change", e => { state.roomOnly = e.target.checked; render(); });
     $("recs").addEventListener("click", e => { const b = e.target.closest("button[data-i]"); if (b && recs[+b.dataset.i]) applyChange(recs[+b.dataset.i].change); });
     $("csv").addEventListener("click", exportCsv);
     $("geojson").addEventListener("click", exportGeojson);
