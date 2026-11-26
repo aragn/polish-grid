@@ -327,8 +327,9 @@ Everything else on the page is worked out in the browser from these fields:
     general-plan zone for industry or services. The card covers planning, generators (an
     environmental decision may be needed from 25 MW thermal input) and the 2026 connection fees.
 - **Checks:** up to 13 yes/no checks per plot for the chosen project: size, within 1 km of the
-  substation, distance to the nearest home (30 m for solar, 150 m for a battery: common
-  buffers, not legal minimums), a public road within 300 m, no high-voltage line across the
+  substation, distance to the nearest home (30 m for solar, 50 m for a battery: common
+  buffers, not legal minimums; 150 m for a battery until November 2026, when a benchmark of
+  the plots that already have a battery permit found half of them closer), a public road within 300 m, no high-voltage line across the
   plot, no buildings on the plot, width, protected areas, the 1% flood area (any part of it for
   a battery, because of the ban on storing polluting substances), class I–III soil, and the
   general-plan zone, the slope, and no energy permit already on the plot. A check without data

@@ -158,7 +158,7 @@
             <div class="bufgrid" id="bufgrid"></div>
             <div class="count" id="buf-note">Measured from the plot's edge to the nearest object in BDOT10k. A plot is left out when one is closer; the buffers aren't cut out of its area. Presets are starting points used in practice, not legal minimums.</div>
           </details>
-          <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2" class="on">2 km</button><button type="button" data-km="3">3 km</button></div> of a substation</div>
+          <div class="row" style="margin-top:10px">Within <div class="seg" id="radius"><button type="button" data-km="1">1 km</button><button type="button" data-km="2">2 km</button><button type="button" data-km="3" class="on">3 km</button></div> of a substation</div>
           <div class="count" id="need-note"></div>
         </div>
         <div class="box" id="recs-box" hidden>
@@ -199,7 +199,7 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const fmtDate = d => { if (!d) return "–"; const [y, m, day] = d.split("-"); return `${+day} ${MONTHS[+m - 1]} ${y}`; };
   const OPS = { tauron: "TAURON", energa: "ENERGA", pge: "PGE", pse: "PSE" };
-  const state = { group: null, station: null, kind: "pv", need: 24, km: 2, sort: "km", plot: null, usable: true, gap: 0, minWidth: 0, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
+  const state = { group: null, station: null, kind: "pv", need: 24, km: 3, sort: "km", plot: null, usable: true, gap: 0, minWidth: 0, nature: 1, soil: 0, owner: "", flood: 1, zoning: "", combine: 1, buf: {}, access: 0, slope: 0, windLaw: 1 };
   let permits = { precincts: {} }, recs = [], sites = [], selectedSite = new Set(), index, capacity, protectedAreas = {}, zoning = { plans: {}, zones: {}, profiles: {} }, map, plotLayer, stationLayer, ringLayer, plots = [], stations = [];
   const cache = {}, gridCache = {};
   let gridLayer, gridLabels, gridLayerGroup;
@@ -272,7 +272,9 @@
   const ACCESS = [0, 50, 100, 300, 1000];
   const PRESETS = {
     pv: { buf: { home: 30, major_road: 50, railway: 20, hv_line: 10 }, access: 1000 },
-    bess: { buf: { home: 150, housing: 150, major_road: 50, railway: 20, hv_line: 10 }, access: 300 },
+    // Battery buffers from the permits benchmark (Nov 2026): of 114 plots with a battery permit of 1 MW or more, 72% are
+    // at least 50 m from a home and 68% from a housing area, but only half 150 m.
+    bess: { buf: { home: 50, housing: 50, major_road: 50, railway: 20, hv_line: 10 }, access: 300 },
   };
   function buffersOk(p) {
     for (const [key] of BUFFERS) {
@@ -623,7 +625,7 @@
       add(room >= need, `room to take out ${need} MW in the group in 2030`, `${room} MW of demand room in the operator's figures; a data centre is a load, so it needs room to take power out`); }
     if (wind) { const room = Math.round(capacity.areas.find(a => a.id === state.group)?.gen?.["2030"] || 0), t = turbine();
       add(room >= t.n * t.mw, `room to feed in ${t.n * t.mw} MW in the group in 2030`, `${room} MW of generation room in the operator's figures`); }
-    const minGap = { bess: 150, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home");
+    const minGap = { bess: 50, wind: 700, dc: 100 }[kind] ?? 30, home = dist(p, "home");
     const gapWhy = wind ? `the wind act's minimum, which the local plan may set (art. 4(1)); without one it is 10 × the total height, ${10 * turbine().height} m`
       : `a common buffer ${bess ? "for a battery's noise and fire risk" : dc ? "for a data centre's cooling and generator noise" : "for a solar farm"}, not a legal minimum`;
     if (home !== undefined) add(home == null || home >= minGap, `nearest home at least ${minGap} m away`, `${fmtM(home)}; ${gapWhy}`);
