@@ -1436,13 +1436,13 @@
     const perm = p.gp == null ? dot("u", "not read yet") : taken.length ? dot("o", `${taken.map(g => `${PERMIT_EN[g[1]]} permit ${fmtDate(g[0])}`).join("; ")} on the plot`)
       : dot("g", `none on the plot${(p.gn || []).some(d => d != null && d < 1000) ? `; an energy permit ${fmtM(Math.min(...p.gn.filter(d => d != null)))} away` : ""}`);
     const sidesText = s.plots.length > 1 ? geo.map(g => g.sides.length).join(" + ") : String(geo[0].sides.length);
-    return quickKey(p, s, c, sc) +
+    const switches = `<div class="q-box"><label><input type="checkbox" id="q-outline"${qOutline ? " checked" : ""}> Plot outline</label>` +
+      `<label><input type="checkbox" id="q-edges"${qEdges ? " checked" : ""}> Edge lengths</label>` +
+      `<button type="button" class="q-link" id="q-layers">Flood, nature and aviation layers on the map</button></div>`;
+    return quickKey(p, s, c, sc, switches) +
       `<div class="q-h">Site screen</div><table class="q-screen">` +
       row("Environmental", env) + row("Hazards", haz) + row("Buildability", build) + row("Grid", grid) + row("Planning", plan) +
       row("Neighbours", neigh) + row("Aviation", avia) + row("Permits", perm) + `</table>` +
-      `<div class="q-box"><label><input type="checkbox" id="q-outline"${qOutline ? " checked" : ""}> Plot outline</label>` +
-      `<label><input type="checkbox" id="q-edges"${qEdges ? " checked" : ""}> Edge lengths</label>` +
-      `<button type="button" class="q-link" id="q-layers">Flood, nature and aviation layers on the map</button></div>` +
       `<div class="q-box">` +
       (egib != null ? `<div class="q-kv"><span>Register area</span><span>${egib.toFixed(2)} ha</span></div>` : "") +
       `<div class="q-kv"><span>Measured area</span><span>${ha.toFixed(2)} ha${egib != null ? `<small>${(Math.abs(ha / egib - 1) * 100).toFixed(1)}% from the register</small>` : ""}</span></div>` +
@@ -1478,7 +1478,7 @@
     const hv = dist(p, "hv_line");
     return stat("HV line", hv === undefined ? "–" : fmtM(hv), "110 kV supply");
   }
-  function quickKey(p, s, c, sc) {
+  function quickKey(p, s, c, sc, between = "") {
     const st = index.stations[p.station] || {}, area = capacity.areas.find(a => a.id === groupOf(p.station));
     const conn = connectionCalc(p).facts, mw = projectMw();
     const room = conn ? conn.room : area ? roomFor(area) : null;
@@ -1500,7 +1500,7 @@
       stat("Room 2030", room != null ? `${room} MW` : "–", area ? esc(area.name) : "") +
       stat("Zoning", zone, zoneNote) +
       stat("Owner", owners.length ? esc(owners[0].split(",")[0]) : "–", owners.length > 1 ? "and others" : p.grupa ? "" : "not published") +
-      resourceStat(p) + `</div>` +
+      resourceStat(p) + `</div>` + between +
       `<p class="q-text">${verdict}</p><p class="q-text">${where}</p><p class="q-text">${plan}${own}</p>`;
   }
   function quickChecks(c, sc) {
