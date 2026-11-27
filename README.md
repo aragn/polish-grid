@@ -122,7 +122,15 @@ from the Energy Regulatory Office's public API (api.ure.gov.pl, reused with the 
 generation and storage licences and its installations in the register of small installations. Names are matched
 after cutting any appended address and the legal form; numbered project companies ("Greenvolt Energy 16") are also
 grouped; URE's registers are matched only for names with a legal form. Only counts and dates are kept. The project
-card shows the record; it is not part of the score until outcomes from 2027 can test it. Run it after the queue
+card shows the record; it is not part of the score until outcomes from 2027 can test it.
+
+`etl/queue_permits.py` adds building-permit leads (`data/queue_permits.json`): GUNB's solar, battery and wind decisions
+since 2018 (typed and sized from the free text, never the investor, designer or text), placed at the centre of their
+precinct with GUGiK's ULDK (cached in `data/precincts.json`, one lookup per new precinct), are matched to each project
+placed at its substation: its technology, within 5 km (15 km for PSE), decided no earlier than a year before its
+conditions. A strong lead states a size within 0.8-1.25 times the project's; a permit with no size is a weak lead and
+only within 3 km; each permit goes to the one project it fits best. The project card shows the lead. Run it after the
+queue updates; the first run took about 35 minutes for 9,686 precincts, later runs a few minutes. Run it after the queue
 updates (it reads two URE resources, within URE's limit of 3 requests per 10 seconds).
 
 ## Unit output page
