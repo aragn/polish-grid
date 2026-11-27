@@ -93,7 +93,8 @@ def query(url, where, fields):
                   "orderByFields": "OBJECTID", "f": "geojson"}
         for attempt in range(5):
             try:
-                response = requests.get(url, params=params, headers=UA, timeout=300)
+                # A server that is down never accepts the connection: give up on that in 30 s, not 300.
+                response = requests.get(url, params=params, headers=UA, timeout=(30, 300))
                 response.raise_for_status()
                 features = response.json()["features"]
                 break
@@ -225,7 +226,14 @@ def main(redo_all=False, gdos=None):
     if not todo:
         return False
     t0 = time.time()
-    areas = load_areas_gdos(gdos) if gdos else load_areas()
+    try:
+        areas = load_areas_gdos(gdos) if gdos else load_areas()
+    except requests.RequestException as error:
+        # EEA's service is down at times for days (Nov 2026): leave these plots for the next run, which checks them
+        # first, rather than failing the whole job.  The warning shows on the run's summary page.
+        print(f"::warning title=EEA protected areas unavailable::{len(todo)} plots left unchecked for the next run "
+              f"({type(error).__name__}: {str(error)[:200]})", flush=True)
+        return False
     print(f"Land protected areas: {len(areas)} areas {'read from GDOS files' if gdos else 'downloaded'} in {time.time() - t0:.0f} s", flush=True)
     tree = shapely.STRtree([a[4] for a in areas])
     n2k = [a for a in areas if a[1] == "n2k"]
