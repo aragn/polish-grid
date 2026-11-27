@@ -575,6 +575,17 @@
     4: "municipality", 5: "municipality, with perpetual usufructuaries", 6: "municipal companies and other local-government legal persons",
     7: "private persons", 8: "cooperatives", 9: "churches and religious bodies", 10: "land communities", 11: "county (powiat)",
     12: "county, with perpetual usufructuaries", 13: "region (województwo)", 14: "region, with perpetual usufructuaries", 15: "companies", 16: "other owners" };
+  // State Treasury farmland is mostly managed by KOWR, whose regional branches (OT) publish monthly tender schedules on
+  // gov.pl; its property search (nieruchomoscikowr.gov.pl) has the offers, including investment land.  Zachodniopomorskie
+  // has two branches (Szczecin, Koszalin): the index lists both.  A monthly flag of the plots in the schedules is planned.
+  const KOWR_OT = { "02": "ot-wroclaw2", "04": "ot-bydgoszcz3", "06": "ot-lublin2", "08": "ot-gorzow-wlkp---zielona-gora", "10": "ot-lodz2", "12": "ot-krakow2",
+    "14": "ot-warszawa2", "16": "ot-opole2", "18": "ot-rzeszow2", "20": "ot-bialystok3", "22": "ot-pruszcz-gdanski2", "24": "ot-czestochowa3", "26": "ot-kielce3",
+    "28": "ot-olsztyn2", "30": "ot-poznan2", "32": "harmonogramy" };
+  function kowrHint(p) {
+    if (!groupsOf(p).includes(1)) return "";
+    const ot = KOWR_OT[p.id.slice(0, 2)] || "harmonogramy";
+    return `<br><span style="color:var(--muted)">State Treasury farmland is mostly managed by KOWR (the National Support Centre for Agriculture), which sells or leases it by tender; farmland is often offered to local farmers only (agricultural system act). See the <a href="https://www.gov.pl/web/kowr/${ot}" target="_blank" rel="noopener">tender schedules of its branch</a> and its <a href="https://www.nieruchomoscikowr.gov.pl/nieruchomosci/oferty" target="_blank" rel="noopener">property search</a>, which also lists land for investment, wind farms included. State Forests' land is State Treasury land too.</span>`;
+  }
   const OWNER_SETS = { state: [1, 2, 3], local: [4, 5, 6, 11, 12, 13, 14], private: [7], company: [15], other: [8, 9, 10, 16] };
   const groupsOf = p => String(p.grupa || "").split(",").map(Number).filter(Boolean);
   function ownerOk(p) { if (!state.owner) return true; const g = groupsOf(p); return g.length > 0 && g.every(x => OWNER_SETS[state.owner].includes(x)); }
@@ -1746,7 +1757,7 @@
       ["Zoning", zoningText(p)],
       ["Flood", floodText(p)],
       ["Planning", planningText(p)],
-      ["Owner group", p.grupa ? `${groupsOf(p).map(x => `${esc(OWNER[x] || "group " + x)} (group ${x})`).join(" and ")}. The kind of owner, not who.` : "not published by this county's service"],
+      ["Owner group", p.grupa ? `${groupsOf(p).map(x => `${esc(OWNER[x] || "group " + x)} (group ${x})`).join(" and ")}. The kind of owner, not who.${kowrHint(p)}` : "not published by this county's service"],
       ["Data gaps", gapsHtml(p)],
       ["Look further", `<a href="https://mapy.geoportal.gov.pl/imap/Imgp_2.html?identifyParcel=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">Geoportal</a> (classes, zoning, orthophotos) · ` +
         `<a href="https://browser.dataspace.copernicus.eu/?zoom=15&lat=${lat.toFixed(5)}&lng=${lon.toFixed(5)}" target="_blank" rel="noopener">Copernicus Browser</a> (Sentinel-2 history) · ` +
