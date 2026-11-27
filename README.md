@@ -109,6 +109,22 @@ land/index.html               the land page
 data/land/                    plots around the shortlisted substations (etl/land.py)
 ```
 
+## Maturity and developer record
+
+Projects holding connection conditions get a maturity score on the queue page (column, card, CSV), from rules
+backtested in November 2026 on TAURON solar projects of 50 kW-1 MW, with outcomes from the lists and URE's register of
+small installations: of each band, this share reached an agreement or was built within two to three years, high 59%,
+medium 37%, low 11%. For projects holding an agreement the same signals had no skill, so they get no score.
+
+As evidence for those, `etl/developers.py` writes `data/developers.json`: each applicant's projects in every list
+and how they ended (connected or running, withdrawn, refused or lapsed only when a list says so, still queued), and,
+from the Energy Regulatory Office's public API (api.ure.gov.pl, reused with the source and date named), its electricity
+generation and storage licences and its installations in the register of small installations. Names are matched
+after cutting any appended address and the legal form; numbered project companies ("Greenvolt Energy 16") are also
+grouped; URE's registers are matched only for names with a legal form. Only counts and dates are kept. The project
+card shows the record; it is not part of the score until outcomes from 2027 can test it. Run it after the queue
+updates (it reads two URE resources, within URE's limit of 3 requests per 10 seconds).
+
 ## Unit output page
 
 `output/` reads PSE's public API in the browser for the chosen dates (up to 31

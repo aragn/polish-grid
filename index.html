@@ -969,6 +969,39 @@
     if (p.phase === "agreement" && !p.left) return `<span class="sub" title="Among projects holding an agreement, the backtest found no signal that predicts which get built">no score yet</span>`;
     return `<span class="sub">—</span>`;
   }
+  /* ---- The applicant's track record (data/developers.json from etl/developers.py): its projects in every list and
+     their outcomes, and URE's licences and register of small installations, matched by company name.  Evidence for
+     projects holding an agreement, where the maturity score has no skill; not part of the score until outcomes from
+     2027 can test it. ---- */
+  let developers = null, developersLoading = false;
+  function loadDevelopers() {
+    if (developers || developersLoading) return;
+    developersLoading = true;
+    fetch("data/developers.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => {
+      developers = d || { names: {}, groups: {}, applicants: {} };
+      if (state.openId != null) { const p = queue.projects.find(q => q.id === state.openId); if (p) renderFacts(p); }
+    }).catch(() => { developers = { names: {}, groups: {}, applicants: {} }; });
+  }
+  function recordText(r) {
+    const parts = [`${r.projects} project${r.projects === 1 ? "" : "s"} in the operators' lists${r.first ? ` since ${fmtMonth(r.first)}` : ""}: ` +
+      `${r.built} connected or running, ${r.dropped} withdrawn, refused or lapsed, ${r.in_queue} still queued`];
+    const ure = [];
+    if (r.generation_licences) ure.push(`${r.generation_licences} electricity generation licence${r.generation_licences === 1 ? "" : "s"}${r.licence_since ? ` (since ${r.licence_since.slice(0, 4)})` : ""}`);
+    if (r.storage_licences) ure.push(`${r.storage_licences} storage licence${r.storage_licences === 1 ? "" : "s"}`);
+    if (r.small_installations) ure.push(`${r.small_installations} small installation${r.small_installations === 1 ? "" : "s"} running (${r.small_mw} MW${r.small_since ? `, since ${r.small_since.slice(0, 4)}` : ""})`);
+    parts.push(ure.length ? `in URE's registers: ${ure.join(", ")}` : "nothing in URE's registers of licences and small installations");
+    return parts.join("; ");
+  }
+  function developerFact(p) {
+    if (!p.applicant) return null;
+    if (!developers) { loadDevelopers(); return ["Developer's record", "loading…"]; }
+    const key = developers.applicants[p.applicant], r = key && developers.names[key];
+    if (!r) return null;
+    const g = r.group && developers.groups[r.group];
+    return ["Developer's record", `${esc(recordText(r))}.` +
+      (g ? `<br>Its group of ${g.companies} numbered companies ("${esc(r.group)} …"): ${esc(recordText(g))}.` : "") +
+      `<br><span style="color:var(--muted)">Matched by company name; most lists name applicants only since 2025, so records are short. ${p.phase === "agreement" ? "For projects holding an agreement this is the evidence the maturity score lacks; " : ""}not part of the score until outcomes from 2027 can test it. URE: api.ure.gov.pl, read ${esc(developers.built)} (licences WEE and MEE, register of small installations).</span>`, true];
+  }
   function maturityFact(p) {
     const m = maturity(p);
     if (m) return ["Maturity", `<b>${m.band.label}</b>, score ${m.score}: ${m.parts.map(([t, v]) => `${esc(t)} (${v > 0 ? "+" : ""}${v})`).join("; ")}. ` +
@@ -1304,7 +1337,8 @@
       ["Advance paid", p.advance ? fmtDate(p.advance) : ""],
       [`${GRID_SHORT[gridOf(p)]}'s lists`, `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtDate(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtDate(p.last_seen)}</a>`, true]
     ].filter(([, value]) => value);
-    const mf = maturityFact(p);
+    const mf = maturityFact(p), df = developerFact(p);
+    if (df) facts.splice(1, 0, df);
     if (mf) facts.splice(1, 0, mf);
     document.getElementById("d-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
   }
