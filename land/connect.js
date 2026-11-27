@@ -18,6 +18,7 @@
     mv30CircuitMw: 20,                 // one 30 kV circuit, as used inside large plants
     hvAboveMw: 20,                     // above this, 110 kV: connection group II
     ehvAboveMw: 250,                   // above this, usually 220/400 kV to a PSE station
+    largeHvMw: 150,                    // above this, one 110 kV bay and cable is often not enough: two, or PSE (practice, not law)
     mvCablePerKm: [0.2e6, 0.35e6],     // one 15–20 kV circuit in open trench: operators' 2026 rates of PLN 195–220/m; 200–230k/km for 3×70–120 (forum, 2019)
     mv30CablePerKm: [0.3e6, 0.55e6],   // ASSUMPTION: one 30 kV circuit, 3×1×240–400 mm² Al, trench included
     extraCircuitShare: 0.6,            // each further circuit in the same trench (cable and laying, no new trench)
@@ -179,6 +180,8 @@
     return mid(d2) < mid(d) ? { r: r.alt, d: d2, other: { r, d } } : { r, d, other: { r: r.alt, d: d2 } };
   }
 
+  const LARGE = `Above about ${CONNECT.largeHvMw} MW one 110 kV cable and bay is often not enough (in practice a single 110 kV circuit carries about 100–150 MW, and an operator rarely gives one plant more of a GPZ): expect it to ask for two bays and two cables, possibly to two GPZs, or to point the plant to a PSE station at 220/400 kV.`;
+
   /* The design and its costs.  o: { mw, mwh, kind: "bess" | "pv" | "wind" | "dc", usableHa, stName, route } */
   function design(o) {
     const C = CONNECT, mw = Math.max(0.1, o.mw), kw = mw * 1000, r = o.route, km = r.km;
@@ -239,7 +242,7 @@
       else if (o.kind === "wind") fits = [true, "turbine positions need a separate layout (spacing, 500 m from homes)"];
       else fits = [o.usableHa >= mw / 8, `about ${(mw / 8).toFixed(1)} ha for ${mw} MW of IT load at ~8 MW per ha of building and plant`];
     }
-    return { level, what, circuits, transformers, items, total, developer, opWorks, fee, share, application, advance, security, timeline, permits, fits, group: level === "mv" ? "III" : level === "hv" ? "II" : "I" };
+    return { mw, level, what, circuits, transformers, items, total, developer, opWorks, fee, share, application, advance, security, timeline, permits, fits, group: level === "mv" ? "III" : level === "hv" ? "II" : "I" };
   }
 
   const pln = ([lo, hi]) => { const f = v => v >= 1e6 ? (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) : (v / 1e6).toFixed(2); return `PLN ${f(lo)}–${f(hi)} m`; };
@@ -255,7 +258,7 @@
     return `<div style="font-size:13px;line-height:1.5">
       <div style="margin-bottom:8px"><b>${d.level === "mv" ? "Medium voltage" : d.level === "hv" ? "110 kV" : "220/400 kV"}</b>, connection group ${d.group}: ${esc(d.what)}.</div>
       <div style="margin-bottom:8px;color:var(--muted)">${d.level === "mv" ? `Up to about ${CONNECT.hvAboveMw} MW the operator takes the plant on its medium-voltage busbars: no transformer of the plant's own beyond its inverter stations.`
-        : d.level === "hv" ? `Why a substation of the plant's own: above about ${CONNECT.hvAboveMw} MW the operators connect at 110 kV, and the GPZ's own 110/15 kV transformers feed the local MV network and can't take this power. So the plant steps up to 110 kV itself, as solar farms and batteries of this size in Poland do (a "GPO", owned by the developer); the operator's GPZ stays as it is and only gets a 110 kV line bay. When the GPZ is next door the GPO can stand beside it, but it is still the plant's.`
+        : d.level === "hv" ? `Why a substation of the plant's own: above about ${CONNECT.hvAboveMw} MW the operators connect at 110 kV, and the GPZ's own 110/15 kV transformers feed the local MV network and can't take this power. So the plant steps up to 110 kV itself, as solar farms and batteries of this size in Poland do (a "GPO", owned by the developer); the operator's GPZ stays as it is and only gets a 110 kV line bay. When the GPZ is next door the GPO can stand beside it, but it is still the plant's.${d.mw > CONNECT.largeHvMw ? " " + LARGE : ""}`
         : "At this size PSE connects at 220 or 400 kV; the plant brings its own 400(220)/MV substation."}</div>
       <div style="margin-bottom:8px">Route: ${how}${other ? `; cheaper than ${other.r.method === "roads" ? `following the roads (${other.r.km.toFixed(2)} km, ${pln(other.d.total)})` : `going across the fields (${other.r.km.toFixed(2)} km with easements all the way, ${pln(other.d.total)})`}` : ""}. Crossings: ${r.cross.river} watercourse${r.cross.river === 1 ? "" : "s"}, ${r.cross.ditch} ditch${r.cross.ditch === 1 ? "" : "es"}, ${r.cross.rail} railway${r.cross.rail === 1 ? "" : "s"}.</div>
       ${d.fits ? `<div style="margin-bottom:8px">On the plot: ${d.fits[0] ? "fits" : "<b>tight</b>"}: ${esc(d.fits[1])}.</div>` : ""}
