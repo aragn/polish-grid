@@ -77,6 +77,12 @@
     throw err || new Error("Overpass unavailable");
   }
 
+  /* A local roads file (build_roads.py: integers ×1e5, differences after the first point) in the shape route() reads. */
+  function decode(j) {
+    const k = j.s || 1e5, pts = (a, from) => { const g = []; let x = 0, y = 0; for (let i = from; i < a.length; i += 2) { x += a[i]; y += a[i + 1]; g.push([x / k, y / k]); } return g; };
+    return { roads: j.roads.map(r => [j.hw[r[0]], pts(r, 1)]), water: (j.water || []).map(w => [j.wk[w[0]], w[1] >= 0 ? j.names[w[1]] : "", pts(w, 2)]), rail: (j.rail || []).map(r => pts(r, 0)) };
+  }
+
   // Shortest path on the road graph (Dijkstra with a binary heap).
   function shortest(adj, from, to) {
     const dist = new Map([[from, 0]]), prev = new Map(), heap = [[0, from]];
@@ -104,7 +110,7 @@
     // roads: a local file first (opts.roads: a promise or the data), then the Overpass API, else a straight line
     let net = null, note = null, source = "";
     if (straight > 150) {
-      try { net = opts.roads ? await opts.roads : null; if (net) source = "file"; } catch (e) { net = null; }
+      try { net = opts.roads ? await opts.roads : null; if (net && net.v) net = decode(net); if (net) source = "file"; } catch (e) { net = null; }
       if (!net) { try { net = await overpass(bbox); source = "overpass"; } catch (e) { note = "OpenStreetMap roads couldn't be read just now: the route goes in a straight line across the fields"; } }
     }
     net = net || { roads: [], water: [], rail: [] };
@@ -256,7 +262,7 @@
       <div style="margin:10px 0 4px"><b>Cash up front:</b> application fee ${plnOne(d.application)} (not refunded); advance ${plnOne(d.advance)} within 14 days of applying; security ${plnOne(d.security)} within 14 days of signing the agreement (art. 7(8a)–(8c1)).</div>
       <div style="margin:10px 0 4px"><b>Timeline:</b> ${d.timeline.map(t => `${esc(t[0])} <b>${esc(t[1])}</b>`).join(" · ")}.</div>
       <div style="margin:10px 0 4px"><b>Permits along the route:</b> ${d.permits.map(esc).join("; ")}.</div>
-      <div style="color:var(--muted);font-size:11.5px;margin-top:8px">Screening ranges (PLN, net, 2026), not a quote; figures marked as assumptions in connect.js want a contractor's price. The operator sets the connection point, voltage and fee in the conditions. Roads: © OpenStreetMap contributors (ODbL), read from the Overpass API.</div></div>`;
+      <div style="color:var(--muted);font-size:11.5px;margin-top:8px">Screening ranges (PLN, net, 2026), not a quote; figures marked as assumptions in connect.js want a contractor's price. The operator sets the connection point, voltage and fee in the conditions. Roads: © OpenStreetMap contributors (ODbL)${r.source === "file" ? ", Geofabrik extract" : r.source === "overpass" ? ", read from the Overpass API" : ""}.</div></div>`;
   }
 
   /* Draw the configuration on a Leaflet map; returns the layer group. */
@@ -275,5 +281,5 @@
     return g;
   }
 
-  root.GridConnect = { CONNECT, route, design, plan, html, draw, pln };
+  root.GridConnect = { CONNECT, route, design, plan, html, draw, pln, decode };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -333,7 +333,7 @@ Everything else on the page is worked out in the browser from these fields:
   against the acts in force on 26 November 2026.
 - **Build the configuration (plot card and the summary card's Connection tab):** `land/connect.js`, on
   a click. It reads the OpenStreetMap roads, tracks, watercourses and railways around the plot and the
-  substation from the Overpass API (one query; public instances in turn, 15 s each), finds the
+  substation from the Overpass API (one query; public instances in turn, 15 s each) when the local file below is missing, finds the
   shortest cable route along them, and costs it against a straight route across the fields
   (+15%, easements all the way), keeping the cheaper. It sizes the design (MV: 15–20 kV circuits of
   8 MW; above 20 MW: the plant's own 110/MV substation with 63 MVA transformers and a 110 kV cable to
@@ -344,7 +344,10 @@ Everything else on the page is worked out in the browser from these fields:
   on the map. Calibration: operators' 2026 rates for 15–20 kV cable (PLN 195–220/m), Enea Operator's
   129 transformers of 25–40 MVA for over PLN 444 m, Elektrotim–Solartech (PLN 53 m for two 110/20 kV
   substations with a 110 kV cable), PGE's GPZ Czosnów (about PLN 18 m); the rest are assumptions
-  marked in the file. Roads © OpenStreetMap contributors (ODbL).
+  marked in the file. Roads © OpenStreetMap contributors (ODbL). The roads come from
+  `data/land/roads/<station>.json` (`etl/land_roads.py`, from Geofabrik's Poland extract of 27 Nov 2026:
+  roads, tracks, watercourses and railways within 4.5 km of each substation, thinned to 3 m with every
+  junction kept; 93 MB for the 775 substations); the Overpass API is asked only when a file is missing.
 - **Soil classes:** the legal soil class (I–VI) is on 86k of the 318k plots, where the county's
   EGiB service publishes it. KIEG (GUGiK's integration of the county services) has nothing more:
   none of 40 sampled counties without classes had them there (24 Nov 2026). The map offers GUGiK's

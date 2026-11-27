@@ -1411,13 +1411,16 @@
       `<span style="color:var(--muted);font-size:12px"> cable route along roads, design and costs, on the map</span></div>` +
       (done ? `<div class="conn-out">${GridConnect.html(connLast.r, connLast.d, connLast.other)}</div>` : connLast && connLast.err && connLast.key === connKey(p) ? `<p style="color:var(--muted)">${esc(connLast.err)}</p>` : "");
   }
+  // The roads around each substation (data/land/roads/<station>.json, etl/land_roads.py); without a file connect.js asks Overpass.
+  let roadsIndexP = null;
+  const roadsFor = sid => (roadsIndexP ||= get("../data/land/roads/index.json").catch(() => [])).then(ix => ix.includes(sid) ? get(`../data/land/roads/${encodeURIComponent(sid)}.json`) : null).catch(() => null);
   async function buildConfig() {
     const p = plots.find(q => q.id === state.plot), st = p && index.stations[p.station];
     if (!p || !p.geom || !st || st.lat == null || connBusy) return;
     connBusy = true; renderCard();
     const key = connKey(p);
     try {
-      const route = await GridConnect.route(p.geom[0][0], { lon: st.lon, lat: st.lat });
+      const route = await GridConnect.route(p.geom[0][0], { lon: st.lon, lat: st.lat }, { roads: roadsFor(p.station) });
       const mw = projectMw(), { r, d, other } = GridConnect.plan({ mw, mwh: state.kind === "bess" ? +$("mwh").value || 0 : 0, kind: state.kind, usableHa: p.u ?? p.ha, stName: st.name }, route);
       connLast = { key, r, d, other };
       if (connLayer) connLayer.remove();
