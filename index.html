@@ -136,6 +136,10 @@
     .list .name { font-weight:550; }
     .chip { display:inline-flex; align-items:center; gap:6px; background:var(--chip); border-radius:999px; padding:2px 9px 2px 7px; font-size:12px; white-space:nowrap; }
     .chip i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .mat { display:inline-block; font-size:12px; padding:2px 8px; border-radius:6px; font-weight:600; white-space:nowrap; }
+    .mat-high { background:rgba(48,209,88,.18); color:#1f8f3d; } .mat-medium { background:rgba(255,159,10,.18); color:#b46a00; } .mat-low { background:rgba(255,69,58,.15); color:#c22d24; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mat-high { color:#5fd47c; } :root:not([data-theme="light"]) .mat-medium { color:#ffb340; } :root:not([data-theme="light"]) .mat-low { color:#ff6b61; } }
+    :root[data-theme="dark"] .mat-high { color:#5fd47c; } :root[data-theme="dark"] .mat-medium { color:#ffb340; } :root[data-theme="dark"] .mat-low { color:#ff6b61; }
     .phase { display:inline-block; font-size:12px; padding:2px 8px; border-radius:6px; border:1px solid var(--border); white-space:nowrap; }
     .pager { display:flex; align-items:center; gap:8px; padding:10px 16px; color:var(--muted); font-size:12.5px; }
     .pager .btn:disabled { opacity:.4; cursor:default; }
@@ -917,6 +921,63 @@
     return `<span class="phase" style="border-color:${color}">${esc(phase.label)}</span>${detail ? `<div class="sub">${esc(detail)}</div>` : ""}`;
   }
 
+  /* ---- Maturity score, for projects holding connection conditions only.  Rules and bands from the backtest of 27 Nov
+     2026: TAURON solar projects of 50 kW-1 MW holding conditions in June 2023 or June 2024 (781), outcomes by Sep 2026
+     from the operators' lists and URE's register of small installations (api.ure.gov.pl, MIOZE).  Of each band, this
+     share reached an agreement or was built within 27-39 months.  For projects holding an agreement the same signals
+     showed no skill, so they get no score.  Larger plants and other technologies: indicative only. ---- */
+  const MATURITY_BANDS = [
+    { min: 20, key: "high", label: "High", rate: 0.59, n: 367 },
+    { min: 10, key: "medium", label: "Medium", rate: 0.37, n: 314 },
+    { min: -99, key: "low", label: "Low", rate: 0.11, n: 100 }
+  ];
+  let maturityCache = null, maturityCount = -1;
+  function buildMaturity() {
+    const live = queue.projects.filter(p => !p.left && ["application", "study", "conditions", "agreement"].includes(p.phase));
+    const place = p => `${gridOf(p)}|${p.stations[0] || p.station || ""}`;
+    const mwBy = new Map();
+    for (const p of live) mwBy.set(place(p), (mwBy.get(place(p)) || 0) + (p.mw || 0));
+    // "Crowded": the place's queued MW in the top fifth of that operator's places.
+    const sums = {};
+    for (const [k, v] of mwBy) { const g = k.split("|")[0]; if (k.split("|")[1]) (sums[g] ||= []).push(v); }
+    const crowded = Object.fromEntries(Object.entries(sums).map(([g, v]) => { v.sort((a, b) => a - b); return [g, v[Math.floor(v.length * 0.8)]]; }));
+    const cond = live.filter(p => p.phase === "conditions" && p.conditions).sort((a, b) => a.conditions.localeCompare(b.conditions));
+    const seen = new Set(), out = new Map();
+    for (const p of cond) {
+      const ref = new Date(p.last_seen || queue.asof), months = (ref - new Date(p.conditions)) / 2.63e9;
+      const parts = [["Connection conditions issued", 10]];
+      if (months <= 12) parts.push([`Conditions ${Math.max(0, Math.round(months))} months old at the last list: fresh`, 10]);
+      else if (months > 36) parts.push([`Conditions ${Math.round(months)} months old at the last list: stale`, -10]);
+      const k = place(p);
+      if (k.split("|")[1] && mwBy.get(k) >= crowded[gridOf(p)]) parts.push(["Its station or municipality is among the most crowded fifth (queued MW)", -5]);
+      const dup = `${k}|${p.technology}|${(p.mw || 0).toFixed(3)}`;
+      if (seen.has(dup)) parts.push(["Same place, technology and MW listed before (a likely duplicate)", -10]);
+      seen.add(dup);
+      if ((p.mw || 0) >= 0.5) parts.push(["0.5 MW or more", 5]);
+      const score = parts.reduce((s, [, v]) => s + v, 0);
+      out.set(p.id, { score, band: MATURITY_BANDS.find(b => score >= b.min), parts });
+    }
+    return out;
+  }
+  function maturity(p) {
+    if (!maturityCache || maturityCount !== queue.projects.length) { maturityCache = buildMaturity(); maturityCount = queue.projects.length; }
+    return maturityCache.get(p.id) || null;
+  }
+  function maturityCell(p) {
+    const m = maturity(p);
+    if (m) return `<span class="mat mat-${m.band.key}" title="Score ${m.score}: ${esc(m.parts.map(([t, v]) => `${t} (${v > 0 ? "+" : ""}${v})`).join("; "))}">${m.band.label}</span><div class="sub">~${Math.round(m.band.rate * 100)}% advance</div>`;
+    if (p.phase === "agreement" && !p.left) return `<span class="sub" title="Among projects holding an agreement, the backtest found no signal that predicts which get built">no score yet</span>`;
+    return `<span class="sub">—</span>`;
+  }
+  function maturityFact(p) {
+    const m = maturity(p);
+    if (m) return ["Maturity", `<b>${m.band.label}</b>, score ${m.score}: ${m.parts.map(([t, v]) => `${esc(t)} (${v > 0 ? "+" : ""}${v})`).join("; ")}. ` +
+      `Of ${m.band.n} TAURON solar projects of 50 kW–1 MW in this band in 2023–2024, ${Math.round(m.band.rate * 100)}% reached an agreement or were built within two to three years ` +
+      `(high ${Math.round(MATURITY_BANDS[0].rate * 100)}%, medium ${Math.round(MATURITY_BANDS[1].rate * 100)}%, low ${Math.round(MATURITY_BANDS[2].rate * 100)}%). ` +
+      `<span style="color:var(--muted)">Backtested on small solar plants only; for larger plants and other technologies indicative. Built: the operators' lists and URE's register of small installations.</span>`, true];
+    if (p.phase === "agreement" && !p.left) return ["Maturity", "No score for projects holding an agreement yet: in the backtest, freshness, crowding and size didn't tell which get built. Permits on the site, works on satellite images and the developer's record are the next signals to add."];
+    return null;
+  }
   function renderTable(items) {
     const sorted = [...items].sort(SORTS[state.sort]);
     const pages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
@@ -927,7 +988,7 @@
     document.getElementById("table-sub").textContent = state.month === queue.months.length - 1
       ? `The operators' latest lists (PSE ${fmtMonth(queue.asof)}); click a project for its milestones and history`
       : `Phase as in the lists of ${fmtMonth(queue.months[state.month])} (the distribution operators': the latest before it); other columns as last listed`;
-    const head = `<thead><tr><th>Project</th><th>Technology</th><th class="num">MW in / out</th><th>Station</th><th>Phase</th><th>Conditions</th><th>Agreement</th><th>Connection date</th></tr></thead>`;
+    const head = `<thead><tr><th>Project</th><th>Technology</th><th class="num">MW in / out</th><th>Station</th><th>Phase</th><th title="For projects holding conditions: the share of similar projects that reached an agreement or were built within two to three years (backtest, Nov 2026)">Maturity</th><th>Conditions</th><th>Agreement</th><th>Connection date</th></tr></thead>`;
     const body = pageItems.map(item => {
       const p = item.project, row = techRow(p);
       return `<tr data-id="${p.id}" tabindex="0">` +
@@ -935,10 +996,10 @@
         `<td><span class="chip"><i style="background:${cssVar(row.color)}"></i>${esc(row.label)}</span><div class="sub">${esc(p.type)}</div></td>` +
         `<td class="num">${p.mw_in != null ? Math.round(p.mw_in * 10) / 10 : "—"} / ${p.mw_out != null ? Math.round(p.mw_out * 10) / 10 : "—"}</td>` +
         `<td>${esc(p.stations.join(", ") || p.station || "—")}<div class="sub">${esc([GRID_SHORT[gridOf(p)], p.region, kvText(p.kv)].filter(Boolean).join(" · "))}</div></td>` +
-        `<td>${phaseBadge(item)}</td>` +
+        `<td>${phaseBadge(item)}</td><td>${maturityCell(p)}</td>` +
         `<td class="date">${fmtDate(p.conditions)}</td><td class="date">${fmtDate(p.agreement)}</td><td class="date">${fmtDate(p.deadline)}</td></tr>`;
     }).join("");
-    document.getElementById("list").innerHTML = head + `<tbody>${body || `<tr><td colspan="8" style="color:var(--muted)">No project matches the filters.</td></tr>`}</tbody>`;
+    document.getElementById("list").innerHTML = head + `<tbody>${body || `<tr><td colspan="9" style="color:var(--muted)">No project matches the filters.</td></tr>`}</tbody>`;
     document.getElementById("pager").innerHTML = `<button class="btn" type="button" data-page="-1" ${state.page === 0 ? "disabled" : ""}>← Previous</button>` +
       `<span>Page ${state.page + 1} of ${pages}</span><button class="btn" type="button" data-page="1" ${state.page >= pages - 1 ? "disabled" : ""}>Next →</button>`;
   }
@@ -949,7 +1010,7 @@
       ["pse_type", p => p.type], ["mw_in", p => p.mw_in], ["mw_out", p => p.mw_out], ["station", p => p.stations.join("; ") || p.station], ["voivodeship", p => p.region],
       ["kv", p => p.kv], ["status", p => STATUS_LABEL[p.status] || p.status], ["applied", p => p.applied], ["complete", p => p.milestones.complete?.date],
       ["conditions", p => p.conditions], ["agreement", p => p.agreement], ["connection_date", p => p.deadline],
-      ["phase", p => PHASE[p.phase]?.label], ["operational_since", p => p.connected || p.running?.since || p.milestones.connected?.date], ["running_evidence", p => p.running ? `${p.running.source}: ${p.running.unit}` : ""],
+      ["phase", p => PHASE[p.phase]?.label], ["maturity_score", p => maturity(p)?.score ?? ""], ["maturity_band", p => maturity(p)?.band.label ?? ""], ["operational_since", p => p.connected || p.running?.since || p.milestones.connected?.date], ["running_evidence", p => p.running ? `${p.running.source}: ${p.running.unit}` : ""],
       ["first_listed", p => p.first_seen], ["last_listed", p => p.last_seen],
       ["lat", p => p.lat], ["lon", p => p.lon]];
     const csv = [columns.map(([name]) => name).join(","), ...items.map(item => columns.map(([, value]) => {
@@ -1243,6 +1304,8 @@
       ["Advance paid", p.advance ? fmtDate(p.advance) : ""],
       [`${GRID_SHORT[gridOf(p)]}'s lists`, `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtDate(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtDate(p.last_seen)}</a>`, true]
     ].filter(([, value]) => value);
+    const mf = maturityFact(p);
+    if (mf) facts.splice(1, 0, mf);
     document.getElementById("d-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
   }
 
