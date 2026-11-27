@@ -331,6 +331,20 @@ Everything else on the page is worked out in the browser from these fields:
   PLN 42 m; PGE Łomianki–Czosnów: 14.8 km double circuit, PLN 51 m); the bay, on-site substation, MV
   cable and easement figures are assumptions marked in `CONNECT`, to replace with quotes. Checked
   against the acts in force on 26 November 2026.
+- **Build the configuration (plot card and the summary card's Connection tab):** `land/connect.js`, on
+  a click. It reads the OpenStreetMap roads, tracks, watercourses and railways around the plot and the
+  substation from the Overpass API (one query; public instances in turn, 15 s each), finds the
+  shortest cable route along them, and costs it against a straight route across the fields
+  (+15%, easements all the way), keeping the cheaper. It sizes the design (MV: 15–20 kV circuits of
+  8 MW; above 20 MW: the plant's own 110/MV substation with 63 MVA transformers and a 110 kV cable to
+  a line bay; above 250 MW: 220/400 kV), counts the trenchless crossings (watercourses, ditches,
+  railways; crossings within 80 m merged), prices each item as a low–high range, and gives the
+  operator's fee, the cash up front, the timeline (transformer lead times of 18–30 months for 110 kV)
+  and the permits along the route; the route, the crossings, the substation and the bay are drawn
+  on the map. Calibration: operators' 2026 rates for 15–20 kV cable (PLN 195–220/m), Enea Operator's
+  129 transformers of 25–40 MVA for over PLN 444 m, Elektrotim–Solartech (PLN 53 m for two 110/20 kV
+  substations with a 110 kV cable), PGE's GPZ Czosnów (about PLN 18 m); the rest are assumptions
+  marked in the file. Roads © OpenStreetMap contributors (ODbL).
 - **Soil classes:** the legal soil class (I–VI) is on 86k of the 318k plots, where the county's
   EGiB service publishes it. KIEG (GUGiK's integration of the county services) has nothing more:
   none of 40 sampled counties without classes had them there (24 Nov 2026). The map offers GUGiK's

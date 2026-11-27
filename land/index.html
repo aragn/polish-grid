@@ -7,6 +7,7 @@
   <meta name="description" content="Land plots near the Polish substations that have room for new generation, demand or batteries: every registered plot of 0.5 ha or more within 3 km, filtered for a solar farm, battery, onshore wind turbine or data centre and the Polish rules for each, on satellite imagery.">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="connect.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -142,6 +143,8 @@
     .card-head { display:flex; align-items:center; gap:8px; }
     .card-head h3 { margin-bottom:8px; }
     .card-head .q-pdf { margin-bottom:8px; }
+    .conn-build { border:1px solid var(--border); background:var(--panel-2); color:var(--text); border-radius:7px; padding:5px 11px; font-size:12.5px; font-weight:600; cursor:pointer; margin:8px 0 4px; }
+    .conn-build:disabled { opacity:.6; cursor:wait; }
     #print-sheet { display:none; }
     #print-sheet.preparing { display:block; position:absolute; left:-10000px; top:0; width:186mm; }
     #print-sheet { --text:#111; --muted:#5b5b5b; --muted-2:#8a8a8a; --border:#d4d4d4; --panel:#fff; --panel-2:#f4f4f4; --plot:#d70015;
@@ -1396,8 +1399,34 @@
     const r = connectionCalc(p);
     if (!r.rows) return r.msg;
     return `<table class="conn">${r.rows.map(([a, b]) => `<tr><th>${a}</th><td>${b}</td></tr>`).join("")}</table>` +
-      `<span style="color:var(--muted)">Screening figures (PLN, 2026); the operator sets the connection point, voltage and fee in the conditions. Costs marked as assumptions in the page's source want a quote. Grid: BDOT10k.</span>`;
+      `<span style="color:var(--muted)">Screening figures (PLN, 2026); the operator sets the connection point, voltage and fee in the conditions. Costs marked as assumptions in the page's source want a quote. Grid: BDOT10k.</span>` + configHtml(p);
   }
+  /* ---- The configuration (land/connect.js): a cable route along OpenStreetMap roads and tracks (or across the fields,
+     whichever costs less), what has to be built for the project and what it costs; drawn on the map. ---- */
+  let connLast = null, connLayer = null, connBusy = false;
+  const connKey = p => `${p.id}|${state.kind}|${projectMw()}|${state.kind === "bess" ? $("mwh").value : ""}`;
+  function configHtml(p) {
+    const done = connLast && connLast.key === connKey(p);
+    return `<div><button type="button" class="conn-build" data-conn-build ${connBusy ? "disabled" : ""}>${connBusy ? "Reading the roads around the route…" : done ? "⚡ Rebuild the configuration" : "⚡ Build the configuration"}</button>` +
+      `<span style="color:var(--muted);font-size:12px"> cable route along roads, design and costs, on the map</span></div>` +
+      (done ? `<div class="conn-out">${GridConnect.html(connLast.r, connLast.d, connLast.other)}</div>` : connLast && connLast.err && connLast.key === connKey(p) ? `<p style="color:var(--muted)">${esc(connLast.err)}</p>` : "");
+  }
+  async function buildConfig() {
+    const p = plots.find(q => q.id === state.plot), st = p && index.stations[p.station];
+    if (!p || !p.geom || !st || st.lat == null || connBusy) return;
+    connBusy = true; renderCard();
+    const key = connKey(p);
+    try {
+      const route = await GridConnect.route(p.geom[0][0], { lon: st.lon, lat: st.lat });
+      const mw = projectMw(), { r, d, other } = GridConnect.plan({ mw, mwh: state.kind === "bess" ? +$("mwh").value || 0 : 0, kind: state.kind, usableHa: p.u ?? p.ha, stName: st.name }, route);
+      connLast = { key, r, d, other };
+      if (connLayer) connLayer.remove();
+      connLayer = GridConnect.draw(map, r, d, st.name);
+      if (other) L.polyline(other.r.path, { color: "#fff", weight: 2, opacity: 0.7, dashArray: "3 6", interactive: false }).addTo(connLayer);
+    } catch (e) { connLast = { key, err: `Couldn't build the configuration: ${e.message}` }; }
+    connBusy = false; renderCard();
+  }
+  document.addEventListener("click", e => { if (e.target.closest("[data-conn-build]")) buildConfig(); });
   // The figures behind the Grid connection row: { msg } while they can't be worked out, else { rows, facts }.
   function connectionCalc(p) {
     if (!p.geom) return { msg: "open the plot's site on the map to work this out" };
@@ -1629,7 +1658,8 @@
       `<p class="q-text">Connect at ${f.hv ? "110 kV" : "medium voltage"} to ${esc(f.stName)}, about <b>${f.routeKm.toFixed(1)} km</b> along a route crossing at least ${f.cross} other plot${f.cross === 1 ? "" : "s"} (each needs an easement). ` +
       (f.room == null ? "" : f.room >= f.mw ? `The group has room for ${f.room} MW in 2030, enough for ${f.mw} MW. ` : `${f.mw} MW is more than the group's ${f.room} MW of room in 2030: only a flexible or configurable agreement. `) +
       (f.hosts && state.kind !== "dc" ? `${f.hosts} existing plant${f.hosts === 1 ? "" : "s"} nearby could share a connection (cable pooling).` : "") + `</p>` +
-      `<p class="q-text">The operator must answer within ${f.days} days; conditions are valid one year. Security of ${plnOne(f.security)} within 14 days of signing. A building permit is due within ${wind ? 36 : 24} months for 80% of the capacity${state.kind === "bess" ? " (and of the energy)" : ""} (Energy Law art. 7, as amended by Dz.U. 2026 poz. 516).</p>`;
+      `<p class="q-text">The operator must answer within ${f.days} days; conditions are valid one year. Security of ${plnOne(f.security)} within 14 days of signing. A building permit is due within ${wind ? 36 : 24} months for 80% of the capacity${state.kind === "bess" ? " (and of the energy)" : ""} (Energy Law art. 7, as amended by Dz.U. 2026 poz. 516).</p>` +
+      `<div class="q-text">${configHtml(p)}</div>`;
   }
   function quickOther(p) {
     const gp = (p.gp || []).filter(g => ["solar", "battery", "wind"].includes(g[1]));
@@ -1725,6 +1755,7 @@
   }
   function renderCard() {
     const p = plots.find(q => q.id === state.plot);
+    if (connLayer && (!p || !connLast || connLast.key !== connKey(p))) { connLayer.remove(); connLayer = null; }
     renderQuick(p);
     $("card-box").hidden = !p;
     if (!p) return;
