@@ -1002,6 +1002,30 @@
       (g ? `<br>Its group of ${g.companies} numbered companies ("${esc(r.group)} …"): ${esc(recordText(g))}.` : "") +
       `<br><span style="color:var(--muted)">Matched by company name; most lists name applicants only since 2025, so records are short. ${p.phase === "agreement" ? "For projects holding an agreement this is the evidence the maturity score lacks; " : ""}not part of the score until outcomes from 2027 can test it. URE: api.ure.gov.pl, read ${esc(developers.built)} (licences WEE and MEE, register of small installations).</span>`, true];
   }
+  /* ---- Building permits that may belong to the project (data/queue_permits.json from etl/queue_permits.py): GUNB
+     decisions of its technology near its substation, of a similar size, decided no earlier than a year before its
+     conditions.  Leads, not proof: the permit's investor isn't known here. ---- */
+  let qPermits = null, qPermitsLoading = false;
+  function loadQueuePermits() {
+    if (qPermits || qPermitsLoading) return;
+    qPermitsLoading = true;
+    fetch("data/queue_permits.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => {
+      qPermits = d || { projects: {} };
+      if (state.openId != null) { const p = queue.projects.find(q => q.id === state.openId); if (p) renderFacts(p); }
+    }).catch(() => { qPermits = { projects: {} }; });
+  }
+  const PERMIT_KIND = { solar: "solar", battery: "battery", wind: "wind" };
+  function permitFact(p) {
+    if (!["study", "conditions", "agreement"].includes(p.phase) || p.left || !["solar", "storage", "wind", "hybrid"].includes(p.technology)) return null;
+    if (!qPermits) { loadQueuePermits(); return ["Possible building permit", "loading…"]; }
+    const list = qPermits.projects[p.id];
+    const radius = (qPermits.radius_km || {})[gridOf(p)] || (qPermits.radius_km || {}).default || 10;
+    if (!p.lat) return ["Possible building permit", "the substation isn't placed, so permits can't be looked for"];
+    if (!list) return ["Possible building permit", `none found: no ${p.technology === "storage" ? "battery" : p.technology === "hybrid" ? "solar, battery or wind" : p.technology} permit of a similar size within ${radius} km of the substation since a year before the conditions (or each nearby one fits another project better). <span style="color:var(--muted)">GUNB register.</span>`, true];
+    return ["Possible building permit", list.map(([date, k, mw, dist, region, commune, strength]) =>
+      `<b>${strength === "strong" ? "Strong lead" : "Weak lead"}</b>: ${fmtDate(date)}, ${PERMIT_KIND[k] || k}${mw ? `, ${mw < 1 ? Math.round(mw * 1000) + " kW" : mw + " MW"}` : ", size not stated"}, ${dist} km from the substation (${esc(region)}, ${esc(commune)})`).join("<br>") +
+      `<br><span style="color:var(--muted)">A building permit decision in GUNB's register of the project's technology within ${radius} km of its substation, decided no earlier than a year before its conditions. Strong: it states a size within 0.8–1.25 times the project's; weak: no size given, within 3 km. Each permit is given to the one project it fits best. A lead, not proof: the permit's investor isn't used here. Under the Energy Law a permit is due within 24 months of the agreement (36 for wind).</span>`, true];
+  }
   function maturityFact(p) {
     const m = maturity(p);
     if (m) return ["Maturity", `<b>${m.band.label}</b>, score ${m.score}: ${m.parts.map(([t, v]) => `${esc(t)} (${v > 0 ? "+" : ""}${v})`).join("; ")}. ` +
@@ -1337,7 +1361,8 @@
       ["Advance paid", p.advance ? fmtDate(p.advance) : ""],
       [`${GRID_SHORT[gridOf(p)]}'s lists`, `First: <a href="${esc(first?.url)}" target="_blank" rel="noopener">${fmtDate(p.first_seen)}</a> · latest: <a href="${esc(last?.url)}" target="_blank" rel="noopener">${fmtDate(p.last_seen)}</a>`, true]
     ].filter(([, value]) => value);
-    const mf = maturityFact(p), df = developerFact(p);
+    const mf = maturityFact(p), df = developerFact(p), pf = permitFact(p);
+    if (pf) facts.splice(1, 0, pf);
     if (df) facts.splice(1, 0, df);
     if (mf) facts.splice(1, 0, mf);
     document.getElementById("d-facts").innerHTML = facts.map(([k, v, raw]) => `<dt>${esc(k)}</dt><dd>${raw ? v : esc(v)}</dd>`).join("");
