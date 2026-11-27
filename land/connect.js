@@ -197,8 +197,8 @@
     } else if (level === "hv") {
       transformers = Math.max(1, Math.ceil(mw * 1.1 / C.transformerMva));
       const mvColl = o.kind === "dc" ? "MV" : "30 kV";
-      what = `the plant's own 110/${mvColl} substation on the plot (${transformers} × ${C.transformerMva} MVA transformer${transformers > 1 ? "s" : ""}), then a 110 kV cable underground to a line bay at ${o.stName}`;
-      items.push([`110/${mvColl} substation on the plot`, add(C.hvSubstation, mul(C.extraTransformer, transformers - 1)), "dev", `${transformers} × ${C.transformerMva} MVA, 110 kV and MV switchgear, protection, control building`]);
+      what = `the plant's own step-up substation on the plot (a GPO, 110/${mvColl}, ${transformers} × ${C.transformerMva} MVA transformer${transformers > 1 ? "s" : ""}), then a 110 kV cable underground to a new line bay in ${o.stName}`;
+      items.push([`The plant's GPO (110/${mvColl} step-up substation) on the plot`, add(C.hvSubstation, mul(C.extraTransformer, transformers - 1)), "dev", `${transformers} × ${C.transformerMva} MVA, 110 kV and MV switchgear, protection, control building`]);
       items.push([`110 kV cable × ${km.toFixed(2)} km`, mul(C.hvCablePerKm, km), "dev", "single circuit, XLPE, laying and joints"]);
       if (crossings) items.push([`Trenchless crossings (${crossings})`, mul(C.hddHv, crossings), "dev", "watercourses, ditches, railways"]);
       items.push([`110 kV line bay at ${o.stName}`, C.hvLineBay, "op", "built by the operator, charged in the fee"]);
@@ -254,6 +254,9 @@
       : `<b>${r.km.toFixed(2)} km</b> across the fields (${r.straightKm.toFixed(2)} km straight +15%), with easements all the way${r.note ? `; ${esc(r.note)}` : ""}`;
     return `<div style="font-size:13px;line-height:1.5">
       <div style="margin-bottom:8px"><b>${d.level === "mv" ? "Medium voltage" : d.level === "hv" ? "110 kV" : "220/400 kV"}</b>, connection group ${d.group}: ${esc(d.what)}.</div>
+      <div style="margin-bottom:8px;color:var(--muted)">${d.level === "mv" ? `Up to about ${CONNECT.hvAboveMw} MW the operator takes the plant on its medium-voltage busbars: no transformer of the plant's own beyond its inverter stations.`
+        : d.level === "hv" ? `Why a substation of the plant's own: above about ${CONNECT.hvAboveMw} MW the operators connect at 110 kV, and the GPZ's own 110/15 kV transformers feed the local MV network and can't take this power. So the plant steps up to 110 kV itself, as solar farms and batteries of this size in Poland do (a "GPO", owned by the developer); the operator's GPZ stays as it is and only gets a 110 kV line bay. When the GPZ is next door the GPO can stand beside it, but it is still the plant's.`
+        : "At this size PSE connects at 220 or 400 kV; the plant brings its own 400(220)/MV substation."}</div>
       <div style="margin-bottom:8px">Route: ${how}${other ? `; cheaper than ${other.r.method === "roads" ? `following the roads (${other.r.km.toFixed(2)} km, ${pln(other.d.total)})` : `going across the fields (${other.r.km.toFixed(2)} km with easements all the way, ${pln(other.d.total)})`}` : ""}. Crossings: ${r.cross.river} watercourse${r.cross.river === 1 ? "" : "s"}, ${r.cross.ditch} ditch${r.cross.ditch === 1 ? "" : "es"}, ${r.cross.rail} railway${r.cross.rail === 1 ? "" : "s"}.</div>
       ${d.fits ? `<div style="margin-bottom:8px">On the plot: ${d.fits[0] ? "fits" : "<b>tight</b>"}: ${esc(d.fits[1])}.</div>` : ""}
       <table style="width:100%;border-collapse:collapse;margin:6px 0 4px">${d.items.map(i => row(`${esc(i[0])}${i[2] === "op" ? ' <span style="color:var(--muted)">(operator)</span>' : ""}`, pln(i[1]), esc(i[3]))).join("")}
@@ -275,7 +278,7 @@
     for (let i = 1; i < r.path.length - 1; i += Math.max(1, Math.floor(r.path.length / 12))) L.circleMarker(r.path[i], { radius: 3, color: "#fff", weight: 1.5, fillColor: color, fillOpacity: 1 }).addTo(g);
     for (const c of r.cross.points || []) L.circleMarker(c, { radius: 6, color: "#fff", weight: 2, fillColor: "#e5484d", fillOpacity: 1 }).bindTooltip("Trenchless crossing (HDD)").addTo(g);
     const icon = (txt, bg) => L.divIcon({ className: "", iconSize: [0, 0], html: `<div style="transform:translate(-50%,-50%);background:${bg};color:#fff;font:600 11px system-ui,sans-serif;padding:3px 7px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.35)">${txt}</div>` });
-    L.marker(r.path[0], { icon: icon(d.level === "mv" ? "MV station" : `110/MV substation · ${d.transformers}×63 MVA`, "#e8930c"), interactive: false }).addTo(g);
+    L.marker(r.path[0], { icon: icon(d.level === "mv" ? "Plant's MV station" : `Plant's GPO 110/MV · ${d.transformers}×63 MVA`, "#e8930c"), interactive: false }).addTo(g);
     L.marker(r.path[r.path.length - 1], { icon: icon(`${d.level === "mv" ? "MV bay" : "110 kV bay"} · ${esc(stName)}`, "#0d1520"), interactive: false }).addTo(g);
     map.fitBounds(L.latLngBounds(r.path).pad(0.15), { maxZoom: 16, animate: false });
     return g;
