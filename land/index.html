@@ -332,7 +332,8 @@
     mvCablePerKm: [0.4e6, 0.8e6],         // ASSUMPTION: one MV circuit (3 × 1 × 240–400 mm² Al), trenching included
     hvLineBay: [3e6, 8e6],                // ASSUMPTION: a new 110 kV line bay in an existing GPZ (commercial guides: "a few to a dozen million" with transformers)
     mvBay: [0.3e6, 0.8e6],                // ASSUMPTION: an MV feeder bay in the GPZ
-    hvSubstation: [10e6, 20e6],           // ASSUMPTION: the plant's own 110/MV substation, ~63 MVA, switchgear, protection, building
+    hvSubstation: [10e6, 20e6],           // ASSUMPTION: the plant's own 110/MV substation with one 63 MVA transformer, switchgear, protection, building;
+                                          // each further transformer, its size and the 150 and 250 MW limits from connect.js (GridConnect.CONNECT)
     easementPerM: [80, 250],              // ASSUMPTION: one-off payment per metre of underground route on farmland; a valuation report sets it
     advancePerKw: 60, advanceMax: 6e6,    // Energy Law art. 7(8a)–(8b), and never above the expected fee
     applicationPerKw: 1, applicationMax: 1e5,   // art. 7(8b1)
@@ -1436,7 +1437,7 @@
     const st = index.stations[p.station];
     if (!st || st.lat == null) return { msg: "the substation isn't placed yet" };
     if (!(p.station in gridCache) || gridCache[p.station] === undefined) { loadGridFor(p.station); return { msg: "reading the grid around the substation…" }; }
-    const C = CONNECT, k = state.kind, grid = gridCache[p.station] || { lines: {} };
+    const C = CONNECT, G = GridConnect.CONNECT, k = state.kind, grid = gridCache[p.station] || { lines: {} };
     const mw = projectMw(), kw = mw * 1000, mwh = k === "bess" ? +$("mwh").value || 0 : 0;
     const area = capacity.areas.find(a => a.id === groupOf(p.station));
     const room = area ? Math.round(((k === "bess" ? area.bess : k === "dc" ? area.dem : area.gen) || {})["2030"] || 0) : null;
@@ -1452,13 +1453,17 @@
     const shareText = share === 0.5 ? (k === "bess" ? "Half of the operator's actual cost, for storage (Energy Law art. 7(8) pkt 6)" : "Half of the operator's actual cost, for a renewable source of 5 MW or less (Energy Law art. 7(8) pkt 3 lit. a)") : k === "dc" ? "The operator's full actual cost (Energy Law art. 7(8) pkt 8)" : "The operator's full actual cost, for a source (Energy Law art. 7(8) pkt 3)";
     const opts = [];
     let totalA = null;
+    // one 63 MVA transformer per ~57 MW (10% margin, as in connect.js), each beyond the first priced on its own
+    const transformers = hv ? Math.max(1, Math.ceil(mw * 1.1 / G.transformerMva)) : 0;
+    const ownSub = addR(C.hvSubstation, mulR(G.extraTransformer, Math.max(0, transformers - 1)));
+    const subText = `${transformers} × ${G.transformerMva} MVA transformer${transformers > 1 ? "s" : ""}`;
     if (hv) {
-      const cable = mulR(C.hvCablePerKm, routeKm), total = addR(cable, C.hvLineBay, C.hvSubstation, easement);
+      const cable = mulR(C.hvCablePerKm, routeKm), total = addR(cable, C.hvLineBay, ownSub, easement);
       totalA = total;
-      opts.push(`<b>A. 110 kV cable to a line bay in the GPZ</b> (the usual way): the plant's own 110/MV substation on the plot, then about ${routeKm.toFixed(1)} km of 110 kV cable underground to a new or spare line bay at ${esc(st.name)}. Cable ${pln(cable)}, bay ${pln(C.hvLineBay)}, substation on the plot ${pln(C.hvSubstation)}, easements ${pln(easement)}: <b>about ${pln(total)}</b>.`);
+      opts.push(`<b>A. 110 kV cable to a line bay in the GPZ</b> (the usual way): the plant's own 110/MV substation on the plot (${subText}), then about ${routeKm.toFixed(1)} km of 110 kV cable underground to a new or spare line bay at ${esc(st.name)}. Cable ${pln(cable)}, bay ${pln(C.hvLineBay)}, substation on the plot ${pln(ownSub)}, easements ${pln(easement)}: <b>about ${pln(total)}</b>.`);
       if (routeKm < 1.5) {
-        const n = Math.ceil(mw / C.mv30CircuitMw), cable30 = mulR(C.mvCablePerKm, routeKm * n), totalB = addR(cable30, C.hvLineBay, C.hvSubstation, mulR(easement, 1.3));
-        opts.push(`<b>B. MV cables to a transformer next to the GPZ:</b> ${n} × 30 kV circuits of about ${routeKm.toFixed(1)} km to the plant's own 110/30 kV transformer beside ${esc(st.name)}. Cheaper per km over a short route, but it needs land at the GPZ and the operator's agreement: <b>about ${pln(totalB)}</b>.`);
+        const n = Math.ceil(mw / C.mv30CircuitMw), cable30 = mulR(C.mvCablePerKm, routeKm * n), totalB = addR(cable30, C.hvLineBay, ownSub, mulR(easement, 1.3));
+        opts.push(`<b>B. MV cables to a transformer next to the GPZ:</b> ${n} × 30 kV circuits of about ${routeKm.toFixed(1)} km to the plant's own 110/30 kV substation (${subText}) beside ${esc(st.name)}. Cheaper per km over a short route, but it needs land at the GPZ and the operator's agreement: <b>about ${pln(totalB)}</b>.`);
       }
     } else {
       const n = Math.max(1, Math.ceil(mw / C.mvCircuitMw)), cable = mulR(C.mvCablePerKm, routeKm * n), total = addR(cable, mulR(C.mvBay, n), easement);
@@ -1484,8 +1489,11 @@
     const owners = [...new Set(cross.flatMap(q => groupsOf(q)))].map(g => OWNER[g] || `group ${g}`);
     const roomText = room == null ? "" : room >= mw ? `The group has room for <b>${room} MW</b> in 2030 (${k === "bess" ? "storage" : k === "dc" ? "demand" : "feed-in"}), enough for ${mw} MW.`
       : `${mw} MW is more than the group's ${room} MW of room in 2030: only a flexible or configurable agreement (Energy Law art. 7¹, 7²), at the operator's choice.`;
+    const second = addR(mulR(C.hvCablePerKm, routeKm), C.hvLineBay);
+    const largeText = mw > G.ehvAboveMw ? `<br><b>At ${mw} MW PSE usually connects at 220 or 400 kV</b>, with the plant's own 400(220)/MV substation (order of ${pln(G.ehvSubstation)}) and a bay at a PSE station; the 110 kV figures below are a lower bound. Ask PSE and the DSO which.`
+      : mw > G.largeHvMw ? `<br>` + `Above about ${G.largeHvMw} MW one 110 kV cable and bay is often not enough (in practice a single 110 kV circuit carries about 100–150 MW, and an operator rarely gives one plant more of a GPZ): expect it to ask for two bays and two cables, possibly to two GPZs, or to point the plant to a PSE station at 220/400 kV. A second bay and cable would add about ${pln(second)}.` : "";
     const rows = [
-      ["How", `<b>${hv ? "110 kV" : "medium voltage"}</b>, connection group ${hv ? "II" : "III"} (grid regulation § 3(1)); the operator must issue conditions within <b>${hv ? 150 : 120} days</b> (Energy Law art. 7(8g)). ${roomText}`],
+      ["How", `<b>${hv ? "110 kV" : "medium voltage"}</b>, connection group ${hv ? "II" : "III"} (grid regulation § 3(1)); the operator must issue conditions within <b>${hv ? 150 : 120} days</b> (Energy Law art. 7(8g)). ${roomText}${largeText}`],
       ["Route", `${km.toFixed(2)} km in a straight line to ${esc(st.name)}, about <b>${routeKm.toFixed(1)} km</b> along a route (${km.toFixed(1)}–${(km * 1.5).toFixed(1)} km). It crosses at least <b>${cross.length}</b> other registered plot${cross.length === 1 ? "" : "s"}${owners.length ? ` (${owners.join(", ")})` : ""}: each needs an easement (służebność przesyłu, Civil Code art. 305¹–305²), agreed case by case, or the route follows a public road.`],
       ["Grid nearby", `nearest MV line <b>${fmtM(mvD)}</b>${hv && mvD != null ? " (site power during construction, auxiliaries)" : ""}, nearest 110 kV line <b>${fmtM(hvD)}</b>; 110 kV lines ending at the GPZ: ${hvIn} (BDOT10k; whether a bay is free only the operator knows).`],
       ["Options", opts.map(o => `<div style="margin:3px 0">${o}</div>`).join("")],
