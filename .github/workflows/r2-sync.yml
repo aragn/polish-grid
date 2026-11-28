@@ -1,6 +1,7 @@
 # Builds the app's data model (etl/model.py) and uploads it, with the data files, to the app's private R2 bucket.
-# Runs after each data job finishes, and daily as a fallback. Does nothing until the R2 secrets are set
-# (R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET).
+# Runs after each data job finishes, and daily as a fallback. Does nothing until the account id and keys are set:
+# the R2 access key id is the secret README, its secret key README1; the account id is the repository variable
+# (or secret) R2_ACCOUNT_ID; the bucket is ariadne-data unless the variable R2_BUCKET says otherwise.
 
 name: Sync app data to R2
 
@@ -24,10 +25,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID || vars.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.README }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.README1 }}
+      R2_BUCKET: ${{ vars.R2_BUCKET || 'ariadne-data' }}
     steps:
       - uses: actions/checkout@v4
         with:
