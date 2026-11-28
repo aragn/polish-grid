@@ -410,6 +410,91 @@ def place_group(places, names, op):
     return out
 
 
+# PSE's new stations are named "stacja w rejonie Opola", "stacja w rejonie Opola (Wrzoski)", "stacja Żagań (Marszów)":
+# the town in the genitive after "w rejonie", and the site, if any, in brackets.
+GENITIVE = {"Warszawy": "Warszawa", "Legnicy": "Legnica", "Stalowej Woli": "Stalowa Wola", "Opola": "Opole", "Złoczewa": "Złoczew",
+            "Poznania": "Poznań", "Konina": "Konin", "Trójmiasta": "Gdańsk", "Torunia": "Toruń", "Kutna": "Kutno", "Włocławka": "Włocławek"}
+SITE_KM = 40           # a site named in brackets is taken only this close to the town the station is "w rejonie" of
+KINDS = ["city", "town", "village", "suburb", "quarter", "hamlet"]
+
+
+def site_names(name, title):
+    """The names a planned station's site may go by: PSE's name without "stacja" and "w rejonie ...", the names in
+    brackets (PSE's and the plan title's, not "(linia ...)" or "(aglomeracja)"), and the plan title's station name."""
+    out = []
+    for text in (name, title):
+        out += [m for m in re.findall(r"\(([^)]+)\)", text) if m[:1].isupper()]
+    bare = re.sub(r"\s*\([^)]*\)", "", name)
+    bare = re.sub(r"^stacja\s+", "", bare).strip()
+    if not re.match(r"(w rejonie|na terenie|na obszarze)\b", bare):
+        out += [re.sub(r"^stacja\s+", "", name).strip(), bare]
+    named = re.search(r"\bkV\s+(.+?)(?:\s+(?:w rejonie|przy|z|na|o)\b.*)?$", title or "")
+    if named and named.group(1)[:1].isupper():
+        out += [named.group(1).strip(), re.sub(r"\s*\([^)]*\)", "", named.group(1)).strip()]
+    seen, unique = set(), []
+    for n in out:
+        if n and fold(n) not in seen:
+            seen.add(fold(n))
+            unique.append(n)
+    return unique
+
+
+def place_new(s, hint, places, future):
+    """Places one of PSE's planned demand stations, only inside the voivodeship the plan puts it in
+    (etl/pse_new_stations.json), in this order:
+      station  PSE already lists it ("w przyszłości") among its own stations: that station's position;
+      named    its site (in brackets, or its own name) is a place or substation there, near its town if it has one;
+      near     only its town is known ("w rejonie Opola" -> Opole, a city or town): approx, the site isn't published.
+    """
+    title = hint.get("draft", hint.get("plan", {})).get("title") or ""
+    voivodeship = hint.get("voivodeship")
+    regions = [voivodeship] if voivodeship else [name for name, _ in places.regions]
+    lat = lon = how = None
+    names = site_names(s["name"], title)
+
+    region = re.search(r"\brejonie\s+(.+?)(?:\s*\(|$)", s["name"])
+    town = hint.get("near") or (GENITIVE.get(region.group(1).strip(), region.group(1).strip()) if region else None)
+    anchor = None
+    if town:
+        found = places._pick(places.places.get(fold(town), []), regions)
+        if not hint.get("near"):
+            found = [f for f in found if f[0][2] in ("city", "town")]   # "w rejonie Legnicy" is the city, not a hamlet
+        beside = None
+        if hint.get("beside"):
+            b = places._pick(places.places.get(fold(hint["beside"]), []), regions)
+            beside = b[0][0] if b else None
+        found.sort(key=lambda f: (km(beside[:2], f[0][:2]) if beside else 0, KINDS.index(f[0][2])))
+        anchor = found[0][0][:2] if found else None
+
+    for n in names:
+        if fold(n) in future:
+            a = future[fold(n)]
+            if places.region(a["lat"], a["lon"]) in regions:
+                lat, lon, how = a["lat"], a["lon"], "station"
+                break
+    if how is None:
+        for n in names:
+            if anchor and fold(n) == fold(town):
+                continue
+            found = [((f[0][0], f[0][1]), 0) for f in places._pick(places.subs.get(clean_name(n), []), regions)]
+            found += [((f[0][0], f[0][1]), 1 + KINDS.index(f[0][2])) for f in places._pick(places.places.get(fold(n), []), regions)]
+            if anchor:
+                found = [f for f in found if km(anchor, f[0]) <= SITE_KM]
+            if found:
+                found.sort(key=lambda f: (f[1], km(anchor, f[0]) if anchor else 0))
+                (lat, lon), how = found[0][0], "named"
+                break
+    if how is None and anchor:
+        (lat, lon), how = anchor, "near"
+    if lat is not None:
+        lat, lon = round(lat, 5), round(lon, 5)
+    entry = {**s, "lat": lat, "lon": lon, "how": how, "approx": how in ("near", None), "voivodeship": voivodeship}
+    entry.update({f"{k}_{f}": hint[k][f] for k in ("plan", "draft") if k in hint for f in ("item", "end")})
+    if title:
+        entry["title"] = title
+    return entry
+
+
 def queue_projects():
     out = []
     for name in ("queue.json", "queue_dso.json"):
@@ -540,33 +625,9 @@ def build(tauron, energa, pge, pse):
                       "stations": [{"name": name, "lat": lat, "lon": lon, "how": "station" if info else ("substation" if lat else None)}],
                       "queue": tally(pse_queue.get(fold(canonical), []) + ([] if fold(canonical) == fold(name) else pse_queue.get(fold(name), [])))})
 
-    # PSE's planned new stations for demand ("stacja w rejonie Opola" is placed at Opole, approximately).
-    new = []
-    for s in pse["new"]:
-        lat = lon = None
-        how = None
-        named = re.search(r"\(([^)]+)\)", s["name"]) or re.search(r"stacja\s+([A-ZŁŚŻ][\wąćęłńóśźż]+)$", s["name"])
-        region = re.search(r"w rejonie\s+(.+?)$", s["name"])
-        for candidate in [named.group(1) if named else None, s["name"].split("–")[-1].strip()]:
-            if candidate:
-                place = places.substation(candidate, "pge") or places.substation(candidate, "energa") or places.substation(candidate, "tauron") or places.substation(candidate, "enea")
-                if place:
-                    lat, lon, how = round(place[0], 5), round(place[1], 5), "named"
-                    break
-        if lat is None and region:
-            town = region.group(1).strip()
-            stem = {"Warszawy": "Warszawa", "Legnicy": "Legnica", "Stalowej Woli": "Stalowa Wola", "Opola": "Opole", "Złoczewa": "Złoczew",
-                    "Poznania": "Poznań", "Konina": "Konin", "Trójmiasta": "Gdańsk", "Torunia": "Toruń", "Portu Polska": "Baranów",
-                    "Kutna": "Kutno", "Włocławka": "Włocławek"}.get(town, town)
-            for op in ("pge", "energa", "tauron", "enea"):
-                place = places.settlement(stem, [r for r in __import__("dso_build").OPERATORS[op]["regions"]])
-                if place:
-                    lat, lon, how = round(place[0], 5), round(place[1], 5), "near"
-                    break
-        years = PLAN_YEARS["stations"].get(s["code"], {})
-        new.append({**s, "lat": lat, "lon": lon, "how": how,
-                    **{f"{k}_{f}": years[k][f] for k in ("plan", "draft") if k in years for f in ("item", "end")},
-                    **({"title": years.get("draft", years.get("plan", {})).get("title")} if years else {})})
+    # PSE's planned new stations for demand.
+    future = {fold(a["name"]): a for a in areas if a["op"] == "pse" and a.get("future") and a["lat"] is not None}
+    new = [place_new(s, PLAN_YEARS["stations"].get(s["code"], {}), places, future) for s in pse["new"]]
 
     operators = {
         "tauron": {"name": NAMES["tauron"], "asof": tauron.get("asof"), "page": TAURON_PAGE,
