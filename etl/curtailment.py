@@ -15,8 +15,9 @@ about 80,000 rows since 24 September 2024, in pages of 5,000.
 Solar and wind output for the share curtailed comes from data/generation/PL/<month>.json (ENTSO-E A75,
 etl/generation.py): B16 solar, B18 offshore and B19 onshore wind.
 
-Writes data/curtailment.json: months (MWh by type and reason, and output), the average day by hour,
-the largest days, and yearly totals.
+Writes data/curtailment.json: months (MWh by type and reason, and output), the average day by hour
+(over every calendar day covered in the year, `profile_days`), the MWh cut on each day, the largest
+days, and yearly totals.
 """
 
 import collections
@@ -78,6 +79,18 @@ def generation_by_month():
     return out
 
 
+def calendar_days(first, last):
+    """Calendar days from first to last (ISO dates, both included), by year."""
+    out = {}
+    if not first or not last:
+        return out
+    start, end = datetime.date.fromisoformat(first), datetime.date.fromisoformat(last)
+    for year in range(start.year, end.year + 1):
+        a, b = max(start, datetime.date(year, 1, 1)), min(end, datetime.date(year, 12, 31))
+        out[str(year)] = (b - a).days + 1
+    return out
+
+
 def build(rows):
     months = collections.defaultdict(lambda: collections.Counter())
     days = collections.defaultdict(lambda: collections.Counter())
@@ -114,19 +127,23 @@ def build(rows):
         for k in list(KEYS.values()) + ["pv_gen", "wi_gen"]:
             y[k] += entry.get(k) or 0
         y["months"] += 1
-    year_days = collections.Counter(d[:4] for d in days)
+    # The average day is over every calendar day the report covers in that year (from 24 September 2024 to the
+    # latest day with data), days with no cuts included: days with cuts alone would overstate it.
+    year_days = calendar_days(first, last_with_data or (rows[-1]["business_date"] if rows else None))
     profile = {}
     for (year, hour), counter in hours.items():
         profile.setdefault(year, [dict.fromkeys(KEYS.values(), 0) for _ in range(24)])
         for k in KEYS.values():
-            profile[year][hour][k] = round(counter[k] / max(1, year_days[year]), 1)   # average MWh in that hour per day
+            profile[year][hour][k] = round(counter[k] / max(1, year_days.get(year, 0)), 1)   # average MWh in that hour per day
     top = sorted(days.items(), key=lambda item: -sum(item[1].values()))[:15]
     return {
         "source": PAGE, "api": API, "first": first, "last": last_with_data,
         "months": month_list,
         "years": {y: {k: round(v) for k, v in c.items()} for y, c in sorted(years.items())},
-        "profile": profile, "profile_days": dict(year_days),
+        "profile": profile, "profile_days": year_days,
         "days_with": {y: sum(1 for d, c in days.items() if d[:4] == y and sum(c.values()) > 0) for y in sorted(year_days)},
+        # MWh cut on each day with a cut, by type and reason (days with none are left out).
+        "days": {d: {k: round(c[k], 1) for k in KEYS.values()} for d, c in sorted(days.items()) if sum(c.values()) > 0},
         "top_days": [{"day": d, **{k: round(c[k]) for k in KEYS.values()}} for d, c in top],
     }
 

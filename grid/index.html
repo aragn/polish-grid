@@ -360,7 +360,7 @@
         </div>
         <div class="curt-box">
           <div class="row"><div class="curt-title">The average day</div><div class="seg" id="curt-year"></div></div>
-          <div class="curt-sub">MWh cut in each hour, averaged over every day of the year (Polish time)</div>
+          <div class="curt-sub">MWh cut in each hour, averaged over every day of the year covered, days with no cuts included (Polish time)</div>
           <div id="curt-hour"></div>
         </div>
       </div>
@@ -617,7 +617,7 @@
         row("Due (draft plan 2027–2036)", s.draft_end ? `${s.draft_end} · ${esc(s.draft_item)}` : "not found") +
         row("Due (agreed plan 2025–2034)", s.plan_end ? `${s.plan_end} · ${esc(s.plan_item)}` : "not found") +
         `<div style="margin-top:4px">${due == null ? "No completion year found" : due <= state.year ? `<b>Built by ${state.year}</b> on the ${state.plan === "draft" ? "draft" : "agreed"} plan` : `Not yet built in ${state.year}: due ${due}`}</div>` +
-        `<div style="color:${muted};margin-top:4px">${s.how === "near" ? "Placed at the town it is named after: the site isn't published." : "Placed at the station it is named after."}</div></div>`;
+        `<div style="color:${muted};margin-top:4px">${newPlaced(s)}</div></div>`;
     }
     if (params.seriesId === "sat") {
       const s = params.data.sat;
@@ -717,10 +717,15 @@
       ]
     }, true);
     $("new-table").innerHTML = `<thead><tr><th>Station</th><th class="num">MW for demand</th><th class="num">Due, draft 2027–2036</th><th class="num">Due, agreed 2025–2034</th><th>Plan items</th></tr></thead><tbody>` +
-      rows.map(({ s }) => `<tr><td><b>${esc(s.code)}</b> · ${esc(s.name)}<div class="sub">${esc(s.title || "")}${s.how === "near" ? " · placed at the town it's named after" : ""}</div></td>` +
+      rows.map(({ s }) => `<tr><td><b>${esc(s.code)}</b> · ${esc(s.name)}<div class="sub">${esc(s.title || "")}${s.lat == null ? " · not on the map: PSE names only the region" : s.approx ? " · placed at the town it's named after" : ""}</div></td>` +
         `<td class="num">${fmtNum(s.mw)}</td><td class="num ${s.draft_end && s.draft_end <= state.year ? "due-ok" : ""}">${s.draft_end ?? "–"}</td>` +
         `<td class="num ${s.plan_end && s.plan_end <= state.year ? "due-ok" : ""}">${s.plan_end ?? "–"}</td><td>${[s.draft_item ? "draft " + esc(s.draft_item) : "", s.plan_item ? "agreed " + esc(s.plan_item) : ""].filter(Boolean).join(" · ")}</td></tr>`).join("") + `</tbody>`;
   }
+
+  // Where a planned PSE station is drawn: PSE's own position for it, the place its site is named after, or (approx) the town.
+  const newPlaced = s => s.how === "station" ? "Placed where PSE's own list of stations puts it." :
+    s.how === "named" ? "Placed at the place its site is named after." : s.lat == null ? "Not on the map: PSE names only the region." :
+    "Placed at the town it is named after: the site isn't published.";
 
   const CURT = [["pv_bal", "Solar, balancing", "--pv-bal"], ["pv_net", "Solar, network", "--pv-net"], ["wi_bal", "Wind, balancing", "--wi-bal"], ["wi_net", "Wind, network", "--wi-net"]];
   const fmtGwh = mwh => `${(mwh / 1000).toLocaleString("en", { maximumFractionDigits: mwh >= 100000 ? 0 : 1 })} GWh`;
