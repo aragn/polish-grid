@@ -3,3 +3,6 @@ __pycache__/
 .DS_Store
 # The DSOs' storage registers carry contact phones and e-mails: only the parsed, trimmed rows are kept.
 archive/*/rejestr-magazynow-energii.xlsx
+
+# the app data model, built by etl/model.py and uploaded to R2, never committed
+/model/
